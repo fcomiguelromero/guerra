@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="858" viewBox="0 0 390 858">
+  <defs>
+    <pattern id="rejilla" width="39" height="39" patternUnits="userSpaceOnUse"><path d="M39 0H0V39" fill="none" stroke="#8f7bff" stroke-opacity="0.1" stroke-width="1"/></pattern>
+    <path id="cota" d="M0 -60C40 -62 78 -30 70 6C64 42 30 64 -8 60C-48 56 -76 30 -70 -6C-64 -40 -36 -58 0 -60Z"/>
+  </defs>
+  <rect width="390" height="858" fill="url(#rejilla)"/>
+  <g fill="none" stroke="#5ef0d0" stroke-opacity="0.14" stroke-width="1.2">
+    <use href="#cota" transform="translate(300 150) scale(0.5)"/>
+    <use href="#cota" transform="translate(300 150) scale(0.9)"/>
+    <use href="#cota" transform="translate(300 150) scale(1.3)"/>
+    <use href="#cota" transform="translate(300 150) scale(1.7)"/>
+  </g>
+  <g fill="none" stroke="#8f7bff" stroke-opacity="0.16" stroke-width="1.2">
+    <use href="#cota" transform="translate(70 640) rotate(35) scale(0.6)"/>
+    <use href="#cota" transform="translate(70 640) rotate(35) scale(1)"/>
+    <use href="#cota" transform="translate(70 640) rotate(35) scale(1.4)"/>
+    <use href="#cota" transform="translate(70 640) rotate(35) scale(1.8)"/>
+  </g>
+  <path d="M-10 455C60 425 110 490 190 455S320 420 400 450" fill="none" stroke="#ff6ad5" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="7 6"/>
+  <g fill="none" stroke-linecap="round" stroke-width="12">
+    <path d="M40 800C70 690 150 640 230 600" stroke="#5ef0d0" stroke-opacity="0.18"/>
+    <path d="M370 40C330 120 260 170 170 200" stroke="#ff6ad5" stroke-opacity="0.18"/>
+  </g>
+  <polygon points="246,592 231.8,612.5 221,591.1" fill="#5ef0d0" fill-opacity="0.18"/>
+  <polygon points="153,205.7 170,187.3 177.6,210.1" fill="#ff6ad5" fill-opacity="0.18"/>
+  <g fill="none" stroke-width="1.5" stroke-opacity="0.5">
+    <g stroke="#5ef0d0"><rect x="96" y="740" width="24" height="16"/><path d="M96 740l24 16M120 740l-24 16"/></g>
+    <g stroke="#ff6ad5"><rect x="300" y="60" width="24" height="16"/><path d="M300 60l24 16M324 60l-24 16"/></g>
+    <g stroke="#ff6ad5"><rect x="340" y="250" width="24" height="16"/><path d="M340 250l24 16M364 250l-24 16"/></g>
+  </g>
+</svg>

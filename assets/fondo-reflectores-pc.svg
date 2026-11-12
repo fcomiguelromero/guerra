@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="860" viewBox="0 0 1280 860">
+  <defs>
+    <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0b1a"/><stop offset="0.6" stop-color="#140f2b"/><stop offset="1" stop-color="#26183f"/></linearGradient>
+    <linearGradient id="haz-t" gradientUnits="userSpaceOnUse" x1="310" y1="860" x2="910" y2="0"><stop offset="0" stop-color="#5ef0d0" stop-opacity="0.3"/><stop offset="1" stop-color="#5ef0d0" stop-opacity="0"/></linearGradient>
+    <linearGradient id="haz-p" gradientUnits="userSpaceOnUse" x1="1245" y1="860" x2="680" y2="0"><stop offset="0" stop-color="#ff6ad5" stop-opacity="0.28"/><stop offset="1" stop-color="#ff6ad5" stop-opacity="0"/></linearGradient>
+    <filter id="humo" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>
+  </defs>
+  <rect width="1280" height="860" fill="url(#cielo)"/>
+  <polygon points="296,860 326,860 1010,0 800,0" fill="url(#haz-t)"/>
+  <polygon points="1230,860 1260,860 780,0 580,0" fill="url(#haz-p)"/>
+  <g filter="url(#humo)" fill="#8f7bff" fill-opacity="0.14">
+    <ellipse cx="520" cy="620" rx="260" ry="56"/>
+    <ellipse cx="1060" cy="420" rx="240" ry="50"/>
+    <ellipse cx="780" cy="190" rx="300" ry="48"/>
+  </g>
+  <g fill="#ffd36a">
+    <circle cx="300" cy="120" r="1.6" fill-opacity="0.6"/>
+    <circle cx="380" cy="60" r="1.2" fill-opacity="0.5"/>
+    <circle cx="470" cy="210" r="1.8" fill-opacity="0.7"/>
+    <circle cx="560" cy="90" r="1.3" fill-opacity="0.5"/>
+    <circle cx="650" cy="300" r="1.5" fill-opacity="0.6"/>
+    <circle cx="720" cy="160" r="1.1" fill-opacity="0.5"/>
+    <circle cx="830" cy="80" r="1.7" fill-opacity="0.6"/>
+    <circle cx="900" cy="260" r="1.2" fill-opacity="0.5"/>
+    <circle cx="980" cy="140" r="1.6" fill-opacity="0.7"/>
+    <circle cx="1060" cy="60" r="1.3" fill-opacity="0.5"/>
+    <circle cx="1140" cy="230" r="1.8" fill-opacity="0.6"/>
+    <circle cx="1220" cy="120" r="1.2" fill-opacity="0.5"/>
+    <circle cx="1250" cy="360" r="1.5" fill-opacity="0.6"/>
+    <circle cx="260" cy="380" r="1.3" fill-opacity="0.5"/>
+  </g>
+  <path d="M220 780C250 770 270 766 296 772C316 760 340 760 360 772C384 764 406 766 426 776C470 780 520 778 560 784C590 772 616 772 640 782C676 776 706 778 740 786C780 780 820 782 860 788C890 776 916 776 940 786C980 780 1020 782 1060 790C1100 782 1140 784 1180 792C1220 786 1250 788 1280 794V860H220Z" fill="#07060d" stroke="#3a3566" stroke-width="1.5"/>
+  <g fill="#07060d" stroke="#3a3566" stroke-width="1">
+    <rect x="300" y="716" width="5" height="60"/>
+    <rect x="420" y="720" width="5" height="58"/>
+    <rect x="540" y="718" width="5" height="64"/>
+    <rect x="660" y="722" width="5" height="62"/>
+    <rect x="780" y="718" width="5" height="66"/>
+    <rect x="900" y="724" width="5" height="62"/>
+    <rect x="1020" y="720" width="5" height="68"/>
+  </g>
+  <g fill="none" stroke="#5a5490" stroke-width="1.3">
+    <path d="M302 726l12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12 12-12 12 12"/>
+    <path d="M302 750l12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10"/>
+  </g>
+  <path d="M1130 792L1162 618" stroke="#07060d" stroke-width="6" stroke-linecap="round"/>
+  <polygon points="1162,618 1214,630 1196,641 1218,656 1158,652" fill="#ff6ad5" fill-opacity="0.55"/>
+</svg>

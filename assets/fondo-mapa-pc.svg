@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="880" viewBox="0 0 1280 880">
+  <defs>
+    <pattern id="rejilla" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#8f7bff" stroke-opacity="0.1" stroke-width="1"/></pattern>
+    <path id="cota" d="M0 -60C40 -62 78 -30 70 6C64 42 30 64 -8 60C-48 56 -76 30 -70 -6C-64 -40 -36 -58 0 -60Z"/>
+  </defs>
+  <rect width="1280" height="880" fill="url(#rejilla)"/>
+  <g fill="none" stroke="#5ef0d0" stroke-opacity="0.14" stroke-width="1.2">
+    <use href="#cota" transform="translate(400 250) scale(0.8)"/>
+    <use href="#cota" transform="translate(400 250) scale(1.3)"/>
+    <use href="#cota" transform="translate(400 250) scale(1.8)"/>
+    <use href="#cota" transform="translate(400 250) scale(2.3)"/>
+    <use href="#cota" transform="translate(1060 170) rotate(-20) scale(0.5)"/>
+    <use href="#cota" transform="translate(1060 170) rotate(-20) scale(0.9)"/>
+    <use href="#cota" transform="translate(1060 170) rotate(-20) scale(1.3)"/>
+  </g>
+  <g fill="none" stroke="#8f7bff" stroke-opacity="0.16" stroke-width="1.2">
+    <use href="#cota" transform="translate(1110 650) rotate(20) scale(0.8)"/>
+    <use href="#cota" transform="translate(1110 650) rotate(20) scale(1.3)"/>
+    <use href="#cota" transform="translate(1110 650) rotate(20) scale(1.8)"/>
+    <use href="#cota" transform="translate(1110 650) rotate(20) scale(2.3)"/>
+  </g>
+  <path d="M220 520C380 470 470 590 640 540S900 470 1060 520S1240 560 1290 530" fill="none" stroke="#ff6ad5" stroke-opacity="0.4" stroke-width="2" stroke-dasharray="8 7"/>
+  <g fill="none" stroke-linecap="round" stroke-width="14">
+    <path d="M280 840C320 720 420 650 560 610" stroke="#5ef0d0" stroke-opacity="0.18"/>
+    <path d="M1250 60C1180 170 1080 230 960 260" stroke="#ff6ad5" stroke-opacity="0.18"/>
+  </g>
+  <polygon points="577.3,605.1 559.5,622.6 552.9,599.6" fill="#5ef0d0" fill-opacity="0.18"/>
+  <polygon points="942.5,264.4 961,247.4 966.8,270.6" fill="#ff6ad5" fill-opacity="0.18"/>
+  <g fill="none" stroke-width="1.5" stroke-opacity="0.5">
+    <g stroke="#5ef0d0"><rect x="300" y="760" width="28" height="18"/><path d="M300 760l28 18M328 760l-28 18"/></g>
+    <g stroke="#5ef0d0"><rect x="640" y="700" width="28" height="18"/><path d="M640 700l28 18M668 700l-28 18"/></g>
+    <g stroke="#ff6ad5"><rect x="1150" y="90" width="28" height="18"/><path d="M1150 90l28 18M1178 90l-28 18"/></g>
+    <g stroke="#ff6ad5"><rect x="1010" y="340" width="28" height="18"/><path d="M1010 340l28 18M1038 340l-28 18"/></g>
+  </g>
+  <g font-family="'Barlow Condensed', 'Arial Narrow', sans-serif" font-size="12" font-weight="700" fill="#8f7bff" fill-opacity="0.45">
+    <text x="280" y="22">A</text><text x="400" y="22">B</text><text x="520" y="22">C</text><text x="640" y="22">D</text><text x="760" y="22">E</text><text x="880" y="22">F</text><text x="1000" y="22">G</text><text x="1120" y="22">H</text><text x="1240" y="22">I</text>
+    <text x="232" y="124">1</text><text x="232" y="244">2</text><text x="232" y="364">3</text><text x="232" y="484">4</text><text x="232" y="604">5</text><text x="232" y="724">6</text><text x="232" y="844">7</text>
+  </g>
+  <g transform="translate(1200 780)" fill="none" stroke="#8f7bff" stroke-opacity="0.4" stroke-width="1.2">
+    <circle r="28"/>
+    <path d="M0 -38V38M-38 0H38"/>
+    <path d="M0 -24L6 0L0 24L-6 0Z" fill="#8f7bff" fill-opacity="0.25"/>
+    <text x="-4" y="-44" stroke="none" fill="#8f7bff" fill-opacity="0.6" font-family="'Barlow Condensed', 'Arial Narrow', sans-serif" font-size="14" font-weight="700">N</text>
+  </g>
+</svg>
