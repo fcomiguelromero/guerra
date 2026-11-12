@@ -354,10 +354,10 @@ function ordenanzasAuto(doc) {
     ' Una vez votas no hay vuelta atrás, salvo 10 segundos de cortesía por si te equivocas de botón.' });
   if (doc.puntuacion === 'votos') {
     lista.push({ t: 'Los puntos', x: 'Cada voto que recibes vale 3 puntos, ganes o pierdas la batalla. Si dos combatientes terminan con los mismos puntos, desempata el enfrentamiento directo.' +
-      ' Si el empate es por el primer puesto, se libra un duelo final' + (x.desfile ? ' en directo durante el desfile.' : '.') });
+      ' Pero si el empate a puntos es por el primer puesto, no hay cuentas que valgan: se libra un duelo final' + (x.desfile ? ' en directo durante el desfile.' : '.') });
   } else {
     lista.push({ t: 'Los puntos', puntos: true, x: 'Como en el fútbol, vamos. Una batalla acaba en empate si los votos quedan igualados. Si dos combatientes terminan con los mismos puntos, desempata la diferencia de votos (a favor menos en contra) y, si persiste, el enfrentamiento directo.' +
-      ' Si el empate es por el primer puesto, se libra un duelo final' + (x.desfile ? ' en directo durante el desfile.' : '.') });
+      ' Pero si el empate a puntos es por el primer puesto, no hay cuentas que valgan: se libra un duelo final' + (x.desfile ? ' en directo durante el desfile.' : '.') });
   }
   if (x.porra) lista.push({ t: 'La porra', x: 'Cuando termines tus votos se abre la porra: ordena a todos los combatientes del primero al último. Se suman los puestos de diferencia con el parte final y gana la suma más baja.' +
     (doc.botin ? ' Botín: ' + doc.botin + '.' : '') });
