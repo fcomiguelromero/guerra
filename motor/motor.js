@@ -612,6 +612,7 @@ function crearMotor(env) {
     return {
       entre: d.entre, abierto: d.abierto, cierra: d.cierra, cerrado: d.cerrado,
       votaron: electores.filter(function (v) { return d.votos[v.id]; }).length, deben: electores.length,
+      puntos: (doc.resultado.tabla.filter(function (f) { return f.id === d.entre[0]; })[0] || {}).pts || 0,
       puedo: !!yo && !d.cerrado && electores.some(function (v) { return v.id === yo.id; }),
       mio: yo ? d.votos[yo.id] || null : null,
       ganador: d.cerrado ? doc.resultado.tabla[0].id : null
