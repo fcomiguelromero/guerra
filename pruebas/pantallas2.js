@@ -44,7 +44,17 @@ function png() {
     await m.locator('input[type=file][data-v="0"]').setInputFiles(path.join(SALIDA, 'foto.png'));
     await m.waitForSelector('.retrato img');
     await pulsa(m, 'Abrir el llamamiento');
+    await m.fill('#nota', 'Reclutas: ha llegado la hora de saber quién es el más normal.');
+    await pulsa(m, 'Llamamiento por correo');
     await foto(m, '01-llamamiento-plan', true);
+    const llamadas = (await api('_prueba', {})).correos.filter((c) => /Llamamiento/.test(c.asunto));
+    assert.strictEqual(llamadas.length, 3, 'tres correos de llamamiento: todos menos el alto mando');
+    fs.writeFileSync(path.join(SALIDA, 'correo-llamamiento.html'), llamadas[0].html);
+    const enlace = /href="(http[^"]+#g=[^"]+)"/.exec(llamadas.find((c) => c.para === 'c2@ejemplo.test').html)[1].replace(/&amp;/g, '&').replace(/^http:\/\/localhost:\d+\//, '');
+    const carmen = await pagina(nav, 390, 844, enlace);
+    await carmen.waitForSelector('#respuesta');
+    await foto(carmen, '01b-llamamiento-desde-correo', true);
+    assert.ok((await carmen.locator('#respuesta').innerText()).includes('Carmen'), 'el correo lleva directo a su carta');
     const general = (await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).mando.general;
     // Un recluta abre el enlace general, toca su carta y se alista; otro se presenta voluntario.
     const r = await pagina(nav, 390, 844, '#g=' + general);
@@ -64,7 +74,7 @@ function png() {
     await pulsa(m, '¡Declarar la guerra!');
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');
-    const { correos } = await api('_prueba', {});
+    const correos = (await api('_prueba', {})).correos.filter((c) => /Comienza/.test(c.asunto));
     assert.strictEqual(correos.length, 4);
     const tok = {};
     correos.forEach((c) => { tok[NOMBRES[Number(c.para[1])]] = /#t=([\w.]+)/.exec(c.html)[1]; });

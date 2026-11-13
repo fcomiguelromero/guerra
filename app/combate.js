@@ -475,19 +475,27 @@ registrar('/entrada', () => {
       ${avatarSuelto(g)}<strong style="font-size:14px">${esc(g.nombre)}</strong><span class="peq ${g.alistado === false ? 'rosa' : estado === 'Pendiente' ? 't2' : 'teal'}">${estado || '&nbsp;'}</span></button>`;
   }).join('');
   const enFilas = votan.filter((g) => g.alistado === true).length;
+  const desdeCorreo = sel && S.ui.cartaEnlace === sel.id && llamamiento;
+  const explicacion = llamamiento ? `<section class="caja"><h2 class="h2">Así es esta guerra</h2>
+      <ul class="col" style="gap:10px">${(c.explicacion || []).map((x) => `<li class="fila" style="align-items:flex-start;gap:10px"><span class="teal" style="flex:none;margin-top:1px">${ico('visto', 16)}</span><span class="med t3">${esc(x)}</span></li>`).join('')}</ul>
+      <details><summary class="med teal" style="cursor:pointer">Leer las ordenanzas completas</summary>
+        <ol class="col" style="margin-top:10px;gap:10px">${c.guerra.ordenanzas.map((r, k) => `<li class="col g4"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3" style="white-space:pre-line">${esc(r.x)}</span></li>`).join('')}</ol></details>
+      <p class="med t2">Si te alistas, cuando se declare la guerra te llegará por correo tu orden de movilización, con tu enlace personal para votar.</p></section>` : '';
   const pie = !sel ? '' : llamamiento
-    ? `<div class="caja teal"><span>Te has identificado como <strong>${esc(sel.nombre)}</strong></span>
+    ? `<div class="caja teal" id="respuesta"><span>Te has identificado como <strong>${esc(sel.nombre)}</strong>${sel.alistado === true ? ' · <span class="teal">En filas</span>' : sel.alistado === false ? ' · <span class="rosa">Objetor</span>' : ''}</span>
         <div class="fila" style="gap:10px"><button class="btn crece" data-a="alistar" data-v="1">¡Me alisto!</button><button class="btn linea crece" data-a="alistar" data-v="0">No me alisto</button></div>
         <p class="peq t2">Puedes cambiar de opinión hasta que se declare la guerra. Si te alistas, te llegará tu orden de movilización por correo.</p></div>`
     : `<button class="btn" data-a="reclamar">¡Presente! Soy ${esc(sel.nombre)}</button>`;
   return marco(`<header class="col g4"><div class="sobre">${llamamiento ? 'Orden de movilización' : esc(c.guerra.nombre)}</div>
       <h1 class="h1">${llamamiento ? '¡Llamamiento a filas!' : 'Identifícate, soldado'}</h1></header>
-    ${llamamiento ? `<p class="t3">El alto mando prepara una nueva guerra, la ${esc(c.guerra.nombre)}, y estás en la lista de reclutas. Busca tu carta y responde: ¿te alistas?</p>
+    ${llamamiento ? `<p class="t3">Se avecina una guerra. El alto mando prepara la ${esc(c.guerra.nombre)} y estás en la lista de reclutas. ${desdeCorreo ? 'Lee de qué va y responde' : 'Lee de qué va, busca tu carta y responde'}: ¿te alistas?</p>
+      ${desdeCorreo ? pie : ''}
       <div class="caja"><span class="sobre">Qué se dirime</span><strong class="bc" style="font-size:24px;color:#fff">${esc(c.guerra.pregunta)}</strong>
-        <span class="med t2">Cada batalla se decide con esta pregunta. Hay que mojarse: no vale el empate.</span></div>
+        <span class="med t2">Cada batalla se decide con esta pregunta.</span></div>
+      ${explicacion}
       <div class="fila entre"><h2 class="h2">Convocados</h2><span class="med teal">${enFilas} de ${votan.length} en filas</span></div>${c.cierre ? `<p class="med t2">Cierre del alistamiento: ${esc(c.cierre)}</p>` : ''}`
       : '<p class="t3">Toca tu carta para entrar en combate.</p>'}
-    <div class="rejilla3">${rejilla}</div>${pie}
+    <div class="rejilla3">${rejilla}</div>${desdeCorreo ? '' : pie}
     ${llamamiento ? `<div class="caja"><span class="med">¿No sales en la lista? Preséntate voluntario</span><div class="fila"><input class="entrada" id="voluntario" data-m="voluntario" maxlength="40" placeholder="Tu nombre" value="${esc(S.ui.voluntario || '')}"><button class="btn medio" data-a="voluntario">Enviar</button></div></div>`
       : '<p class="peq t2">Las cartas «En su puesto» ya tienen dueño en otro móvil. Si la tuya es una de ellas, entra con el enlace de tu orden de movilización: te llegó por correo. ¿Alguien entró con tu carta? Avisa al alto mando.</p>'}
     <p class="bc centro" style="font-weight:800;font-size:20px;color:#fff">¡Sólo puede quedar uno!</p>`, { sinNav: true, fondo: llamamiento ? 'a' : 'b', marca: c.guerra.nombre });
@@ -496,7 +504,12 @@ function avatarSuelto(g) {
   const foto = g.foto && S.fotos[g.foto];
   return `<span class="avatar grande" aria-hidden="true">${foto ? `<img src="${foto}" alt="">` : esc(g.nombre.charAt(0).toUpperCase())}</span>`;
 }
-accion('elegirCarta', (id) => { S.ui.carta = id; pintar(); });
+accion('elegirCarta', (id) => {
+  S.ui.carta = id; S.ui.cartaEnlace = null;
+  pintar();
+  const caja = document.getElementById('respuesta');
+  if (caja) caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
 accion('alistar', async (si) => {
   await llamar('alistar', { id: S.ui.carta, si: si === '1' });
   S.ui.conv = await llamar('convocatoria', {}, 1);

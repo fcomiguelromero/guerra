@@ -125,6 +125,33 @@ prueba('llamamiento: alistados, objetor, voluntario y declaración sólo con los
   w.falla('ocupada', () => w.do('reclamar', { g: general, id: g.id['Sergio'] }));
 });
 
+prueba('llamamiento por correo: explica el juego, lleva a la carta y no repite', () => {
+  const w = mundo(15);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { llamamiento: { cierre: 'Viernes, 20:00', nota: 'Atención, reclutas.' } } });
+  w.falla('fase', () => w.mando('enviarLlamamiento', { guerra: id }));
+  const { general } = w.mando('abrirLlamamiento', { guerra: id });
+  const conv = w.do('convocatoria', { g: general });
+  assert.ok(conv.explicacion.length >= 4 && /10 batallas/.test(conv.explicacion[1]));
+  const idDe = Object.fromEntries(conv.gente.map((g) => [g.nombre, g.id]));
+  w.do('alistar', { g: general, id: idDe['María'], si: true });
+  let r = w.mando('enviarLlamamiento', { guerra: id });
+  assert.strictEqual(r.enviados, 3, 'ni al alto mando ni a quien ya respondió');
+  const c = w.correos.find((m) => m.para === 'andres@ejemplo.test');
+  assert.ok(/Se avecina la Guerra de la Normalidad/.test(c.asunto));
+  assert.ok(c.html.includes('#g=' + general + '&amp;r=' + idDe['Andrés']) && c.html.includes('Atención, reclutas.') && c.html.includes('Viernes, 20:00') && c.html.includes('Así es esta guerra'));
+  w.falla('nadie', () => w.mando('enviarLlamamiento', { guerra: id }));
+  assert.strictEqual(w.mando('enviarLlamamiento', { guerra: id, todos: true }).enviados, 3);
+  assert.ok(w.mando('plan', { guerra: id }).plan.gente.find((g) => g.nombre === 'Andrés').llamada);
+  assert.ok(w.registro.some((f) => f[3] === 'correo' && /Llamamiento a Andrés/.test(f[4])));
+  // Con llamamiento, la orden de movilización ya no repite la explicación.
+  w.do('alistar', { g: general, id: idDe['Andrés'], si: true });
+  w.do('alistar', { g: general, id: idDe['Carmen'], si: false });
+  w.do('alistar', { g: general, id: idDe['Javier'], si: true });
+  const g = declarar(w, id);
+  assert.ok(!w.correos.find((m) => m.asunto.indexOf('Comienza') >= 0).html.includes('Así es esta guerra'));
+  assert.deepStrictEqual(g.doc.gente.map((x) => x.nombre).sort(), ['Andrés', 'Fran', 'Javier', 'María'], 'sólo entran los alistados');
+});
+
 prueba('orden de movilización: un correo por combatiente con su enlace personal', () => {
   const w = mundo(4);
   const id = crearGuerra(w, { plan: { correo: { asunto: '¡A las armas!', apertura: 'Ha llegado la hora.', remate: 'Suerte.' } } });
@@ -137,6 +164,7 @@ prueba('orden de movilización: un correo por combatiente con su enlace personal
   assert.ok(c.html.includes('Las 9 ofensivas') && c.html.includes('36 batallas'));
   assert.ok(c.html.includes('Ha llegado la hora.') && c.html.includes('Suerte.'));
   assert.strictEqual(new Set(Object.values(g.tok)).size, 10);
+  assert.ok(c.html.includes('Así es esta guerra'), 'sin llamamiento, la orden explica el juego');
 });
 
 prueba('votar: no en combates propios, sin repetir, con retirada sólo en los 10 segundos', () => {

@@ -374,12 +374,34 @@ function ordenanzasAuto(doc) {
   return lista;
 }
 
+// Explicación breve del juego: va en el llamamiento a filas (pantalla y correo).
+function resumenJuego(doc) {
+  var x = doc.extras, cosas = doc.modo === 'cosas', l = [];
+  var nc = doc.gente.filter(function (g) { return g.combate; }).length, nb = nc * (nc - 1) / 2;
+  l.push(cosas
+    ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana según la pregunta. Hay que mojarse: no vale el empate.'
+    : 'Todos contra todos: cada batalla enfrenta a dos combatientes y el resto elige a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.');
+  l.push((nc >= 3 ? 'Con ' + nc + (cosas ? ' contendientes' : ' combatientes') + ' habrá ' + nb + ' batallas. ' : '') +
+    'Se abren todas de golpe y votas a tu ritmo, desde el móvil. La guerra no termina hasta que vota todo el mundo.');
+  l.push('Tu voto es secreto para los demás. ' + (x.desfile ? 'El parte de guerra se revela al final, en el desfile de la victoria, del último puesto al primero.' : 'El parte de guerra se publica al final, de golpe.') +
+    (doc.premio ? ' Premio: ' + doc.premio + '.' : ''));
+  var extras = [];
+  if (x.porra) extras.push('una porra para adivinar la clasificación');
+  if (x.espia) extras.push('un espía para descubrir un combate antes del desfile');
+  if (x.radio) extras.push('Radio Macuto, para lanzar pullas anónimas');
+  if (extras.length) l.push('Y de propina: ' + enumerar(extras) + '.');
+  return l;
+}
+function listaCorreo(items) {
+  return '<ul style="margin:0 0 14px;padding-left:20px">' + items.map(function (x) { return '<li style="margin:0 0 8px">' + esc(x) + '</li>'; }).join('') + '</ul>';
+}
+
 // ---------------------------------------------------------------- correos
 
 function marcoCorreo(doc, cuerpo, pie) {
   return '<div style="margin:0;padding:24px 12px;background:#0d0b1a;font-family:Arial,Helvetica,sans-serif">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#16132b;border:1px solid #3a3566;border-radius:16px">' +
-    '<tr><td style="padding:28px 24px 8px;text-align:center;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0">-' + esc(doc.nombre) + '-</td></tr>' +
+    '<tr><td style="padding:28px 24px 8px;text-align:center;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0">' + esc(doc.nombre) + '</td></tr>' +
     '<tr><td style="padding:8px 24px 24px;font-size:16px;line-height:1.55;color:#f2f0ff">' + cuerpo + '</td></tr>' +
     '<tr><td style="padding:16px 24px 24px;border-top:1px solid #2a2648;font-size:12px;line-height:1.5;color:#8d88ab">' + pie + '</td></tr>' +
     '</table></div>';
@@ -763,7 +785,8 @@ function crearMotor(env) {
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
         gente: doc.gente.map(function (g) {
           return { id: g.id, nombre: g.nombre, correo: g.correo || '', frase: g.frase || '', foto: g.foto || null,
-            combate: !!g.combate, vota: !!g.vota, mando: !!g.mando, alistado: g.alistado, estado: g.estado };
+            combate: !!g.combate, vota: !!g.vota, mando: !!g.mando, alistado: g.alistado, estado: g.estado,
+            llamada: g.llamada || null, llamadaError: g.llamadaError || null };
         })
       },
       mando: vistaMando(doc, ctx.ahora)
@@ -797,7 +820,7 @@ function crearMotor(env) {
     var doc = ctx.doc, ll = doc.llamamiento || {};
     var nc = doc.gente.filter(function (g) { return g.combate; }).length;
     return {
-      rev: doc.rev, guerra: vistaGuerra(doc), cierre: ll.cierre || '',
+      rev: doc.rev, guerra: vistaGuerra(doc), cierre: ll.cierre || '', explicacion: resumenJuego(doc),
       gente: genteOrdenada(doc).map(function (g) {
         return Object.assign(fichaPublica(doc, g), { alistado: g.alistado == null ? null : !!g.alistado, ocupada: !!g.reclamada });
       }),
@@ -874,6 +897,7 @@ function crearMotor(env) {
       if (p.extras) EXTRAS.forEach(function (k) { if (p.extras[k] != null) doc.extras[k] = !!p.extras[k]; });
       if (p.llamamiento) {
         if (p.llamamiento.cierre != null) doc.llamamiento.cierre = txt(p.llamamiento.cierre, 80);
+        if (p.llamamiento.nota != null) doc.llamamiento.nota = parrafo(p.llamamiento.nota, 1500);
         if (p.llamamiento.soloAlistados != null) doc.llamamiento.soloAlistados = !!p.llamamiento.soloAlistados;
       }
     }
@@ -1019,6 +1043,7 @@ function crearMotor(env) {
     var cuerpo = parrafos(c.apertura) +
       '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
       ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>' +
+      (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc))) +
       botonCorreo(enlacePersonal(g), 'Entrar a la guerra') + parrafos(c.remate) +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
@@ -1029,12 +1054,51 @@ function crearMotor(env) {
         texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlacePersonal(g) + (c.remate ? '\n\n' + c.remate : '')
       });
       g.correoEnviado = t; g.correoError = null;
+      anotar(doc, 'mando', 'correo', 'Orden de movilización a ' + g.nombre + ' <' + g.correo + '>');
       return true;
     } catch (e) {
       g.correoError = String(e && e.message || e).slice(0, 200);
+      anotar(doc, 'mando', 'correo fallido', 'Orden de movilización a ' + g.nombre + ': ' + g.correoError);
       return false;
     }
   }
+
+  function enviarLlamada(doc, g, t) {
+    var ll = doc.llamamiento, url = urlApp() + '#g=' + claveGeneral(doc) + '&r=' + g.id;
+    var cuerpo = (ll.nota ? parrafos(ll.nota) : '') +
+      '<p style="margin:0 0 14px">El alto mando prepara una nueva guerra, la <strong>' + esc(doc.nombre) + '</strong>, y estás en la lista de reclutas.</p>' +
+      '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">Qué se dirime</p>' +
+      '<p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + esc(doc.pregunta) + '</p>' +
+      '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc)) +
+      '<p style="margin:0 0 14px">¿Te alistas? Responde con este botón, que te lleva directo a tu carta.' + (ll.cierre ? ' Cierre del alistamiento: <strong>' + esc(ll.cierre) + '</strong>.' : '') + '</p>' +
+      '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(url) + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#5ef0d0;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder al llamamiento</a></p>' +
+      '<p style="margin:0 0 14px;font-size:13px;color:#b3aecf">Si te alistas, cuando se declare la guerra te llegará otro correo: tu orden de movilización, con tu enlace personal para votar.</p>' +
+      '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+    try {
+      env.correo({
+        para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
+        html: marcoCorreo(doc, cuerpo, '¡Sólo puede quedar uno!'),
+        texto: 'El alto mando prepara la ' + doc.nombre + ': ' + doc.pregunta + '\n\n' + resumenJuego(doc).join('\n') + '\n\n¿Te alistas? Responde aquí: ' + url
+      });
+      g.llamada = t; g.llamadaError = null;
+      anotar(doc, 'mando', 'correo', 'Llamamiento a ' + g.nombre + ' <' + g.correo + '>');
+      return true;
+    } catch (e) {
+      g.llamadaError = String(e && e.message || e).slice(0, 200);
+      anotar(doc, 'mando', 'correo fallido', 'Llamamiento a ' + g.nombre + ': ' + g.llamadaError);
+      return false;
+    }
+  }
+
+  definir('enviarLlamamiento', { escribe: true, quien: 'mando' }, function (ctx, p) {
+    var doc = ctx.doc;
+    exigir(doc.fase === 'llamamiento', 'fase', 'El llamamiento no está abierto.');
+    var lista = doc.gente.filter(function (g) { return g.vota && !g.mando && g.alistado == null && g.correo && (p.todos || !g.llamada); });
+    exigir(lista.length, 'nadie', 'No queda nadie sin respuesta a quien mandárselo.');
+    var enviados = 0, fallos = [];
+    lista.forEach(function (g) { if (enviarLlamada(doc, g, ctx.ahora)) enviados++; else fallos.push(g.nombre); });
+    return { enviados: enviados, fallos: fallos };
+  });
 
   definir('reenviarOrden', { escribe: true, quien: 'mando' }, function (ctx, p) {
     var doc = ctx.doc, g = doc.gente.filter(function (x) { return x.id === p.id; })[0];

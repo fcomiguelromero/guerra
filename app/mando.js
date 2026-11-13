@@ -85,17 +85,25 @@ function seccionLlamamiento() {
   const p = S.ui.plan, m = S.ui.planMando || {};
   if (!p.llamamiento.activo) {
     return `<section class="caja"><h2 class="h2">Llamamiento a filas</h2>
-      <p class="med t2">Opcional. Antes de declarar la guerra, manda un enlace por WhatsApp para que cada uno busque su carta y diga si se alista. Todos ven quién responde.</p>
+      <p class="med t2">Opcional, pero recomendable. Antes de declarar la guerra, avisa de que se avecina: cada uno recibe por correo una explicación del juego y responde si se alista. También puedes mandarlo por WhatsApp. Todos ven quién responde.</p>
       <button class="btn linea medio" data-a="abrirLlamamiento">Abrir el llamamiento</button></section>`;
   }
   const votan = p.gente.filter((g) => g.vota), si = votan.filter((g) => g.alistado === true), no = votan.filter((g) => g.alistado === false);
   const nada = votan.filter((g) => g.alistado == null), url = enlaceApp() + '#g=' + m.general;
-  const texto = `¡Llamamiento a filas! El alto mando prepara la ${p.nombre}. Busca tu carta y responde si te alistas: ${url}`;
+  const texto = `¡Se avecina una guerra! El alto mando prepara la ${p.nombre}: «${p.pregunta}». Entra, mira de qué va, busca tu carta y di si te alistas: ${url}`;
+  const conCorreo = nada.filter((g) => !g.mando && g.correo), sinEnviar = conCorreo.filter((g) => !g.llamada);
+  const enviados = votan.filter((g) => g.llamada), fallidos = votan.filter((g) => g.llamadaError);
+  const hora = (ts) => new Date(ts).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   return `<section class="caja teal"><h2 class="h2">Llamamiento a filas</h2>
     <div class="rejilla3 centro"><div><b class="bc teal" style="font-size:28px">${si.length}</b><div class="peq t2">En filas</div></div>
       <div><b class="bc" style="font-size:28px">${nada.length}</b><div class="peq t2">Sin respuesta</div></div><div><b class="bc rosa" style="font-size:28px">${no.length}</b><div class="peq t2">Objetores</div></div></div>
     ${nada.length ? `<p class="med t2">Sin respuesta: ${esc(enumerar(nada.map((g) => g.nombre)))}.</p>` : ''}${no.length ? `<p class="med t2">Objetor: ${esc(enumerar(no.map((g) => g.nombre)))}.</p>` : ''}
-    <div class="fila" style="flex-wrap:wrap"><a class="btn medio crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Llamamiento por WhatsApp</a>
+    <label class="campo"><span>Tu mensaje para el correo (opcional, va antes de la explicación del juego)</span><textarea id="nota" maxlength="1500" data-m="plan.llamamiento.nota" placeholder="Reclutas: ha llegado la hora.">${esc(p.llamamiento.nota || '')}</textarea></label>
+    ${sinEnviar.length ? `<button class="btn medio" data-a="llamarCorreo" data-v="0">Llamamiento por correo (${sinEnviar.length})</button>`
+      : conCorreo.length ? `<button class="btn linea medio" data-a="llamarCorreo" data-v="1">Reenviar a quien no contesta (${conCorreo.length})</button>` : ''}
+    ${enviados.length ? `<p class="peq t2">Correo enviado a ${esc(enumerar(enviados.map((g) => g.nombre + ' (' + hora(g.llamada) + ')')))}. Cada uno llega directo a su carta.</p>` : '<p class="peq t2">El correo explica el juego y lleva a cada uno directo a su carta. Sale desde tu Gmail, pero Google no lo guarda en Enviados: aquí verás a quién se mandó.</p>'}
+    ${fallidos.length ? `<p class="peq rosa">No se pudo enviar a ${esc(enumerar(fallidos.map((g) => g.nombre)))}: revisa su correo.</p>` : ''}
+    <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Por WhatsApp</a>
       <button class="btn linea medio" data-a="copiar" data-v="${esc(url)}">${ico('copiar')}Copiar enlace</button></div>
     <label class="campo"><span>Cierre del alistamiento (texto libre)</span><input id="cierre" maxlength="80" data-m="plan.llamamiento.cierre" value="${esc(p.llamamiento.cierre)}" placeholder="Viernes, 20:00"></label>
     ${interruptor('plan.llamamiento.soloAlistados', p.llamamiento.soloAlistados, 'Al declarar la guerra, sólo entran los alistados', 'Quien no conteste se queda fuera')}
@@ -197,7 +205,7 @@ async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
     nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
-    extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, soloAlistados: p.llamamiento.soloAlistados },
+    extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     gente: p.gente.map((g) => ({ id: g.id, nombre: g.nombre, correo: g.correo, frase: g.frase, foto: g.foto, combate: g.combate, mando: g.mando }))
   };
@@ -206,6 +214,12 @@ async function guardarPlan() {
 }
 accion('guardarPlan', async () => { await guardarPlan(); aviso('Plan guardado.', true); });
 accion('abrirLlamamiento', async () => { await guardarPlan(); await llamar('abrirLlamamiento'); await cargarPlan(); aviso('Llamamiento abierto: manda el enlace por WhatsApp.', true); });
+accion('llamarCorreo', async (todos) => {
+  await guardarPlan();
+  const r = await llamar('enviarLlamamiento', { todos: todos === '1' });
+  await cargarPlan();
+  aviso(`Llamamiento enviado: ${plural(r.enviados, 'correo', 'correos')}.${r.fallos.length ? ' Falló con ' + enumerar(r.fallos) + '.' : ''}`, !r.fallos.length);
+});
 accion('reclutar', async (v) => { const [id, si] = v.split(':'); await guardarPlan(); await llamar('reclutar', { id, si: si === '1' }); await cargarPlan(); pintar(); });
 accion('borrarGuerra', async () => {
   if (!S.ui.confirmaBorrar) { S.ui.confirmaBorrar = true; aviso('Pulsa otra vez «Borrar esta guerra» para confirmarlo.'); return; }
@@ -273,7 +287,7 @@ registrar('/cuartel', () => {
       <p class="med t2">Enlace general: quien lo abra elige su carta. Sirve para quien no encuentre su correo.</p>
       <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" target="_blank" rel="noopener" href="${wasap(`${e.guerra.nombre}: entra, toca tu carta y a votar. ${general}`)}">${ico('wasap')}Enviar por WhatsApp</a><button class="btn linea medio" data-a="copiar" data-v="${esc(general)}">${ico('copiar')}Copiar</button></div>
       ${errores.length ? `<p class="med rosa">Sin orden de movilización: ${esc(enumerar(errores.map((c) => G[c.id].nombre + (c.correo ? ' (correo rechazado)' : ' (sin correo)'))))}.</p>` : ''}
-      <details><summary class="med teal" style="cursor:pointer">Cartas, una a una</summary><ul class="col" style="margin-top:8px">${m.correos.map((c) => `<li class="fila entre" style="flex-wrap:wrap"><span class="med"><strong>${esc(G[c.id].nombre)}</strong> <span class="t2">${c.reclamada ? '· en su puesto' : '· sin entrar'}</span></span>
+      <details><summary class="med teal" style="cursor:pointer">Cartas, una a una</summary><ul class="col" style="margin-top:8px">${m.correos.map((c) => `<li class="fila entre" style="flex-wrap:wrap"><span class="med"><strong>${esc(G[c.id].nombre)}</strong> <span class="t2">· ${c.enviado ? 'orden enviada el ' + new Date(c.enviado).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : c.correo ? 'orden sin enviar' : 'sin correo'} · ${c.reclamada ? 'en su puesto' : 'sin entrar'}</span></span>
         <span class="fila">${abierta && c.correo ? `<button class="btn chico linea" data-a="reenviar" data-v="${c.id}">Reenviar orden</button>` : ''}<button class="btn chico linea" data-a="liberar" data-v="${c.id}">Enlace nuevo</button></span></li>`).join('')}</ul>
         <p class="peq t2">«Enlace nuevo» invalida el enlace anterior de esa carta: úsalo si alguien entró con la carta de otro.</p></details></section>
     <div class="col">
