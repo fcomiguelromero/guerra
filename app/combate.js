@@ -1,4 +1,5 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
+import { botonCartel } from './carteles.js';
 import { S, llamar, encolar, refrescar, ahoraServidor, esc, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
 
@@ -331,7 +332,8 @@ function pantallaPublicada() {
     ${duelo ? `<p class="med t3">El resto del parte de guerra ya es oficial: sólo falta decidir quién se lleva la guerra.</p>${bloqueDuelo(e.duelo, false)}`
       : `<div class="cols-pc">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:12px;font-weight:700;font-size:18px">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}
         <div class="col g12"><div class="enorme oro">1.er puesto</div>${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
-        ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</span></div>` : ''}</div></div>`}
+        ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</span></div>` : ''}
+        <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece')}</div></div></div>`}
     <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}</section>
     ${mia ? `<section class="caja"><h2 class="h2">Tu guerra</h2>
       <div class="fila g12">${avatar(G[mia.companero.id], 'grande')}<span class="col g4"><strong>Compañero de trinchera: ${esc(G[mia.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${mia.companero.n} de ${mia.companero.de} batallas</span></span></div>

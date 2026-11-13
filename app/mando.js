@@ -2,6 +2,7 @@
 import { S, llamar, refrescar, esc, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
 import { etiquetaSiguiente, listaPremios, tablaFinal, TITULOS } from './combate.js';
+import { botonCartel } from './carteles.js';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -299,7 +300,7 @@ registrar('/cuartel', () => {
       <div class="fila entre med"><span>Votos emitidos</span><strong>${pr.emitidos} de ${pr.total}</strong></div><div class="medidor"><i style="width:${pct(pr.emitidos, pr.total)}%"></i></div>
       ${e.porra ? `<div class="fila entre med"><span>Porras recibidas</span><strong>${e.porra.recibidas} de ${e.porra.de}</strong></div><div class="medidor"><i style="width:${pct(e.porra.recibidas, e.porra.de)}%"></i></div>` : ''}</section>
     ${abierta && e.parte ? `<section class="caja oro"><h2 class="h2 oro">Parte de mitad de contienda</h2><p class="med t3">Listo desde que se libraron ${Math.ceil(pr.total / 2)} de las ${pr.total} batallas. Enseña quién va en vanguardia y quién en retaguardia, sin desvelar resultados.</p>
-      <a class="btn oro medio" target="_blank" rel="noopener" href="${wasap(`PARTE DE GUERRA de la ${e.guerra.nombre}, a mitad de contienda: ${pr.emitidos} de ${pr.total} batallas libradas. ${pr.rezagados.length ? 'En retaguardia: ' + enumerar(pr.rezagados.map((r) => G[r.id].nombre + ' (' + r.faltan + ')')) + '. ' : ''}Ni un solo resultado desvelado. ¡Sólo puede quedar uno!`)}">${ico('wasap')}Compartir el parte</a></section>` : ''}
+      ${botonCartel('parte', ico('wasap') + 'Compartir el parte', 'btn oro medio')}</section>` : ''}
     ${m.pullas.length || m.emitidas ? `<section class="caja rosa"><div class="fila entre"><h2 class="h2">Censura de Radio Macuto</h2><span class="peq rosa" style="font-weight:600">${m.pullas.length} esperando · ${m.emitidas} emitidas</span></div>
       <p class="peq t2">Sólo tú ves quién escribe cada pulla. En antena salen sin firma.</p>
       ${m.pullas.map((p) => `<div class="col" style="padding-top:8px;border-top:1px solid #2a2648"><p style="font-style:italic">«${esc(p.texto)}»</p>
@@ -309,6 +310,8 @@ registrar('/cuartel', () => {
         <div class="medidor"><i style="width:${pct(r.de - r.faltan, r.de)}%"></i></div></li>`).join('')}</ul>
       <div class="fila entre"><span class="med t2">${m.proximaDiana ? 'Próximo toque de diana: ' + diaHora(m.proximaDiana) : 'Toque de diana automático desactivado'}</span><button class="btn chico" data-a="tocarDiana">Tocar diana</button></div>`
         : '<p class="med t2">Ya ha votado todo el mundo. La guerra se cierra sola en unos segundos.</p>'}</section>` : ''}
+    ${abierta ? `<section class="caja"><h2 class="h2">Cartel de la guerra</h2><p class="med t2">Para el grupo de WhatsApp: todos los combatientes, el nombre de la guerra y la pregunta.</p>${botonCartel('guerra', ico('wasap') + 'Compartir el cartel')}</section>` : ''}
+    ${fase === 'publicada' && !(e.duelo && !e.duelo.cerrado) ? `<section class="caja oro"><h2 class="h2">La victoria</h2><div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${botonCartel('diploma', 'Cruz al mérito', 'btn linea medio crece')}</div></section>` : ''}
     <section class="caja"><h2 class="h2">Enlaces y cartas</h2>
       <p class="med t2">Enlace general: quien lo abra elige su carta. Sirve para quien no encuentre su correo.</p>
       <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" target="_blank" rel="noopener" href="${wasap(`${e.guerra.nombre}: entra, toca tu carta y a votar. ${general}`)}">${ico('wasap')}Enviar por WhatsApp</a><button class="btn linea medio" data-a="copiar" data-v="${esc(general)}">${ico('copiar')}Copiar</button></div>
