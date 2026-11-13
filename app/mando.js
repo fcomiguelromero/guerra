@@ -17,6 +17,18 @@ const volver = (ruta, texto) => `<button class="btn linea chico" style="align-se
 const interruptor = (ruta, valor, titulo, nota) => `<div class="interruptor"><span class="col" style="gap:2px"><span style="font-weight:600">${titulo}</span>${nota ? `<span class="peq t2">${nota}</span>` : ''}</span>
   <button role="switch" aria-checked="${valor ? 'true' : 'false'}" aria-label="${esc(titulo)}" data-a="conmutar" data-v="${ruta}"></button></div>`;
 const wasap = (texto) => 'https://wa.me/?text=' + encodeURIComponent(texto);
+// Fecha para un campo datetime-local, en la hora del dispositivo.
+const localISO = (ts) => { const d = new Date(ts); return new Date(ts - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+export function textoCierre(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + ' a las ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+accion('cierre', (v, el) => {
+  const ts = el.value ? new Date(el.value).getTime() : 0;
+  S.ui.plan.llamamiento.cierreTs = ts || null;
+  S.ui.plan.llamamiento.cierre = ts ? textoCierre(ts) : '';
+  pintar();
+});
 
 accion('conmutar', (ruta) => {
   const partes = ruta.split('.');
@@ -107,14 +119,51 @@ function seccionLlamamiento() {
     ${fallidos.length ? `<p class="peq rosa">No se pudo enviar a ${esc(enumerar(fallidos.map((g) => g.nombre)))}: revisa su correo.</p>` : ''}
     <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Por WhatsApp</a>
       <button class="btn linea medio" data-a="copiar" data-v="${esc(url)}">${ico('copiar')}Copiar enlace</button></div>
-    <label class="campo"><span>Cierre del alistamiento (texto libre)</span><input id="cierre" maxlength="80" data-m="plan.llamamiento.cierre" value="${esc(p.llamamiento.cierre)}" placeholder="Viernes, 20:00"></label>
+    <label class="campo"><span>Cierre del alistamiento</span><input id="cierre" type="datetime-local" data-c="cierre" value="${p.llamamiento.cierreTs ? localISO(p.llamamiento.cierreTs) : ''}"></label>
+    ${p.llamamiento.cierre ? `<p class="peq t2">Se anunciará así: «${esc(p.llamamiento.cierre)}». La guerra no se declara sola: a esa hora, pulsa tú «¡Declarar la guerra!».</p>` : ''}
     ${interruptor('plan.llamamiento.soloAlistados', p.llamamiento.soloAlistados, 'Al declarar la guerra, sólo entran los alistados', 'Quien no conteste se queda fuera')}
     ${(m.voluntarios || []).map((v) => `<div class="fila entre"><span><strong>${esc(v.nombre)}</strong> se presenta voluntario</span>
       <span class="fila"><button class="btn chico" data-a="reclutar" data-v="${v.id}:1">Reclutar</button><button class="btn chico linea" data-a="reclutar" data-v="${v.id}:0">Descartar</button></span></div>`).join('')}
     ${nada.length ? `<div class="col"><span class="etiqueta">Último parte a los ${nada.length} rezagados: se abre WhatsApp con el parte de cada uno ya escrito, eliges a quién y pulsas enviar.</span>
-      <div class="fila" style="flex-wrap:wrap">${nada.map((g) => `<a class="btn chico rosa" target="_blank" rel="noopener" href="${wasap(`ÚLTIMO PARTE DE RECLUTAMIENTO. Recluta ${g.nombre}: el alto mando sigue sin noticias suyas. Stop. ${p.llamamiento.cierre ? 'La guerra se declara: ' + p.llamamiento.cierre + '. Stop. ' : ''}Alístese aquí: ${url}&r=${g.id}`)}">${esc(g.nombre)}</a>`).join('')}</div></div>` : ''}
+      <div class="fila" style="flex-wrap:wrap">${nada.map((g) => `<a class="btn chico rosa" target="_blank" rel="noopener" href="${wasap(`ÚLTIMO PARTE DE RECLUTAMIENTO. Recluta ${g.nombre}: el alto mando sigue sin noticias suyas. Stop. ${p.llamamiento.cierre ? 'La guerra se declara el ' + p.llamamiento.cierre + '. Stop. ' : ''}Lea el parte y responda aquí: ${url}&r=${g.id}&parte=1`)}">${esc(g.nombre)}</a>`).join('')}</div></div>` : ''}
   </section>`;
 }
+
+function seccionOrdenanzas() {
+  const p = S.ui.plan, propias = p.ordenanzas;
+  if (!propias) {
+    return `<section class="caja"><h2 class="h2">Ordenanzas</h2>
+      <p class="med t2">Se escriben solas con la puntuación y los extras que elijas. Son las reglas que leerán los combatientes.</p>
+      <details><summary class="med teal" style="cursor:pointer">Ver cómo quedan</summary><ol class="col" style="margin-top:10px;gap:10px">${p.ordenanzasAuto.map((r, k) => `<li class="col g4"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3">${esc(r.x)}</span></li>`).join('')}</ol></details>
+      <button class="btn linea medio" data-a="ordPersonalizar">Personalizar las ordenanzas</button></section>`;
+  }
+  return `<section class="caja"><h2 class="h2">Ordenanzas</h2>
+    <p class="med t2">Personalizadas. Si cambias la puntuación o los extras, ya no se actualizan solas: revísalas.</p>
+    ${propias.map((r, k) => `<div class="col" style="gap:6px;padding:10px;border:1px solid #2a2648;border-radius:12px;background:#1c1836">
+      <div class="fila"><b class="bc teal" style="font-size:24px;width:24px">${k + 1}</b><input class="entrada" id="ot-${k}" aria-label="Título de la ordenanza ${k + 1}" maxlength="80" data-m="plan.ordenanzas.${k}.t" value="${esc(r.t)}"></div>
+      <textarea class="entrada" id="ox-${k}" aria-label="Texto de la ordenanza ${k + 1}" maxlength="1200" rows="7" style="resize:vertical;line-height:1.4" data-m="plan.ordenanzas.${k}.x">${esc(r.x)}</textarea>
+      <div class="fila" style="justify-content:flex-end">
+        <button class="cuadro" data-a="ordMover" data-v="${k}:-1" aria-label="Subir la ordenanza ${k + 1}" ${k === 0 ? 'disabled' : ''}>${ico('arriba')}</button>
+        <button class="cuadro" data-a="ordMover" data-v="${k}:1" aria-label="Bajar la ordenanza ${k + 1}" ${k === propias.length - 1 ? 'disabled' : ''}>${ico('abajo')}</button>
+        <button class="btn chico peligro" data-a="ordQuitar" data-v="${k}">Quitar</button></div></div>`).join('')}
+    <button class="btn linea medio" data-a="ordAnadir">${ico('mas')}Añadir ordenanza</button>
+    <button class="btn chico linea" style="align-self:center" data-a="ordAuto">Volver a las automáticas</button></section>`;
+}
+accion('ordPersonalizar', () => { S.ui.plan.ordenanzas = JSON.parse(JSON.stringify(S.ui.plan.ordenanzasAuto)); pintar(); });
+accion('ordAuto', () => { S.ui.plan.ordenanzas = null; pintar(); });
+accion('ordQuitar', (k) => { S.ui.plan.ordenanzas.splice(Number(k), 1); if (!S.ui.plan.ordenanzas.length) S.ui.plan.ordenanzas = null; pintar(); });
+accion('ordAnadir', () => {
+  S.ui.plan.ordenanzas.push({ t: '', x: '', puntos: false });
+  pintar();
+  const el = document.getElementById('ot-' + (S.ui.plan.ordenanzas.length - 1));
+  if (el) el.focus();
+});
+accion('ordMover', (v) => {
+  const [k, d] = v.split(':').map(Number), o = S.ui.plan.ordenanzas, j = k + d;
+  if (j < 0 || j >= o.length) return;
+  const t = o[k]; o[k] = o[j]; o[j] = t;
+  pintar();
+});
 
 registrar('/plan', () => {
   const p = S.ui.plan;
@@ -150,6 +199,7 @@ registrar('/plan', () => {
       <div class="opciones"><button aria-pressed="${p.puntuacion !== 'votos'}" data-a="opcion" data-v="plan.puntuacion=liga">Liga: 3, 1, 0</button><button aria-pressed="${p.puntuacion === 'votos'}" data-a="opcion" data-v="plan.puntuacion=votos">Por votos</button></div>
       <p class="med t2">${p.puntuacion === 'votos' ? 'Cada voto recibido vale 3 puntos, como en el cambio de 2012.' : 'Ganar un combate, 3 puntos; empatarlo, 1; perderlo, 0. Desempata la diferencia de votos.'}</p></section>
     <section class="caja"><h2 class="h2">Extras</h2>${EXTRAS.map(([k, t, n]) => interruptor('plan.extras.' + k, p.extras[k], t, n)).join('')}</section>` : ''}
+    ${seccionOrdenanzas()}
     <section class="caja"><h2 class="h2">Toque de diana</h2>
       ${interruptor('plan.diana.activa', p.diana.activa, 'Recordar a los rezagados', 'Un correo automático, sólo de día')}
       <div class="opciones">${[1, 2, 3].map((n) => `<button aria-pressed="${p.diana.cadaDias === n}" data-a="opcion" data-v="plan.diana.cadaDias=${n}">Cada ${plural(n, 'día', 'días')}</button>`).join('')}</div>
@@ -208,8 +258,9 @@ async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
     nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
-    extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
+    extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
+    ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,
     gente: p.gente.map((g) => ({ id: g.id, nombre: g.nombre, correo: g.correo, frase: g.frase, foto: g.foto, combate: g.combate, mando: g.mando }))
   };
   await llamar('guardarPlan', { plan });

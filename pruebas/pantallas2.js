@@ -73,6 +73,24 @@ function png() {
     await pulsa(r, '¡Me alisto!');
     await r.fill('#voluntario', 'Sergio'); await pulsa(r, 'Enviar');
     await foto(r, '03-alistado', true);
+    // Cierre con fecha y hora, último parte para un rezagado y ordenanzas personalizadas.
+    await m.reload(); await m.waitForLoadState('networkidle');
+    await m.fill('#cierre', '2030-11-20T20:00'); await m.locator('#cierre').dispatchEvent('change');
+    await pulsa(m, 'Personalizar las ordenanzas');
+    await m.fill('#ot-0', 'El combate, versión del alto mando');
+    await m.locator('[data-a="ordMover"][data-v="1:-1"]').click();
+    await pulsa(m, 'Guardar borrador');
+    await foto(m, '04b-ordenanzas', true);
+    const conv0 = await api('convocatoria', { g: general });
+    assert.strictEqual(conv0.guerra.ordenanzas[1].t, 'El combate, versión del alto mando', 'las ordenanzas personalizadas se guardan');
+    assert.ok(conv0.cierreTs > Date.now() && /a las 20:00/.test(conv0.cierre), conv0.cierre);
+    const carmenId = conv0.gente.find((g) => g.nombre === 'Carmen').id;
+    const ult = await pagina(nav, 390, 844, '#g=' + general + '&r=' + carmenId + '&parte=1');
+    await ult.waitForSelector('#cuenta-parte');
+    await foto(ult, '04c-ultimo-parte', true);
+    const ultPc = await pagina(nav, 1280, 860, '#g=' + general + '&r=' + carmenId + '&parte=1');
+    await ultPc.waitForSelector('#cuenta-parte');
+    await foto(ultPc, '04d-ultimo-parte-pc', true);
     const conv = await api('convocatoria', { g: general });
     for (const g of conv.gente) if (g.alistado == null && g.nombre !== 'Carmen') await api('alistar', { g: general, id: g.id, si: true });
     await m.reload(); await m.waitForLoadState('networkidle');

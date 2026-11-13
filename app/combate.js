@@ -519,3 +519,51 @@ accion('reclamar', async () => {
   await refrescar(true);
   ir('/batallas', true);
 });
+
+// ---------------------------------------------------------------- último parte de reclutamiento
+
+alEntrar('/parte', async () => { S.ui.conv = await llamar('convocatoria', {}, 1); S.desfase = S.ui.conv.ahora - Date.now(); pintar(); relojParte(); });
+let relojP = null;
+function relojParte() {
+  clearInterval(relojP);
+  relojP = setInterval(() => {
+    const el = document.getElementById('cuenta-parte');
+    if (!el || !S.ui.conv || !S.ui.conv.cierreTs) { clearInterval(relojP); return; }
+    el.innerHTML = cuentaCierre(S.ui.conv.cierreTs);
+  }, 15000);
+}
+function cuentaCierre(ts) {
+  const ms = Math.max(0, ts - ahoraServidor()), d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60;
+  const celda = (n, t) => `<div class="caja centro" style="gap:2px;padding:10px 4px;border-color:#ff6ad5"><b class="bc" style="font-size:40px;color:#fff;line-height:1">${String(n).padStart(2, '0')}</b><span class="peq t2">${t}</span></div>`;
+  return celda(d, d === 1 ? 'día' : 'días') + celda(h, h === 1 ? 'hora' : 'horas') + celda(m, m === 1 ? 'minuto' : 'minutos');
+}
+registrar('/parte', () => {
+  const c = S.ui.conv;
+  if (!c) return marco(cargando('Recibiendo transmisión'), { sinNav: true });
+  if (c.guerra.fase !== 'llamamiento') { setTimeout(() => ir('/entrada', true), 0); return marco(cargando(), { sinNav: true }); }
+  const votan = c.gente.filter((g) => g.vota), yoG = votan.find((g) => g.id === S.ui.carta);
+  const si = votan.filter((g) => g.alistado === true), no = votan.filter((g) => g.alistado === false), nada = votan.filter((g) => g.alistado == null);
+  const quien = (g) => (yoG && g.id === yoG.id ? 'tú' : g.nombre);
+  const linea = (t) => `<p style="margin:0">${esc(t)}</p>`;
+  const cierre = c.cierre ? `La guerra se declara el ${c.cierre}. Stop.` : 'La guerra se declarará muy pronto. Stop.';
+  const respondida = yoG && yoG.alistado != null;
+  return marco(`<header class="col g4" style="position:relative">
+      <span class="bc rosa" style="position:absolute;top:0;right:0;transform:rotate(6deg);padding:2px 10px 4px;border:3px solid #ff6ad5;border-radius:8px;font-weight:800;font-size:20px;letter-spacing:.08em">Urgente</span>
+      <div class="sobre rosa">Prioridad máxima</div><h1 class="h1" style="max-width:80%">Último parte de reclutamiento</h1></header>
+    <section style="padding:3px;border-radius:16px;background:var(--holo)"><div style="border-radius:13px;background:#0b0a16;padding:16px;display:flex;flex-direction:column;gap:12px;font-family:'Courier Prime','Courier New',monospace">
+      <div class="peq t2" style="font-family:inherit;line-height:1.6;border-bottom:1px dashed #3a3566;padding-bottom:10px">DE: ALTO MANDO<br>PARA: ${esc(may(yoG ? 'Recluta ' + yoG.nombre : 'Reclutas rezagados'))}<br>ASUNTO: ÚLTIMO PARTE</div>
+      <div class="teal" style="font-family:inherit;font-size:16px;line-height:1.5;text-transform:uppercase;display:flex;flex-direction:column;gap:8px">
+        ${linea((yoG ? 'Recluta ' + yoG.nombre : 'Reclutas') + '. Stop.')}${linea('El alto mando sigue sin noticias ' + (yoG ? 'suyas' : 'vuestras') + '. Stop.')}${linea(cierre)}
+        ${linea('Quien no se aliste se quedará en la retaguardia viendo a otros cubrirse de gloria. Stop.')}
+        <p style="margin:0;color:#8d88ab">Fin del mensaje <span aria-hidden="true" style="display:inline-block;width:10px;height:16px;background:#5ef0d0;vertical-align:-2px"></span></p></div></div></section>
+    ${c.cierreTs && c.cierreTs > ahoraServidor() ? `<section class="col"><span class="etiqueta">Cierre del alistamiento</span><div class="rejilla3" id="cuenta-parte">${cuentaCierre(c.cierreTs)}</div></section>` : ''}
+    <section class="caja"><div class="fila entre"><h2 class="h2">Ya en filas</h2><span class="med teal">${si.length} de ${votan.length}</span></div>
+      ${si.length ? `<div class="fila" style="flex-wrap:wrap;gap:6px">${si.map((g) => `<span class="fila" style="gap:6px">${avatarSuelto(g)}<span class="med">${esc(quien(g))}</span></span>`).join('')}</div>` : '<p class="med t2">Nadie todavía. ¿Serás el primero?</p>'}
+      ${no.length ? `<p class="med"><span class="rosa">Objetor:</span> ${esc(enumerar(no.map(quien)))}</p>` : ''}
+      ${nada.length ? `<p class="med t2">Sin responder: ${esc(enumerar(nada.map(quien)))}</p>` : ''}</section>
+    ${respondida ? `<div class="caja teal"><strong>${yoG.alistado ? '¡Ya estás en filas!' : 'Constas como objetor.'}</strong><p class="med t2">Para cambiarlo, usa el enlace del correo del llamamiento o avisa al alto mando.</p></div>`
+      : yoG ? `<div class="fila" style="gap:10px"><button class="btn crece" data-a="alistar" data-v="1">¡Me alisto!</button><button class="btn linea crece" data-a="alistar" data-v="0">No me alisto</button></div>` : ''}
+    <button class="btn linea medio" data-a="ir" data-v="/entrada">Leer el llamamiento completo</button>
+    <p class="peq t4 centro" style="font-family:'Courier Prime','Courier New',monospace">Este parte se autodestruirá cuando empiece la guerra</p>`, { sinNav: true, fondo: 'b', marca: c.guerra.nombre });
+});
+const may = (s) => String(s).toLocaleUpperCase('es');

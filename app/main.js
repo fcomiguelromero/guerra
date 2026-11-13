@@ -40,7 +40,8 @@ function leerEnlace() {
     S.generales[gid] = p.get('g'); S.guerra = gid; S.ui.carta = carta || null; S.ui.cartaEnlace = S.ui.carta;
     if (carta && llave) S.llaves[gid + ':' + carta] = llave;
     recordar();
-    return S.sesiones[gid] ? '/batallas' : '/entrada';
+    if (S.sesiones[gid]) return '/batallas';
+    return p.get('parte') ? '/parte' : '/entrada';
   }
   return S.guerra ? '/batallas' : S.mando ? '/guerras' : '/sin-enlace';
 }
@@ -51,7 +52,7 @@ async function arrancar() {
   if (ruta === '/batallas' && !S.sesiones[S.guerra] && !S.mando) ruta = S.generales[S.guerra] ? '/entrada' : '/sin-enlace';
   S.ruta = ruta;
   pintar();
-  if (S.guerra && ['/entrada', '/guerras', '/sin-enlace'].indexOf(ruta) < 0) {
+  if (S.guerra && ['/entrada', '/parte', '/guerras', '/sin-enlace'].indexOf(ruta) < 0) {
     try {
       await refrescar(true);
       const previa = ['borrador', 'llamamiento'].indexOf(S.est.guerra.fase) >= 0;

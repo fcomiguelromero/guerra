@@ -820,7 +820,7 @@ function crearMotor(env) {
     var doc = ctx.doc, ll = doc.llamamiento || {};
     var nc = doc.gente.filter(function (g) { return g.combate; }).length;
     return {
-      rev: doc.rev, guerra: vistaGuerra(doc), cierre: ll.cierre || '', explicacion: resumenJuego(doc),
+      rev: doc.rev, ahora: ctx.ahora, guerra: vistaGuerra(doc), cierre: ll.cierre || '', cierreTs: ll.cierreTs || null, explicacion: resumenJuego(doc),
       gente: genteOrdenada(doc).map(function (g) {
         return Object.assign(fichaPublica(doc, g), { alistado: g.alistado == null ? null : !!g.alistado, ocupada: !!g.reclamada });
       }),
@@ -897,6 +897,7 @@ function crearMotor(env) {
       if (p.extras) EXTRAS.forEach(function (k) { if (p.extras[k] != null) doc.extras[k] = !!p.extras[k]; });
       if (p.llamamiento) {
         if (p.llamamiento.cierre != null) doc.llamamiento.cierre = txt(p.llamamiento.cierre, 80);
+        if (p.llamamiento.cierreTs !== undefined) doc.llamamiento.cierreTs = Number(p.llamamiento.cierreTs) > 0 ? Number(p.llamamiento.cierreTs) : null;
         if (p.llamamiento.nota != null) doc.llamamiento.nota = parrafo(p.llamamiento.nota, 1500);
         if (p.llamamiento.soloAlistados != null) doc.llamamiento.soloAlistados = !!p.llamamiento.soloAlistados;
       }
