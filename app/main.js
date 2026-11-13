@@ -2,6 +2,7 @@
 import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPestanas, esc } from './base.js';
 import './combate.js';
 import './mando.js';
+import './cronicas.js';
 
 definirPestanas(() => {
   const e = S.est, lista = [];

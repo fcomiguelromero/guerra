@@ -440,24 +440,6 @@ accion('emitir', async () => {
   aviso(r.emitida ? 'Pulla en antena.' : 'Pulla enviada a la censura.', true);
 });
 
-// ---------------------------------------------------------------- crónicas (versión inicial)
-
-alEntrar('/cronicas', async () => { S.ui.cronicas = await llamar('cronicas', {}, 1); pintar(); });
-registrar('/cronicas', () => {
-  const c = S.ui.cronicas;
-  if (!S.est || !c) return marco(cargando('Abriendo las crónicas'), { fondo: 'a' });
-  const lista = c.guerras.map((g) => {
-    const campeon = g.gente.find((x) => x.id === g.campeon), des = g.gente.filter((x) => x.desertor).length;
-    const porra = g.gente.filter((x) => g.porraGana.indexOf(x.id) >= 0).map((x) => x.nombre);
-    return `<div class="caja"><div class="fila entre"><h2 class="h2">${esc(g.nombre)}</h2><span class="peq t2">${new Date(g.fecha).toLocaleDateString('es-ES')}</span></div>
-      <p class="med"><span class="oro">1.er puesto:</span> ${campeon ? esc(campeon.nombre) : 'pendiente del duelo final'}</p>
-      <p class="peq t2">${porra.length ? 'Porra: ' + esc(enumerar(porra)) + ' · ' : ''}${des ? plural(des, 'desertor', 'desertores') : 'Sin desertores'}</p></div>`;
-  }).join('');
-  return marco(`<header class="col g4"><div class="sobre">Palmarés</div><h1 class="h1">Crónicas</h1></header>
-    ${lista || '<div class="caja"><p>Las crónicas se estrenan cuando acabe la primera guerra.</p></div>'}
-    <p class="peq t2 centro">Sólo ves las guerras en las que has combatido.</p>`, { fondo: 'a' });
-});
-
 // ---------------------------------------------------------------- entrada con el enlace general
 
 alEntrar('/entrada', async () => { S.ui.conv = null; S.ui.conv = await llamar('convocatoria', {}, 1); pintar(); });
