@@ -469,7 +469,13 @@ function crearMotor(env) {
   // -- contexto de cada petición: quién llama y sobre qué guerra
   function contexto(p, fresco) {
     var ctx = { ahora: ahora(), esMando: mandoValido(p), doc: null, yo: null };
-    if (p.token) {
+    if (p.p) {
+      // Enlace de la presentación: sólo enseña de qué va la guerra, sin cartas ni alistamiento. Manda sobre cualquier otra credencial.
+      var trozos = String(p.p).split('.');
+      ctx.doc = cargar(trozos[0], fresco);
+      exigir(ctx.doc.presenta && ctx.doc.presenta === trozos[1], 'enlace', 'Este enlace no vale.');
+      ctx.esMando = false;
+    } else if (p.token) {
       var gid = String(p.token).split('.')[0];
       ctx.doc = cargar(gid, fresco);
       ctx.yo = ctx.doc.gente.filter(function (g) { return g.token && g.token === p.token; })[0] || null;
@@ -859,6 +865,7 @@ function crearMotor(env) {
       rev: doc.rev,
       plan: {
         id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe',
+        pitch: doc.pitch || '', presenta: doc.presenta ? doc.id + '.' + doc.presenta : null,
         modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras, diana: doc.diana, correo: doc.correo,
         ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
@@ -892,6 +899,18 @@ function crearMotor(env) {
       resultado: doc.resultado, votos: detalle, proclamas: proclamas,
       porras: doc.porras, espias: doc.espias || {}, duelo: doc.duelo || null,
       pullas: (doc.pullas || []).map(function (x) { return { id: x.id, de: x.de, texto: x.texto, ts: x.ts, estado: x.estado }; })
+    };
+  });
+
+  // Presentación de la guerra: una página sólo explicativa para animar a la gente. Sin nombres ni cartas.
+  definir('presentacion', {}, function (ctx, p) {
+    exigir(ctx.doc && p.p, 'enlace', 'Este enlace no vale.');
+    var doc = ctx.doc, x = doc.extras || {};
+    return {
+      nombre: doc.nombre, campo: doc.campo || '', pregunta: doc.pregunta, premio: doc.premio || '', botin: doc.botin || '',
+      modo: doc.modo, ritmo: doc.ritmo || 'golpe', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
+      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio },
+      firma: nombreMando(doc), pitch: doc.pitch || '', enMarcha: ['borrador', 'llamamiento'].indexOf(doc.fase) < 0
     };
   });
 
@@ -963,7 +982,7 @@ function crearMotor(env) {
       correo: { asunto: '', apertura: '', remate: '' },
       ordenanzas: null, desfileInfo: '', dueloPorPuntos: true,
       llamamiento: { activo: false, cierre: '', soloAlistados: true, voluntarios: [] },
-      clave: env.id(12), gente: [], sig: 1,
+      clave: env.id(12), presenta: env.id(12), pitch: '', gente: [], sig: 1,
       batallas: [], votos: {}, porras: {}, espias: {}, pullas: [], estrellas: [], parte: null, duelo: null, desfile: null, resultado: null
     };
   }
@@ -971,6 +990,8 @@ function crearMotor(env) {
     var previa = ['borrador', 'llamamiento'].indexOf(doc.fase) >= 0;
     if (p.premio != null) doc.premio = txt(p.premio, 160);
     if (p.firma != null) doc.firma = txt(p.firma, 60);
+    if (p.pitch != null) doc.pitch = txt(p.pitch, 600);
+    if (!doc.presenta) doc.presenta = env.id(12);
     if (p.campo != null) doc.campo = txt(p.campo, 60);
     if (p.botin != null) doc.botin = txt(p.botin, 160);
     if (p.desfileInfo != null) doc.desfileInfo = txt(p.desfileInfo, 200);

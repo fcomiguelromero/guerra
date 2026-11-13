@@ -235,10 +235,10 @@ export function pintar() {
   window.scrollTo(0, y);
 }
 
-export function ir(ruta, reemplazar) {
+export function ir(ruta, reemplazar, sinTocarEnlace) {
   S.ruta = ruta;
   const destino = '#' + ruta;
-  if (location.hash !== destino) { if (reemplazar) history.replaceState(null, '', destino); else history.pushState(null, '', destino); }
+  if (!sinTocarEnlace && location.hash !== destino) { if (reemplazar) history.replaceState(null, '', destino); else history.pushState(null, '', destino); }
   pintar();
   window.scrollTo(0, 0);
   const entrar = entradas['/' + ruta.split('/')[1]];

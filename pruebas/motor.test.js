@@ -579,6 +579,24 @@ prueba('una ofensiva al día: se abren a las 9:00, con aviso diario, y al final 
   w.falla('mando', () => w.do('ensayo', { token: g.tok['María'] }));
 });
 
+prueba('presentación: enlace propio, sólo explicativo, sin nombres ni acceso a nada más', () => {
+  const w = mundo(21);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { campo: 'Compañeros de trabajo', pitch: 'Ha llegado la hora.' } });
+  const enlace = w.mando('plan', { guerra: id }).plan.presenta;
+  assert.ok(enlace && enlace.indexOf(id + '.') === 0 && enlace !== id + '.' + w.doc(id).clave, 'clave distinta de la del enlace general');
+  const d = w.do('presentacion', { p: enlace });
+  assert.strictEqual(d.campo, 'Compañeros de trabajo');
+  assert.strictEqual(d.pitch, 'Ha llegado la hora.');
+  assert.strictEqual(d.enMarcha, false);
+  assert.ok(!/María|Andrés|ejemplo\.test/.test(JSON.stringify(d).replace(d.firma, '')), 'sin nombres ni correos');
+  w.falla('enlace', () => w.do('presentacion', { p: id + '.mala' }));
+  w.falla('enlace', () => w.do('presentacion', { g: id + '.' + w.doc(id).clave }));
+  w.falla('enlace', () => w.do('convocatoria', { p: enlace }));
+  w.falla('mando', () => w.do('plan', { p: enlace, mando: 'clave-mando', guerra: id }));
+  declarar(w, id);
+  assert.strictEqual(w.do('presentacion', { p: enlace }).enMarcha, true);
+});
+
 prueba('Radio Macuto: emitir avisando a los combatientes, sin autor', () => {
   const w = mundo(19);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4) });

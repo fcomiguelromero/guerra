@@ -94,6 +94,23 @@ function filaGente(g, i, cosa) {
         ${estado}${p.fase === 'borrador' || p.fase === 'llamamiento' ? `<button class="btn chico peligro" data-a="quitarGente" data-v="${i}">Quitar</button>` : ''}</div>
     </div></div>`;
 }
+// Presentación: una página sólo explicativa, para animar a la gente antes de meterla en la guerra.
+function seccionPresentacion() {
+  const p = S.ui.plan;
+  if (!p.presenta) return `<section class="caja"><h2 class="h2">Presentación de la guerra</h2><p class="med t2">Una página que explica el juego para animar a la gente a participar. Guarda el plan para obtener su enlace.</p></section>`;
+  const url = enlaceApp() + '#p=' + p.presenta, nombre = tituloGuerra(p) || 'una guerra';
+  const texto = `Se avecina la ${nombre}${p.pregunta ? ': «' + p.pregunta + '»' : ''}. Mira de qué va y, si te alistas, avísame y te meto en la guerra: ${url}`;
+  const correo = 'mailto:?subject=' + encodeURIComponent('Se avecina la ' + nombre) + '&body=' + encodeURIComponent(texto + '\n\n' + (p.firma || ''));
+  return `<section class="caja oro"><h2 class="h2">Presentación de la guerra</h2>
+    <p class="med t2">Una página que explica de qué va el juego, para animar a la gente. Es sólo para leer: no tiene botones, ni cartas, ni nombres. Quien quiera participar te avisa a ti y tú lo reclutas aquí.</p>
+    <label class="campo"><span>Tu mensaje (opcional)</span><textarea id="p-pitch" maxlength="600" data-m="plan.pitch" placeholder="Compañeros: ha llegado la hora de saber quién es quién.">${esc(p.pitch || '')}</textarea></label>
+    <p class="peq t2" style="margin-top:-6px">Sale firmado por ti. La página usa el nombre, la pregunta, el premio y los extras de este plan: guarda antes de compartirla.</p>
+    <a class="btn oro medio" href="${esc(url)}" target="_blank" rel="noopener">Ver la presentación</a>
+    <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Por WhatsApp</a>
+      <a class="btn medio linea crece" href="${esc(correo)}">Por correo</a>
+      <button class="btn linea medio" data-a="copiar" data-v="${esc(url)}">${ico('copiar')}Copiar enlace</button></div></section>`;
+}
+
 function seccionLlamamiento() {
   const p = S.ui.plan, m = S.ui.planMando || {};
   if (!p.llamamiento.activo) {
@@ -206,6 +223,7 @@ registrar('/plan', () => {
       <div class="opciones"><button aria-pressed="${p.ritmo !== 'diaria'}" data-a="opcion" data-v="plan.ritmo=golpe">Todas de golpe</button><button aria-pressed="${p.ritmo === 'diaria'}" data-a="opcion" data-v="plan.ritmo=diaria">Una ofensiva al día</button></div>
       <p class="med t2">${p.ritmo === 'diaria' ? `La primera ofensiva se abre al declarar la guerra y, después, una nueva cada mañana a las 9:00${nc >= 3 ? `: la guerra durará al menos ${nc % 2 ? nc : nc - 1} días` : ''}. Cada día sale un correo avisando de las batallas nuevas a quien tenga algo por votar. Las ofensivas abiertas no caducan: el que se retrase puede ponerse al día cuando quiera.` : 'Todas las ofensivas se abren a la vez y cada uno vota a su ritmo.'}</p></section>
     <section class="caja"><h2 class="h2">Extras</h2>${EXTRAS.map(([k, t, n]) => interruptor('plan.extras.' + k, p.extras[k], t, n)).join('')}</section>` : ''}
+    ${seccionPresentacion()}
     ${seccionOrdenanzas()}
     <section class="caja"><h2 class="h2">Toque de diana</h2>
       ${interruptor('plan.diana.activa', p.diana.activa, 'Recordar a los rezagados', 'Un correo automático, sólo de día')}
@@ -264,7 +282,7 @@ accion('foto', async (i, el) => {
 async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
-    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
+    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '', desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,

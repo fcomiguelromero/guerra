@@ -3,6 +3,7 @@ import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPe
 import './combate.js';
 import './mando.js';
 import './cronicas.js';
+import './presentacion.js';
 
 definirPestanas(() => {
   const e = S.est, lista = [];
@@ -27,6 +28,7 @@ function leerEnlace() {
   const h = location.hash.slice(1);
   if (h.charAt(0) === '/') return h;
   const p = new URLSearchParams(h);
+  if (p.get('p')) { S.ui.pres = p.get('p'); return '/presentacion'; }
   if (p.get('t')) {
     const gid = p.get('t').split('.')[0];
     S.sesiones[gid] = p.get('t'); S.guerra = gid;
@@ -48,6 +50,7 @@ function leerEnlace() {
 
 async function arrancar() {
   let ruta = leerEnlace();
+  if (ruta === '/presentacion') { ir(ruta, true, true); return; }   // página suelta: ni sesión ni latido
   if (!S.guerra && !S.mando) ruta = '/sin-enlace';
   if (ruta === '/batallas' && !S.sesiones[S.guerra] && !S.mando) ruta = S.generales[S.guerra] ? '/entrada' : '/sin-enlace';
   S.ruta = ruta;
