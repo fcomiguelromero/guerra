@@ -398,13 +398,25 @@ function listaCorreo(items) {
 
 // ---------------------------------------------------------------- correos
 
-function marcoCorreo(doc, cuerpo, pie) {
-  return '<div style="margin:0;padding:24px 12px;background:#0d0b1a;font-family:Arial,Helvetica,sans-serif">' +
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#16132b;border:1px solid #3a3566;border-radius:16px">' +
-    '<tr><td style="padding:28px 24px 8px;text-align:center;font-size:13px;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0">' + esc(doc.nombre) + '</td></tr>' +
-    '<tr><td style="padding:8px 24px 24px;font-size:16px;line-height:1.55;color:#f2f0ff">' + cuerpo + '</td></tr>' +
+// Marco común de los correos. o.fondo: imagen de fondo (JPG alojado en la web); o.mosaico: repetirla; o.titulo: rótulo grande.
+function marcoCorreo(doc, cuerpo, pie, o) {
+  o = o || {};
+  var fondo = o.fondo ? 'background-image:url(' + o.fondo + ');background-repeat:' + (o.mosaico ? 'repeat' : 'no-repeat') +
+    ';background-size:' + (o.mosaico ? '390px auto' : 'cover') + ';background-position:center ' + (o.mosaico ? 'top' : 'bottom') + ';' : '';
+  var condensada = 'font-family:\'Barlow Condensed\',\'Arial Narrow\',\'Roboto Condensed\',Arial,sans-serif;font-weight:800;text-transform:uppercase';
+  return '<div style="margin:0;padding:44px 14px 64px;background-color:#0d0b1a;' + fondo + 'font-family:Arial,Helvetica,sans-serif">' +
+    // Portada: nombre de la guerra y rótulo, directamente sobre el fondo.
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">' +
+    '<tr><td style="padding:0 8px;text-align:center;font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0;text-shadow:0 1px 6px #0d0b1a">' + esc(doc.nombre) + '</td></tr>' +
+    (o.titulo ? '<tr><td style="padding:10px 8px 0;text-align:center;' + condensada + ';font-size:44px;line-height:1;color:#ffffff;text-shadow:0 2px 14px #0d0b1a">' + esc(o.titulo) + '</td></tr>' : '') +
+    '<tr><td style="padding:14px 0 26px;text-align:center"><span style="display:inline-block;width:64px;height:4px;border-radius:2px;background-color:#ff6ad5;background-image:linear-gradient(90deg,#5ef0d0,#8f7bff,#ff6ad5,#ffd36a)"></span></td></tr>' +
+    '</table>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background-color:#16132b;background-color:rgba(22,19,43,0.82);border:1px solid #3a3566;border-radius:16px">' +
+    '<tr><td style="padding:24px 24px 24px;font-size:16px;line-height:1.55;color:#f2f0ff">' + cuerpo + '</td></tr>' +
     '<tr><td style="padding:16px 24px 24px;border-top:1px solid #2a2648;font-size:12px;line-height:1.5;color:#8d88ab">' + pie + '</td></tr>' +
-    '</table></div>';
+    '</table>' +
+    '<p style="margin:22px 0 0;text-align:center;' + condensada + ';font-size:18px;letter-spacing:2px;color:#ffffff;text-shadow:0 1px 8px #0d0b1a">¡Sólo puede quedar uno!</p>' +
+    '</div>';
 }
 function botonCorreo(url, texto) {
   return '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(url) + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#5ef0d0;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">' + esc(texto) + '</a></p>' +
@@ -1061,7 +1073,7 @@ function crearMotor(env) {
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
-      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.'),
+      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización' }),
       texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlace + (c.remate ? '\n\n' + c.remate : '')
     };
   }
@@ -1092,7 +1104,7 @@ function crearMotor(env) {
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
-      html: marcoCorreo(doc, cuerpo, '¡Sólo puede quedar uno!'),
+      html: marcoCorreo(doc, cuerpo, 'Responde antes del cierre del alistamiento.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: '¡Llamamiento a filas!' }),
       texto: 'El alto mando prepara la ' + doc.nombre + ': ' + doc.pregunta + '\n\n' + resumenJuego(doc).join('\n') + '\n\n¿Te alistas? Responde aquí: ' + url
     };
   }
@@ -1254,7 +1266,7 @@ function crearMotor(env) {
         env.correo({
           para: g.correo, nombre: nombreMando(doc),
           asunto: doc.nombre + ': toque de diana, te ' + (r.faltan === 1 ? 'queda 1 batalla' : 'quedan ' + r.faltan + ' batallas'),
-          html: marcoCorreo(doc, cuerpo, doc.diana.activa ? 'Te tocarán diana cada ' + plural(doc.diana.cadaDias, 'día', 'días') + ' mientras te queden batallas.' : 'Toque de diana del alto mando.'),
+          html: marcoCorreo(doc, cuerpo, doc.diana.activa ? 'Te tocarán diana cada ' + plural(doc.diana.cadaDias, 'día', 'días') + ' mientras te queden batallas.' : 'Toque de diana del alto mando.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Toque de diana' }),
           texto: frase + '\n\nVuelve a la guerra con tu enlace personal: ' + enlacePersonal(g)
         });
         enviados++;
