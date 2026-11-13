@@ -18,7 +18,7 @@ definirPestanas(() => {
 
 registrar('/sin-enlace', () => marco(`<header class="col g4"><div class="sobre">Guerra de la Normalidad</div><h1 class="h1">Identifícate, soldado</h1></header>
   <div class="caja"><p>${esc(S.ui.motivo || 'Para entrar en combate necesitas tu enlace personal.')}</p>
-  <p class="med t2">Está en tu orden de movilización, el correo que te mandó el alto mando. Si no lo encuentras, pídele el enlace general.</p></div>
+  ${S.ui.sinPista ? '' : '<p class="med t2">Está en tu orden de movilización, el correo que te mandó el alto mando. Si no lo encuentras, pídele el enlace general.</p>'}</div>
   <p class="bc centro" style="font-weight:800;font-size:20px;color:#fff">¡Sólo puede quedar uno!</p>`, { sinNav: true }));
 
 // El enlace puede traer la carta personal (#t=), la clave del alto mando (#mando=) o el enlace general (#g=).
@@ -61,7 +61,8 @@ async function arrancar() {
       if (err.codigo === 'enlace' || err.codigo === 'noexiste') {
         delete S.sesiones[S.guerra];
         S.guerra = null; recordar();
-        S.ui.motivo = err.codigo === 'enlace' ? err.message : 'Esa guerra ya no existe.';
+        S.ui.motivo = err.codigo === 'enlace' ? err.message : 'Esa guerra ya no existe: el alto mando la ha borrado.';
+        S.ui.sinPista = err.codigo !== 'enlace';
         ruta = S.mando ? '/guerras' : '/sin-enlace';
       } else S.ui.motivo = err.message;
     }

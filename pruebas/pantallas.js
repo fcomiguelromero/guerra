@@ -167,6 +167,19 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
     await foto(g, '22-quien-eres', true);
     const s = await pagina(navegador, 390, 844, '');
     await foto(s, '23-sin-enlace');
+
+    // --- borrar la guerra ya publicada: desaparece y los enlaces dejan de valer
+    await m.goto(BASE + '#/cuartel'); await m.reload(); await m.waitForLoadState('networkidle');
+    await m.locator('[data-a="borrarGuerra"]').click();
+    await foto(m, '24-borrar');
+    await m.locator('[data-a="borrarYa"]').click();
+    await m.waitForFunction(() => location.hash === '#/guerras');
+    await m.waitForLoadState('networkidle'); await m.waitForTimeout(300);
+    await foto(m, '25-tras-borrar');
+    assert.ok((await m.locator('body').innerText()).includes('Aún no hay ninguna guerra'));
+    await j.reload(); await j.waitForLoadState('networkidle'); await j.waitForTimeout(300);
+    await foto(j, '26-enlace-de-guerra-borrada');
+    assert.ok((await j.locator('body').innerText()).includes('ya no existe'));
   } finally {
     await navegador.close();
     servidor.kill();

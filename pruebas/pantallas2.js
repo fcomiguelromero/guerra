@@ -45,6 +45,16 @@ function png() {
     await m.waitForSelector('.retrato img');
     await pulsa(m, 'Abrir el llamamiento');
     await m.fill('#nota', 'Reclutas: ha llegado la hora de saber quién es el más normal.');
+    await m.locator('[data-a="previa"][data-v="llamamiento"]').click();
+    await m.waitForSelector('.velo iframe'); await m.waitForTimeout(300);
+    await foto(m, '00a-previa-llamamiento');
+    await m.locator('.velo [data-a="cerrarVelo"]').click();
+    await m.locator('[data-a="previa"][data-v="orden"]').click();
+    await m.waitForSelector('.velo iframe'); await m.waitForTimeout(300);
+    await foto(m, '00b-previa-orden');
+    assert.ok((await m.locator('.velo').innerText()).includes('No se ha enviado nada'));
+    await m.locator('.velo [data-a="cerrarVelo"]').click();
+    assert.strictEqual((await api('_prueba', {})).correos.length, 0, 'la vista previa no envía correos');
     await pulsa(m, 'Llamamiento por correo');
     await foto(m, '01-llamamiento-plan', true);
     const llamadas = (await api('_prueba', {})).correos.filter((c) => /Llamamiento/.test(c.asunto));

@@ -99,6 +99,7 @@ function seccionLlamamiento() {
       <div><b class="bc" style="font-size:28px">${nada.length}</b><div class="peq t2">Sin respuesta</div></div><div><b class="bc rosa" style="font-size:28px">${no.length}</b><div class="peq t2">Objetores</div></div></div>
     ${nada.length ? `<p class="med t2">Sin respuesta: ${esc(enumerar(nada.map((g) => g.nombre)))}.</p>` : ''}${no.length ? `<p class="med t2">Objetor: ${esc(enumerar(no.map((g) => g.nombre)))}.</p>` : ''}
     <label class="campo"><span>Tu mensaje para el correo (opcional, va antes de la explicación del juego)</span><textarea id="nota" maxlength="1500" data-m="plan.llamamiento.nota" placeholder="Reclutas: ha llegado la hora.">${esc(p.llamamiento.nota || '')}</textarea></label>
+    <button class="btn linea chico" style="align-self:flex-start" data-a="previa" data-v="llamamiento">Ver cómo queda el correo</button>
     ${sinEnviar.length ? `<button class="btn medio" data-a="llamarCorreo" data-v="0">Llamamiento por correo (${sinEnviar.length})</button>`
       : conCorreo.length ? `<button class="btn linea medio" data-a="llamarCorreo" data-v="1">Reenviar a quien no contesta (${conCorreo.length})</button>` : ''}
     ${enviados.length ? `<p class="peq t2">Correo enviado a ${esc(enumerar(enviados.map((g) => g.nombre + ' (' + hora(g.llamada) + ')')))}. Cada uno llega directo a su carta.</p>` : '<p class="peq t2">El correo sale desde tu Gmail, explica el juego y lleva a cada uno directo a su carta con un enlace sólo suyo.</p>'}
@@ -142,7 +143,8 @@ registrar('/plan', () => {
     <section class="caja"><h2 class="h2">La orden de movilización</h2><p class="med t2">Tu frase de apertura y tu remate; el enlace personal de cada uno va en medio.</p>
       <label class="campo"><span>Asunto</span><input id="p-asunto" maxlength="150" data-m="plan.correo.asunto" value="${esc(p.correo.asunto)}" placeholder="¡Comienza la ${esc(p.nombre || 'guerra')}!"></label>
       <label class="campo"><span>Apertura</span><textarea id="p-apertura" maxlength="1500" data-m="plan.correo.apertura">${esc(p.correo.apertura)}</textarea></label>
-      <label class="campo"><span>Remate</span><textarea id="p-remate" maxlength="1500" data-m="plan.correo.remate">${esc(p.correo.remate)}</textarea></label></section>
+      <label class="campo"><span>Remate</span><textarea id="p-remate" maxlength="1500" data-m="plan.correo.remate">${esc(p.correo.remate)}</textarea></label>
+      <button class="btn linea medio" data-a="previa" data-v="orden">Ver cómo queda el correo</button></section>
     ${previa ? `<section class="caja"><h2 class="h2">Puntuación</h2>
       <div class="opciones"><button aria-pressed="${p.puntuacion !== 'votos'}" data-a="opcion" data-v="plan.puntuacion=liga">Liga: 3, 1, 0</button><button aria-pressed="${p.puntuacion === 'votos'}" data-a="opcion" data-v="plan.puntuacion=votos">Por votos</button></div>
       <p class="med t2">${p.puntuacion === 'votos' ? 'Cada voto recibido vale 3 puntos, como en el cambio de 2012.' : 'Ganar un combate, 3 puntos; empatarlo, 1; perderlo, 0. Desempata la diferencia de votos.'}</p></section>
@@ -153,7 +155,7 @@ registrar('/plan', () => {
       <label class="campo"><span>Tus frases, una por línea. Usa {nombre} y {faltan}</span><textarea id="p-frases" data-m="frases" placeholder="{nombre}, la patria te reclama: te quedan {faltan} batallas.">${esc(S.ui.frases || '')}</textarea></label></section>
     <div class="col">${previa ? `<button class="btn" data-a="declarar">¡Declarar la guerra!</button>` : ''}
       <button class="btn linea" data-a="guardarPlan">${previa ? 'Guardar borrador' : 'Guardar cambios'}</button>
-      ${previa ? '<button class="btn chico peligro" style="align-self:center" data-a="borrarGuerra">Borrar esta guerra</button>' : ''}</div>`, { sinNav: true, fondo: 'a', marca: 'Alto mando' });
+      <button class="btn chico peligro" style="align-self:center" data-a="borrarGuerra">Borrar esta guerra</button></div>`, { sinNav: true, fondo: 'a', marca: 'Alto mando' });
 });
 
 accion('modo', (m) => {
@@ -221,12 +223,36 @@ accion('llamarCorreo', async (todos) => {
   aviso(`Llamamiento enviado: ${plural(r.enviados, 'correo', 'correos')}.${r.fallos.length ? ' Falló con ' + enumerar(r.fallos) + '.' : ''}`, !r.fallos.length);
 });
 accion('reclutar', async (v) => { const [id, si] = v.split(':'); await guardarPlan(); await llamar('reclutar', { id, si: si === '1' }); await cargarPlan(); pintar(); });
-accion('borrarGuerra', async () => {
-  if (!S.ui.confirmaBorrar) { S.ui.confirmaBorrar = true; aviso('Pulsa otra vez «Borrar esta guerra» para confirmarlo.'); return; }
-  S.ui.confirmaBorrar = false;
+accion('borrarGuerra', () => {
+  const fase = (S.ui.plan && S.ui.plan.fase) || (S.est && S.est.guerra.fase) || 'borrador';
+  const nombre = (S.ui.plan && S.ui.plan.nombre) || (S.est && S.est.guerra.nombre) || 'esta guerra';
+  const declarada = ['borrador', 'llamamiento'].indexOf(fase) < 0;
+  S.velo = `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="velo-t"><div class="caja rosa"><h2 class="h2" id="velo-t">¿Borrar «${esc(nombre)}»?</h2>
+    <p>${declarada ? 'Se borra todo: batallas, votos, porras, proclamas y Radio Macuto. Desaparece de las crónicas y del escalafón, y no cuenta para los grados.' : 'Se borra el plan con su gente y las respuestas al llamamiento.'}</p>
+    <p class="med t2">${declarada ? 'Quien entre con su enlace verá que la guerra ya no existe. ' : ''}No se puede deshacer. Úsalo para las guerras de prueba.</p>
+    <button class="btn rosa" data-a="borrarYa">Borrar para siempre</button><button class="btn linea medio" data-a="cerrarVelo">Cancelar</button></div></div>`;
+  pintar();
+});
+accion('borrarYa', async () => {
+  S.velo = '';
   await llamar('borrarGuerra');
-  S.guerra = null; S.est = null; S.ui.plan = null; recordar();
+  delete S.sesiones[S.guerra];
+  S.guerra = null; S.est = null; S.ui.plan = null; S.ui.guerras = null; recordar();
   ir('/guerras');
+  aviso('Guerra borrada.', true);
+});
+
+// Vista previa de un correo, tal cual lo recibirá un combatiente. No se envía nada.
+accion('previa', async (tipo) => {
+  if (S.ui.plan && ['borrador', 'llamamiento'].indexOf(S.ui.plan.fase) >= 0) await guardarPlan();
+  const v = await llamar('previaCorreo', { tipo });
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#0d0b1a}</style></head><body>' + v.html + '</body></html>';
+  S.velo = `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="velo-t"><div class="caja" style="max-width:560px;max-height:94vh;overflow:hidden;gap:8px">
+    <div class="fila entre"><h2 class="h2" id="velo-t">Vista previa</h2><button class="cuadro" data-a="cerrarVelo" aria-label="Cerrar">${ico('equis')}</button></div>
+    <p class="peq t2" style="line-height:1.5">De: ${esc(v.de)}<br>Para: ${esc(v.para)}<br>Asunto: <strong style="color:#f2f0ff">${esc(v.asunto)}</strong></p>
+    <iframe title="Vista previa del correo" sandbox="" srcdoc="${esc(doc)}" style="width:100%;height:62vh;border:1px solid #3a3566;border-radius:10px;background:#0d0b1a"></iframe>
+    <p class="peq t2">Así lo verá ${esc(v.para.split(' <')[0])}. Cada uno recibe su propio enlace. No se ha enviado nada.</p></div></div>`;
+  pintar();
 });
 accion('declarar', async () => {
   await guardarPlan();
@@ -296,6 +322,7 @@ registrar('/cuartel', () => {
       ${abierta ? '<p class="peq t2 centro">El informe clasificado y el desfile se abren cuando acabe la guerra. Hasta entonces nadie ve los votos, tú tampoco.</p>' : ''}
       <button class="btn linea medio" data-a="ir" data-v="/plan">Ajustes de la guerra</button>
       ${fase === 'publicada' ? '<button class="btn linea medio" data-a="contraofensiva">Contraofensiva: otra guerra con la misma gente</button>' : ''}
+      <button class="btn chico peligro" style="align-self:center;margin-top:8px" data-a="borrarGuerra">Borrar esta guerra</button>
     </div>`, { fondo: 'a' });
 });
 accion('moderar', async (v) => { const [id, si] = v.split(':'); await llamar('moderar', { id, emitir: si === '1' }); await refrescar(true); pintar(); });

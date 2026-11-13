@@ -157,6 +157,41 @@ prueba('llamamiento por correo: explica el juego, lleva a la carta y no repite',
   assert.deepStrictEqual(g.doc.gente.map((x) => x.nombre).sort(), ['Andrés', 'Fran', 'Javier', 'María'], 'sólo entran los alistados');
 });
 
+prueba('vista previa: los dos correos se componen sin enviar nada, antes de declarar', () => {
+  const w = mundo(16);
+  const id = crearGuerra(w, { plan: { correo: { asunto: '¡A las armas!', apertura: 'Ha llegado la hora.', remate: '' } } });
+  let v = w.mando('previaCorreo', { guerra: id });
+  assert.strictEqual(v.asunto, '¡A las armas!');
+  assert.strictEqual(v.de, 'Fran');
+  assert.ok(/^María </.test(v.para), 'se previsualiza para un combatiente que no es el alto mando');
+  assert.ok(v.html.includes('Las 9 ofensivas') && v.html.includes('36 batallas') && v.html.includes('Ha llegado la hora.') && v.html.includes('Así es esta guerra'));
+  w.mando('abrirLlamamiento', { guerra: id });
+  v = w.mando('previaCorreo', { guerra: id, tipo: 'llamamiento' });
+  assert.ok(/Se avecina/.test(v.asunto) && v.html.includes('Responder al llamamiento'));
+  assert.ok(!v.html.includes('~'), 'la vista previa no lleva la llave de nadie');
+  assert.strictEqual(w.correos.length, 0);
+  w.falla('mando', () => w.do('previaCorreo', { guerra: id }));
+});
+
+prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
+  const w = mundo(17);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
+  const g = declarar(w, id);
+  NOMBRES.slice(0, 4).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  w.do('estado', { token: g.tok['María'] });
+  w.mando('publicar', { guerra: id });
+  assert.strictEqual(w.do('cronicas', { token: g.tok['María'] }).guerras.length, 1);
+  const { id: id2 } = w.mando('contraofensiva', { guerra: id });
+  w.mando('borrarGuerra', { guerra: id });
+  assert.deepStrictEqual(w.mando('cuartel', {}).guerras.map((x) => x.id), [id2]);
+  w.falla('noexiste', () => w.do('estado', { token: g.tok['María'] }));
+  const g2 = declarar(w, id2);
+  assert.ok(g2.doc.gente.every((x) => x.grado === 0), 'la guerra borrada ya no asciende a nadie');
+  assert.strictEqual(w.do('cronicas', { token: g2.tok['María'] }).guerras.length, 0);
+  assert.ok(w.registro.some((f) => f[3] === 'borrar'));
+});
+
 prueba('orden de movilización: un correo por combatiente con su enlace personal', () => {
   const w = mundo(4);
   const id = crearGuerra(w, { plan: { correo: { asunto: '¡A las armas!', apertura: 'Ha llegado la hora.', remate: 'Suerte.' } } });

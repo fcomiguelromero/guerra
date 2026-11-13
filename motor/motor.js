@@ -943,9 +943,10 @@ function crearMotor(env) {
     return { rev: ctx.doc.rev + 1 };
   });
 
+  // Se puede borrar en cualquier fase: desaparece de las crónicas, del escalafón y de los grados.
   definir('borrarGuerra', { escribe: true, quien: 'mando' }, function (ctx) {
     var doc = ctx.doc;
-    exigir(doc.fase === 'borrador' || doc.fase === 'llamamiento', 'fase', 'Sólo se puede borrar una guerra que no se ha declarado.');
+    anotar(doc, 'mando', 'borrar', doc.nombre + ' (' + doc.fase + ')');
     env.borrar('guerra:' + doc.id);
     var ind = env.leer('indice', true) || { guerras: [] };
     ind.guerras = ind.guerras.filter(function (g) { return g.id !== doc.id; });
@@ -1039,23 +1040,34 @@ function crearMotor(env) {
     return { batallas: doc.batallas.length, enviados: enviados, sinCorreo: vs.filter(function (g) { return !g.correo; }).length };
   });
 
-  function enviarOrden(doc, g, t) {
-    if (!g.correo) return false;
-    var mias = batallasDe(doc, g).length, of = Math.max.apply(null, doc.batallas.map(function (b) { return b.of; }));
+  // Con la guerra sin declarar aún no hay batallas: se calculan como quedarán.
+  function cuentasDe(doc, g) {
+    if (doc.batallas && doc.batallas.length) {
+      return { mias: batallasDe(doc, g).length, of: Math.max.apply(null, doc.batallas.map(function (b) { return b.of; })) };
+    }
+    var nc = doc.gente.filter(function (x) { return x.combate; }).length, nb = nc * (nc - 1) / 2;
+    return { mias: g.combate ? nb - (nc - 1) : nb, of: nc % 2 ? nc : nc - 1 };
+  }
+  function componerOrden(doc, g, enlace) {
+    var k = cuentasDe(doc, g), mias = k.mias, of = k.of;
     var c = doc.correo || {};
     var cuerpo = parrafos(c.apertura) +
       '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
       ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>' +
       (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc))) +
-      botonCorreo(enlacePersonal(g), 'Entrar a la guerra') + parrafos(c.remate) +
+      botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
+    return {
+      para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
+      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.'),
+      texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlace + (c.remate ? '\n\n' + c.remate : '')
+    };
+  }
+  function enviarOrden(doc, g, t) {
+    if (!g.correo) return false;
     try {
-      env.correo({
-        para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
-        html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.'),
-        texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlacePersonal(g) + (c.remate ? '\n\n' + c.remate : '')
-      });
+      env.correo(componerOrden(doc, g, enlacePersonal(g)));
       g.correoEnviado = t; g.correoError = null;
       anotar(doc, 'mando', 'correo', 'Orden de movilización a ' + g.nombre + ' <' + g.correo + '>');
       return true;
@@ -1066,9 +1078,8 @@ function crearMotor(env) {
     }
   }
 
-  function enviarLlamada(doc, g, t) {
-    if (!g.llave) g.llave = env.id(16);
-    var ll = doc.llamamiento, url = urlApp() + '#g=' + claveGeneral(doc) + '&r=' + g.id + '~' + g.llave;
+  function componerLlamada(doc, g, url) {
+    var ll = doc.llamamiento;
     var cuerpo = (ll.nota ? parrafos(ll.nota) : '') +
       '<p style="margin:0 0 14px">El alto mando prepara una nueva guerra, la <strong>' + esc(doc.nombre) + '</strong>, y estás en la lista de reclutas.</p>' +
       '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">Qué se dirime</p>' +
@@ -1078,12 +1089,16 @@ function crearMotor(env) {
       '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(url) + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#5ef0d0;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder al llamamiento</a></p>' +
       '<p style="margin:0 0 14px;font-size:13px;color:#b3aecf">Si te alistas, cuando se declare la guerra te llegará otro correo: tu orden de movilización, con tu enlace personal para votar.</p>' +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+    return {
+      para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
+      html: marcoCorreo(doc, cuerpo, '¡Sólo puede quedar uno!'),
+      texto: 'El alto mando prepara la ' + doc.nombre + ': ' + doc.pregunta + '\n\n' + resumenJuego(doc).join('\n') + '\n\n¿Te alistas? Responde aquí: ' + url
+    };
+  }
+  function enviarLlamada(doc, g, t) {
+    if (!g.llave) g.llave = env.id(16);
     try {
-      env.correo({
-        para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
-        html: marcoCorreo(doc, cuerpo, '¡Sólo puede quedar uno!'),
-        texto: 'El alto mando prepara la ' + doc.nombre + ': ' + doc.pregunta + '\n\n' + resumenJuego(doc).join('\n') + '\n\n¿Te alistas? Responde aquí: ' + url
-      });
+      env.correo(componerLlamada(doc, g, urlApp() + '#g=' + claveGeneral(doc) + '&r=' + g.id + '~' + g.llave));
       g.llamada = t; g.llamadaError = null;
       anotar(doc, 'mando', 'correo', 'Llamamiento a ' + g.nombre + ' <' + g.correo + '>');
       return true;
@@ -1093,6 +1108,16 @@ function crearMotor(env) {
       return false;
     }
   }
+
+  definir('previaCorreo', { quien: 'mando' }, function (ctx, p) {
+    var doc = ctx.doc, votan = doc.gente.filter(function (g) { return g.vota; });
+    var g = votan.filter(function (x) { return !x.mando && x.correo; })[0] || votan.filter(function (x) { return x.correo; })[0] ||
+      votan[0] || { id: 'c0', nombre: 'Recluta', correo: 'recluta@ejemplo.com', combate: doc.modo !== 'cosas', vota: true };
+    var m = p.tipo === 'llamamiento'
+      ? componerLlamada(doc, g, urlApp() + '#g=' + (doc.clave ? claveGeneral(doc) : 'ejemplo') + '&r=' + g.id)
+      : componerOrden(doc, g, urlApp() + '#t=enlace-personal-de-' + norm(g.nombre).replace(/[^a-z0-9]+/g, '-'));
+    return { para: g.nombre + (g.correo ? ' <' + g.correo + '>' : ''), de: m.nombre, asunto: m.asunto, html: m.html };
+  });
 
   definir('enviarLlamamiento', { escribe: true, quien: 'mando' }, function (ctx, p) {
     var doc = ctx.doc;
