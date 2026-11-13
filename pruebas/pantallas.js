@@ -145,7 +145,7 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
       const t = est.desfile.actual.t + (est.desfile.actual.pos || est.desfile.actual.cual || '');
       await e.waitForTimeout(2700);                       // el latido del desfile trae el paso nuevo
       await foto(e, '17-desfile-pc-' + String(paso).padStart(2, '0') + '-' + t);
-      if (paso % 3 === 0 || est.desfile.ultimo) { await j.reload(); await j.waitForLoadState('networkidle'); await foto(j, '18-desfile-movil-' + String(paso).padStart(2, '0') + '-' + t, true); }
+      if (paso % 3 === 0 || est.desfile.ultimo || t === 'finalistas') { await j.reload(); await j.waitForLoadState('networkidle'); await foto(j, '18-desfile-movil-' + String(paso).padStart(2, '0') + '-' + t, true); }
       if (est.desfile.ultimo) break;
       await m.locator('[data-a="desfile"][data-v="siguiente"]').click();
       await m.waitForLoadState('networkidle');
@@ -157,6 +157,9 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
     await foto(m, '19-publicada-mando', true);
     await e.reload(); await e.waitForLoadState('networkidle');
     await foto(e, '20-publicada-pc', true);
+    await ma.goto(BASE + '#/porra'); await ma.reload(); await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(400);
+    await foto(ma, '20b-porra-final', true);
+    assert.ok((await ma.locator('body').innerText()).includes('GANADOR DE LA PORRA') || (await ma.locator('body').innerText()).toUpperCase().includes('GANADOR'));
     await pulsa(e, 'Crónicas');
     await e.waitForTimeout(300);
     await foto(e, '21-cronicas-pc');

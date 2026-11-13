@@ -269,7 +269,7 @@ accion('votarDuelo', async (id) => { await llamar('votarDuelo', { elegido: id },
 
 function etiquetaSiguiente(s) {
   if (!s) return 'Terminar el desfile';
-  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', campeon: 'el campeón' }[s.t] || ordinal(s.pos) + ' puesto');
+  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón' }[s.t] || ordinal(s.pos) + ' puesto');
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas };
 
@@ -285,7 +285,7 @@ function pantallaDesfile() {
         <p><span class="bc oro" style="font-weight:800;font-size:20px">Que conste en acta.</span> <span class="peq t2">Firmado: el alto mando</span></p></div>`;
   } else if (a.t === 'puesto') {
     centro = `<div class="bc oro centro" style="font-weight:800;font-size:32px;letter-spacing:.04em">${ordinal(a.pos)} puesto</div>
-      ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:12px;font-weight:700;font-size:18px">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}`;
+      ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}`;
   } else if (a.t === 'proclama') {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Proclamas anónimas</h2><span class="peq rosa" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">Proclama anónima · ${a.n} de ${a.de}</span></div>
       <blockquote class="cita" style="margin:0">«${esc(a.texto || '')}»</blockquote>
@@ -295,11 +295,19 @@ function pantallaDesfile() {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Condecoraciones</h2><span class="med t2">Calculadas con vuestros votos</span></div>${listaPremios(d.premios)}`;
   } else if (a.t === 'duelo') {
     centro = bloqueDuelo(a.duelo, true);
+  } else if (a.t === 'finalistas') {
+    const [fa, fb] = a.entre.map((id) => G[id]);
+    centro = `<div class="col g4 centro"><span class="peq oro" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">La gran final</span><h2 class="enorme">Sólo quedan dos</h2>
+        <p class="t3">Uno de los dos se lleva la guerra. El otro, el 2.º puesto.</p></div>
+      <div class="duelo">${carta(fa)}${carta(fb, { clase: 'izq' })}<div class="vs" aria-hidden="true" style="background:#ffd36a">?</div></div>
+      <p class="bc oro centro" style="font-weight:800;font-size:26px;letter-spacing:.04em">¿${esc(fa.nombre)} o ${esc(fb.nombre)}?</p>
+      <p class="med t2 centro">El alto mando tiene el sobre.</p>`;
   } else if (a.t === 'campeon') {
     const f = a.fila, gana = a.porra.gana.map((id) => nombreDe(G[id]));
     centro = `<p class="sobre centro">${esc(e.guerra.pregunta)}</p>
       <div class="enorme oro centro">1.er puesto</div>
-      ${carta(G[f.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:12px;font-weight:700;font-size:18px">${textoPuntos(f)}<span class="t2">${textoBatallas(f)}</span><span class="t2">${signo(f.dif)}</span></div>` })}
+      ${carta(G[f.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(f)}<span class="t2">${textoBatallas(f)}</span><span class="t2">${signo(f.dif)}</span></div>` })}
+      ${a.segundo ? `<p class="centro"><span class="t2">2.º puesto:</span> <strong>${esc(nombreDe(G[a.segundo.id]))}</strong> <span class="t2">· ${plural(a.segundo.pts, 'punto', 'puntos')}</span></p>` : ''}
       ${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
       ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(a.porra.suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ', y se lleva' + (gana.length > 1 ? 'n' : '') + ' ' + esc(e.guerra.botin) : ''}.</span></div>` : ''}`;
   }
@@ -320,7 +328,18 @@ function tablaFinal(r) {
     ${r.desertores.map((x) => `<tr><td>—</td><td class="t2">${esc(G[x.id].nombre)}</td><td colspan="5" class="rosa" style="font-size:12px">Desertor</td></tr>`).join('')}
   </tbody></table>`;
 }
-export { tablaFinal };
+export { tablaFinal, listaCuriosidades };
+function listaCuriosidades(r, G) {
+  const c = r.curiosidades || {}, bat = porId(r.batallas), nom = (id) => esc(G[id].nombre);
+  const marcador = (id) => { const b = bat[id]; return b ? `${nom(b.a)} ${b.va}–${b.vb} ${nom(b.b)}` : ''; };
+  return [
+    c.renida && bat[c.renida.batalla] ? `<strong>La más reñida:</strong> ${marcador(c.renida.batalla)}${c.renida.otras ? `, y otras ${c.renida.otras} con el mismo margen` : ''}.` : '',
+    c.paliza && bat[c.paliza.batalla] ? `<strong>Mayor paliza:</strong> ${marcador(c.paliza.batalla)}, ofensiva ${bat[c.paliza.batalla].of}.` : '',
+    c.primero ? `<strong>Votó antes que nadie:</strong> ${nom(c.primero.id)}, que terminó en ${duracion(c.primero.ms)}.` : '',
+    c.ultimo ? `<strong>Última papeleta:</strong> ${nom(c.ultimo.id)}, a los ${duracion(c.ultimo.ms)}.` : '',
+    c.espiada && bat[c.espiada.batalla] ? `<strong>La batalla más espiada:</strong> ${marcador(c.espiada.batalla)} (${plural(c.espiada.n, 'espía', 'espías')}).` : ''
+  ].filter(Boolean);
+}
 function pantallaPublicada() {
   const e = S.est, r = e.resultado, G = gente(), campeon = r.tabla[0];
   const duelo = e.duelo && !e.duelo.cerrado;
@@ -330,15 +349,16 @@ function pantallaPublicada() {
   const premios = ['rebelde', 'borrego', 'tardon'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
   return marco(`${cabecera(duelo ? 'Duelo final' : 'Parte de guerra')}
     ${duelo ? `<p class="med t3">El resto del parte de guerra ya es oficial: sólo falta decidir quién se lleva la guerra.</p>${bloqueDuelo(e.duelo, false)}`
-      : `<div class="cols-pc">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:12px;font-weight:700;font-size:18px">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}
+      : `<div class="cols-pc">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}
         <div class="col g12"><div class="enorme oro">1.er puesto</div>${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
         ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</span></div>` : ''}
-        <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece')}</div></div></div>`}
+        <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}</div></div></div>`}
     <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}</section>
     ${mia ? `<section class="caja"><h2 class="h2">Tu guerra</h2>
       <div class="fila g12">${avatar(G[mia.companero.id], 'grande')}<span class="col g4"><strong>Compañero de trinchera: ${esc(G[mia.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${mia.companero.n} de ${mia.companero.de} batallas</span></span></div>
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>Enemigo íntimo: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
     ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
+    ${listaCuriosidades(r, G).length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${listaCuriosidades(r, G).map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
     ${r.proclamas.length ? `<section class="caja"><h2 class="h2">Proclamas anónimas</h2>${r.proclamas.map((p) => `<p class="med"><span class="t2">${esc(G[p.a].nombre)} contra ${esc(G[p.b].nombre)} · a ${esc(G[p.elegido].nombre)}</span><br><em>«${esc(p.texto)}»</em></p>`).join('')}</section>` : ''}`,
     { fondo: 'a', ancha: true });
 }
@@ -368,7 +388,18 @@ registrar('/porra', () => {
   const e = S.est, G = gente(), p = e.porra;
   if (!p) return marco(`${cabecera('La porra')}<div class="caja"><p>En esta guerra no hay porra.</p></div>`, { fondo: 'a' });
   const total = mias().length, hechas = mias().filter((b) => b.voto).length;
-  let cuerpo;
+  let cuerpo, final = '';
+  const r = e.resultado;
+  if (r && !(e.duelo && !e.duelo.cerrado)) {
+    const gana = r.porra.gana.map((id) => nombreDe(G[id])), mia = r.porra.lista.find((x) => x.id === yo().id);
+    final = r.porra.lista.length ? `<section class="caja oro"><span class="sobre oro">${gana.length > 1 ? 'Ganadores de la porra' : 'Ganador de la porra'}</span>
+        <strong class="bc" style="font-size:30px;color:#fff">${esc(enumerar(gana))}</strong>
+        <span class="med t3">A ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ' · Botín: ' + esc(e.guerra.botin) : ''}</span>
+        ${mia ? `<span class="med">Tú quedaste ${ordinal(mia.pos)}, a ${plural(mia.suma, 'puesto', 'puestos')}.</span>` : ''}</section>
+      <section class="caja"><h2 class="h2">Clasificación de la porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>
+        <ol class="lista-puestos">${r.porra.lista.map((x) => `<li class="${x.id === yo().id ? 'teal' : ''}"><b>${x.pos}</b>${avatar(G[x.id])}<span>${esc(nombreDe(G[x.id]))}</span><em>${x.suma}</em></li>`).join('')}</ol></section>
+      ${p.mia ? '<h2 class="h2">Tu porra</h2>' : ''}` : '<div class="caja"><p>Nadie hizo la porra en esta guerra.</p></div>';
+  }
   if (p.abierta) {
     const orden = ordenPorra();
     cuerpo = `<span class="chapa teal" style="align-self:flex-start">Desbloqueada: has votado tus ${total} batallas</span>
@@ -389,7 +420,7 @@ registrar('/porra', () => {
   } else {
     cuerpo = `<div class="caja"><p>La porra está cerrada y no llegaste a entregar la tuya.</p></div>`;
   }
-  return marco(`${cabecera('La porra')}${cuerpo}<p class="peq t2 centro">Porras recibidas: ${p.recibidas} de ${p.de}</p>`, { fondo: 'a' });
+  return marco(`${cabecera('La porra')}${final}${cuerpo}<p class="peq t2 centro">Porras recibidas: ${p.recibidas} de ${p.de}</p>`, { fondo: 'a' });
 });
 accion('porraMover', (v) => {
   const [k, d] = v.split(':').map(Number), o = ordenPorra(), j = k + d;

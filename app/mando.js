@@ -1,7 +1,7 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
-import { etiquetaSiguiente, listaPremios, tablaFinal, TITULOS } from './combate.js';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS } from './combate.js';
 import { botonCartel } from './carteles.js';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
@@ -179,6 +179,8 @@ registrar('/plan', () => {
       <label class="campo"><span>La pregunta</span><input id="p-pregunta" maxlength="160" data-m="plan.pregunta" value="${esc(p.pregunta)}" placeholder="¿Quién es más normal?" ${previa ? '' : 'disabled'}></label>
       <label class="campo"><span>Premio</span><input id="p-premio" maxlength="160" data-m="plan.premio" value="${esc(p.premio)}" placeholder="Una cena pagada por los demás"></label>
       <label class="campo"><span>Botín de la porra</span><input id="p-botin" maxlength="160" data-m="plan.botin" value="${esc(p.botin)}" placeholder="2 € por cabeza"></label>
+      <label class="campo"><span>Tu firma como alto mando</span><input id="p-firma" maxlength="60" data-m="plan.firma" value="${esc(p.firma || '')}" placeholder="Francisco M. Romero"></label>
+      <p class="peq t2" style="margin-top:-6px">Así firmas los correos y el diploma. Si lo dejas vacío, se usa el nombre de tu carta.</p>
       <label class="campo"><span>Día, hora y lugar del desfile</span><input id="p-desfile" maxlength="200" data-m="plan.desfileInfo" value="${esc(p.desfileInfo)}" placeholder="Se anunciará cuando acabe la guerra"></label></section>
     ${previa ? `<section class="caja"><h2 class="h2">Quién compite</h2>
       <div class="opciones"><button aria-pressed="${!cosas}" data-a="modo" data-v="combatientes">Los combatientes</button><button aria-pressed="${cosas}" data-a="modo" data-v="cosas">Otra cosa</button></div>
@@ -203,7 +205,7 @@ registrar('/plan', () => {
     <section class="caja"><h2 class="h2">Toque de diana</h2>
       ${interruptor('plan.diana.activa', p.diana.activa, 'Recordar a los rezagados', 'Un correo automático, sólo de día')}
       <div class="opciones">${[1, 2, 3].map((n) => `<button aria-pressed="${p.diana.cadaDias === n}" data-a="opcion" data-v="plan.diana.cadaDias=${n}">Cada ${plural(n, 'día', 'días')}</button>`).join('')}</div>
-      <label class="campo"><span>Tus frases, una por línea. Usa {nombre} y {faltan}</span><textarea id="p-frases" data-m="frases" placeholder="{nombre}, la patria te reclama: te quedan {faltan} batallas.">${esc(S.ui.frases || '')}</textarea></label></section>
+      <label class="campo"><span>Tus frases, una por línea. Usa {nombre} y {faltan}</span><textarea id="p-frases" data-m="frases" placeholder="Si lo dejas vacío: «{nombre}, el enemigo sigue esperando: te quedan {faltan} batallas.»">${esc(S.ui.frases || '')}</textarea></label></section>
     <div class="col">${previa ? `<button class="btn" data-a="declarar">¡Declarar la guerra!</button>` : ''}
       <button class="btn linea" data-a="guardarPlan">${previa ? 'Guardar borrador' : 'Guardar cambios'}</button>
       <button class="btn chico peligro" style="align-self:center" data-a="borrarGuerra">Borrar esta guerra</button></div>`, { sinNav: true, fondo: 'a', marca: 'Alto mando' });
@@ -257,7 +259,7 @@ accion('foto', async (i, el) => {
 async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
-    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
+    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,
@@ -437,15 +439,7 @@ registrar('/informe', () => {
     <span class="med t2">A ${nom(b.a)} (${b.va}): ${votos[b.id].a.map(nom).join(', ') || 'nadie'}</span><span class="med t2">A ${nom(b.b)} (${b.vb}): ${votos[b.id].b.map(nom).join(', ') || 'nadie'}</span></div>`).join('');
   const descansan = inf.gente.filter((g) => g.combate && g.estado !== 'expulsado' && !r.batallas.some((b) => b.of === of && (b.a === g.id || b.b === g.id))).map((g) => g.nombre);
   const premios = ['rebelde', 'borrego', 'tardon'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
-  const c = r.curiosidades, bat = porId(r.batallas);
-  const marcador = (id) => { const b = bat[id]; return b ? `${nom(b.a)} ${b.va}–${b.vb} ${nom(b.b)}` : ''; };
-  const curios = [
-    c.renida ? `<strong>La más reñida:</strong> ${marcador(c.renida.batalla)}${c.renida.otras ? `, y otras ${c.renida.otras} con el mismo margen` : ''}.` : '',
-    c.paliza ? `<strong>Mayor paliza:</strong> ${marcador(c.paliza.batalla)}, ofensiva ${bat[c.paliza.batalla].of}.` : '',
-    c.primero ? `<strong>Votó antes que nadie:</strong> ${nom(c.primero.id)}, que terminó en ${duracion(c.primero.ms)}.` : '',
-    c.ultimo ? `<strong>Última papeleta:</strong> ${nom(c.ultimo.id)}, a los ${duracion(c.ultimo.ms)}.` : '',
-    c.espiada ? `<strong>La batalla más espiada:</strong> ${marcador(c.espiada.batalla)} (${plural(c.espiada.n, 'espía', 'espías')}).` : ''
-  ].filter(Boolean);
+  const bat = porId(r.batallas), curios = listaCuriosidades(r, G);
   let orden;
   if (fase === 'terminada') {
     orden = inf.guerra.extras.desfile
@@ -534,6 +528,7 @@ function sonar(siguiente) {
   if (!suena() || !siguiente) return;
   try {
     if (siguiente.t === 'campeon') corneta(redoble(1.6));
+    else if (siguiente.t === 'finalistas') redoble(0.9);
     else if (siguiente.t === 'puesto' || siguiente.t === 'condecoracion') redoble();
   } catch (e) { /* sin sonido no se para el desfile */ }
 }
@@ -546,6 +541,7 @@ function resumenPaso(a, G) {
   if (a.t === 'proclama') return ['Proclama anónima', a.n + ' de ' + a.de, ''];
   if (a.t === 'condecoracion') return [TITULOS[a.cual], G[a.id].nombre, ''];
   if (a.t === 'duelo') return ['Duelo final', enumerar(a.duelo.entre.map((id) => G[id].nombre)), `${a.duelo.votaron} de ${a.duelo.deben} votos`];
+  if (a.t === 'finalistas') return ['La gran final', a.entre.map((id) => G[id].nombre).join(' o '), ''];
   return ['Campeón', G[a.fila.id].nombre, plural(a.fila.pts, 'punto', 'puntos')];
 }
 function mandoDesfile() {

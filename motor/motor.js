@@ -13,10 +13,6 @@ var DIA = 86400000;
 var DUELO_SEG = 60;
 var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta'];
 var GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
-var FRASES_DIANA = [
-  '{nombre}, la patria te reclama: te quedan {faltan} batallas.',
-  '{nombre}, el sofá no va a votar por ti. Te quedan {faltan} batallas.'
-];
 
 // ---------------------------------------------------------------- utilidades
 
@@ -320,7 +316,7 @@ function pasosDesfile(doc) {
   var proclamas = doc.extras.proclamas ? (doc.estrellas || []).slice() : [];
   var premios = ['rebelde', 'borrego', 'tardon'].filter(function (k) { return r.premios[k]; });
   var bajos = [], podio = [];
-  for (var pos = n; pos > cabeza; pos--) (pos > 3 ? bajos : podio).push(pos);
+  for (var pos = n; pos > (r.empate ? cabeza : 2); pos--) (pos > 3 ? bajos : podio).push(pos);
   if (!bajos.length) proclamas.forEach(function (p) { pasos.push({ t: 'proclama', ref: p }); });
   bajos.forEach(function (pos, i) {
     pasos.push({ t: 'puesto', pos: pos });
@@ -330,7 +326,7 @@ function pasosDesfile(doc) {
   premios.forEach(function (k) { pasos.push({ t: 'condecoracion', cual: k }); });
   podio.forEach(function (pos) { pasos.push({ t: 'puesto', pos: pos }); });
   if (r.empate) pasos.push({ t: 'duelo' });
-  else pasos.push({ t: 'campeon' });
+  else { if (n > 1) pasos.push({ t: 'finalistas' }); pasos.push({ t: 'campeon' }); }
   var np = 0, total = pasos.filter(function (p) { return p.t === 'proclama'; }).length;
   pasos.forEach(function (p) { if (p.t === 'proclama') { p.n = ++np; p.de = total; } });
   return pasos;
@@ -456,7 +452,7 @@ function crearMotor(env) {
     try { env.registrar([new Date(ahora()).toISOString(), doc ? doc.id : '', quien || '', accion, detalle || '']); } catch (e) { /* el registro nunca tumba una acción */ }
   }
   function mandoDe(doc) { return doc.gente.filter(function (g) { return g.mando; })[0] || null; }
-  function nombreMando(doc) { var m = mandoDe(doc); return m ? m.nombre : 'El alto mando'; }
+  function nombreMando(doc) { var m = mandoDe(doc); return doc.firma || (m ? m.nombre : 'El alto mando'); }
   function claveGeneral(doc) { return doc.id + '.' + doc.clave; }
   function enlacePersonal(g) { return urlApp() + '#t=' + g.token; }
 
@@ -544,7 +540,8 @@ function crearMotor(env) {
       // Tras el duelo se conocen los puestos de cabeza: los perdedores y, al final, el campeón.
       var k = doc.duelo.entre.length;
       doc.desfile.pasos = doc.desfile.pasos.filter(function (p) { return !p.trasDuelo; });
-      for (var pos = k; pos > 1; pos--) doc.desfile.pasos.push({ t: 'puesto', pos: pos, trasDuelo: true });
+      for (var pos = k; pos > 2; pos--) doc.desfile.pasos.push({ t: 'puesto', pos: pos, trasDuelo: true });
+      if (k > 2) doc.desfile.pasos.push({ t: 'finalistas', trasDuelo: true });
       doc.desfile.pasos.push({ t: 'campeon', trasDuelo: true });
     }
     if (doc.fase === 'publicada') doc.cronica = cronicaDe(doc);
@@ -658,7 +655,7 @@ function crearMotor(env) {
     var vistos = df.pasos.slice(0, df.paso + 1), revelados = [], premios = [];
     vistos.forEach(function (p) {
       if (p.t === 'puesto') revelados.push(fila[p.pos]);
-      if (p.t === 'campeon') revelados.push(fila[1]);
+      if (p.t === 'campeon') { if (fila[2]) revelados.push(fila[2]); revelados.push(fila[1]); }
       if (p.t === 'condecoracion') premios.push(Object.assign({ cual: p.cual }, r.premios[p.cual]));
     });
     var paso = df.pasos[df.paso], actual = { t: paso.t };
@@ -675,8 +672,11 @@ function crearMotor(env) {
     } else if (paso.t === 'duelo') {
       actual.duelo = vistaDuelo(doc, yo);
       if (actual.duelo) actual.duelo.ganador = null;   // el campeón se desvela en su propio paso
+    } else if (paso.t === 'finalistas') {
+      var ord = doc.orden || [];
+      actual.entre = [fila[1].id, fila[2].id].sort(function (x, y) { return ord.indexOf(x) - ord.indexOf(y); });   // orden del sorteo: no delata a nadie
     } else if (paso.t === 'campeon') {
-      Object.assign(actual, { fila: fila[1], porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null } });
+      Object.assign(actual, { fila: fila[1], segundo: fila[2] || null, porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null } });
     }
     var sig = df.pasos[df.paso + 1] || null;
     return {
@@ -791,7 +791,7 @@ function crearMotor(env) {
     return {
       rev: doc.rev,
       plan: {
-        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin,
+        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin, firma: doc.firma || '',
         modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras, diana: doc.diana, correo: doc.correo,
         ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
@@ -888,6 +888,7 @@ function crearMotor(env) {
   function aplicarPlan(doc, p) {
     var previa = ['borrador', 'llamamiento'].indexOf(doc.fase) >= 0;
     if (p.premio != null) doc.premio = txt(p.premio, 160);
+    if (p.firma != null) doc.firma = txt(p.firma, 60);
     if (p.botin != null) doc.botin = txt(p.botin, 160);
     if (p.desfileInfo != null) doc.desfileInfo = txt(p.desfileInfo, 200);
     if (p.ordenanzas !== undefined) {
@@ -1064,7 +1065,7 @@ function crearMotor(env) {
   function componerOrden(doc, g, enlace) {
     var k = cuentasDe(doc, g), mias = k.mias, of = k.of;
     var c = doc.correo || {};
-    var cuerpo = parrafos(c.apertura) +
+    var cuerpo = '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la patria te reclama.</p>' + parrafos(c.apertura) +
       '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
       ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>' +
       (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc))) +
@@ -1232,6 +1233,20 @@ function crearMotor(env) {
     exigir(doc.pullas.filter(function (x) { return x.de === yo.id && x.estado === 'pendiente'; }).length < 5, 'lleno', 'Tienes demasiadas pullas en censura.');
     var directa = !!yo.mando;
     doc.pullas.push({ id: 'r' + doc.sig++, de: yo.id, texto: texto, ts: ctx.ahora, estado: directa ? 'emitida' : 'pendiente', tsEmision: directa ? ctx.ahora : null });
+    var m = mandoDe(doc);
+    if (!directa && m && m.correo) {
+      try {
+        env.correo({
+          para: m.correo, nombre: 'Radio Macuto', asunto: doc.nombre + ': pulla de ' + yo.nombre + ' en censura',
+          html: marcoCorreo(doc, '<p style="margin:0 0 14px">' + esc(yo.nombre) + ' quiere emitir esto por Radio Macuto:</p>' +
+            '<p style="margin:0 0 14px;font-size:19px;font-style:italic">«' + esc(texto) + '»</p>' +
+            '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(enlacePersonal(m) + '&ir=cuartel') + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#ff6ad5;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Ir a la censura</a></p>' +
+            '<p style="margin:0;font-size:13px;color:#b3aecf">Hasta que no pulses «Emitir», no sale en antena.</p>',
+            'Sólo tú recibes este aviso y sólo tú ves quién escribe cada pulla.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto' }),
+          texto: yo.nombre + ' quiere emitir por Radio Macuto: «' + texto + '». Censura: ' + enlacePersonal(m) + '&ir=cuartel'
+        });
+      } catch (e) { /* el aviso es opcional */ }
+    }
     return { emitida: directa };
   });
 
@@ -1250,11 +1265,12 @@ function crearMotor(env) {
 
   function tocarDiana(doc, t) {
     var pr = progreso(doc), gente = porId(doc.gente), enviados = 0;
-    var frases = doc.diana.frases && doc.diana.frases.length ? doc.diana.frases : FRASES_DIANA;
+    var frases = doc.diana.frases && doc.diana.frases.length ? doc.diana.frases : null;
     pr.rezagados.forEach(function (r) {
       var g = gente[r.id];
       if (!g.correo) return;
-      var frase = frases[Math.floor(env.azar() * frases.length)].replace(/\{nombre\}/g, g.nombre).replace(/\{faltan\}/g, r.faltan);
+      var frase = frases ? frases[Math.floor(env.azar() * frases.length)].replace(/\{nombre\}/g, g.nombre).replace(/\{faltan\}/g, r.faltan)
+        : g.nombre + ', el enemigo sigue esperando: ' + (r.faltan === 1 ? 'te queda 1 batalla.' : 'te quedan ' + r.faltan + ' batallas.');
       var otros = pr.rezagados.filter(function (x) { return x.id !== r.id; }).map(function (x) { return gente[x.id].nombre + ' (' + x.faltan + ')'; });
       var cuerpo = '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(frase) + '</p>' +
         '<p style="margin:0 0 14px;color:#cdc8e6">Llevas ' + (r.de - r.faltan) + ' de ' + r.de + '. ' +
@@ -1391,7 +1407,7 @@ function crearMotor(env) {
 
   definir('contraofensiva', { escribe: true, quien: 'mando' }, function (ctx) {
     var vieja = ctx.doc, doc = guerraNueva(ctx.ahora);
-    ['nombre', 'pregunta', 'premio', 'botin', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
+    ['nombre', 'pregunta', 'premio', 'botin', 'firma', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
     doc.extras = JSON.parse(JSON.stringify(vieja.extras));
     doc.diana = { activa: vieja.diana.activa, cadaDias: vieja.diana.cadaDias, frases: vieja.diana.frases.slice(), ultimo: null };
     doc.correo = JSON.parse(JSON.stringify(vieja.correo));

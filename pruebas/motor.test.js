@@ -202,7 +202,7 @@ prueba('orden de movilización: un correo por combatiente con su enlace personal
   assert.strictEqual(c.nombre, 'Fran');
   assert.ok(c.html.includes('https://ejemplo.test/guerra/#t=' + g.tok['María']));
   assert.ok(c.html.includes('Las 9 ofensivas') && c.html.includes('36 batallas'));
-  assert.ok(c.html.includes('Ha llegado la hora.') && c.html.includes('Suerte.'));
+  assert.ok(c.html.includes('Ha llegado la hora.') && c.html.includes('Suerte.') && c.html.includes('María, la patria te reclama.'));
   assert.strictEqual(new Set(Object.values(g.tok)).size, 10);
   assert.ok(c.html.includes('Así es esta guerra'), 'sin llamamiento, la orden explica el juego');
 });
@@ -264,6 +264,8 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
   // Radio Macuto: la pulla espera en censura y sólo el alto mando ve de quién es.
   w.do('pulla', { token: g.tok['Rafa'], texto: 'Que alguien despierte a Paco.' });
   assert.strictEqual(w.do('estado', { token: g.tok['Rafa'] }).radio.enCensura, 1);
+  const avisoPulla = w.correos[w.correos.length - 1];
+  assert.ok(avisoPulla.para === 'fran@ejemplo.test' && /pulla de Rafa/.test(avisoPulla.asunto) && avisoPulla.html.includes('despierte a Paco'));
   assert.strictEqual(w.do('estado', { token: g.tok['María'] }).radio.antena.length, 0);
   est = w.do('estado', { token: g.tok['Fran'], mando: 'clave-mando' });
   assert.strictEqual(est.mando.pullas[0].de, g.id['Rafa']);
@@ -273,9 +275,10 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
   assert.ok(!('de' in antena[0]), 'en antena no sale el autor');
   // Toque de diana manual: a los dos rezagados.
   const antes = w.correos.length;
+  w.mando('guardarPlan', { guerra: id, plan: { firma: 'Francisco M. Romero' } });
   assert.strictEqual(w.mando('tocarDiana', { guerra: id }).enviados, 2);
   const toque = w.correos.slice(antes).find((m) => m.para === 'paco@ejemplo.test');
-  assert.ok(/toque de diana, te quedan 36 batallas/.test(toque.asunto) && toque.html.includes('Lola (4)'));
+  assert.ok(/toque de diana, te quedan 36 batallas/.test(toque.asunto) && toque.html.includes('Lola (4)') && toque.html.includes('Paco, el enemigo sigue esperando: te quedan 36 batallas.') && toque.nombre === 'Francisco M. Romero');
   // Armisticio: hay que decidir sobre todos los rezagados.
   w.falla('mando', () => w.do('armisticio', { token: g.tok['María'], decisiones: {} }));
   w.falla('decision', () => w.mando('armisticio', { guerra: id, decisiones: { [g.id['Paco']]: { accion: 'expulsar' } } }));
@@ -343,11 +346,12 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
     if (v.ultimo) break;
     // En cada paso, el público sólo conoce los puestos ya revelados.
     const reveladosIds = v.revelados.map((r) => r.id);
+    if (v.actual.t === 'finalistas') { assert.strictEqual(v.actual.entre.length, 2); assert.ok(!reveladosIds.includes(t[1].id), 'el 2.º puesto no se desvela antes que el campeón'); }
     assert.ok(!reveladosIds.includes(t[0].id), 'el campeón no se filtra antes de tiempo');
     w.mando('desfile', { guerra: id, orden: 'siguiente' });
   }
   assert.deepStrictEqual(tipos, ['consejo', 'puesto9', 'puesto8', 'puesto7', 'puesto6', 'puesto5', 'puesto4',
-    'condecoracionrebelde', 'condecoracionborrego', 'condecoraciontardon', 'puesto3', 'puesto2', 'campeon']);
+    'condecoracionrebelde', 'condecoracionborrego', 'condecoraciontardon', 'puesto3', 'finalistas', 'campeon']);
   assert.strictEqual(v.revelados.length, 9);
   assert.strictEqual(v.actual.fila.id, t[0].id);
   assert.strictEqual(g.nombre[v.actual.porra.gana[0]], 'María');
@@ -432,7 +436,7 @@ prueba('empate a puntos en cabeza: duelo final en directo durante el desfile', (
   assert.strictEqual(v.actual.duelo.ganador, null, 'el ganador no se canta en la pantalla del duelo');
   const resto = [];
   for (;;) { w.mando('desfile', { guerra: id, orden: 'siguiente' }); v = w.do('estado', { token: g.tok['Fran'] }).desfile; resto.push(v.actual.t + (v.actual.pos || '')); if (v.ultimo) break; }
-  assert.deepStrictEqual(resto, ['puesto3', 'puesto2', 'campeon']);
+  assert.deepStrictEqual(resto, ['puesto3', 'finalistas', 'campeon']);
   assert.strictEqual(g.nombre[v.actual.fila.id], 'Carmen');
   w.mando('desfile', { guerra: id, orden: 'terminar' });
   const cr = w.do('cronicas', { token: g.tok['Fran'] });

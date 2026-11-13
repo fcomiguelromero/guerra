@@ -31,7 +31,7 @@ function leerEnlace() {
     const gid = p.get('t').split('.')[0];
     S.sesiones[gid] = p.get('t'); S.guerra = gid;
     recordar();
-    return '/batallas';
+    return p.get('ir') === 'cuartel' && S.mando ? '/cuartel' : '/batallas';
   }
   if (p.get('mando')) { S.mando = p.get('mando'); recordar(); return '/guerras'; }
   if (p.get('g')) {

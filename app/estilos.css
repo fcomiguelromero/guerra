@@ -145,6 +145,7 @@ ul, ol { padding: 0; list-style: none; }
 .lista-puestos li { min-height: 40px; padding: 4px 0; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--borde2); font-size: 14px; }
 .lista-puestos li > b { width: 22px; flex: none; text-align: center; font-family: var(--bc); font-size: 18px; color: var(--txt2); }
 .lista-puestos li > span { flex: 1; min-width: 0; }
+.lista-puestos li > .avatar { flex: none; }
 .lista-puestos li > em { font-family: var(--bc); font-style: normal; font-weight: 700; font-size: 18px; }
 .lista-puestos li.oculto { color: var(--txt4); }
 .cita { padding: 10px 8px; border-top: 1px solid rgba(255, 106, 213, 0.55); border-bottom: 1px solid rgba(255, 106, 213, 0.55); font-family: var(--bc); font-weight: 700; font-size: 26px; line-height: 1.1; color: #fff; text-align: center; }
