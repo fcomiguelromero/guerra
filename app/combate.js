@@ -481,7 +481,12 @@ registrar('/entrada', () => {
       <details><summary class="med teal" style="cursor:pointer">Leer las ordenanzas completas</summary>
         <ol class="col" style="margin-top:10px;gap:10px">${c.guerra.ordenanzas.map((r, k) => `<li class="col g4"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3" style="white-space:pre-line">${esc(r.x)}</span></li>`).join('')}</ol></details>
       <p class="med t2">Si te alistas, cuando se declare la guerra te llegará por correo tu orden de movilización, con tu enlace personal para votar.</p></section>` : '';
-  const pie = !sel ? '' : llamamiento
+  const miLlave = sel && S.llaves[S.guerra + ':' + sel.id];
+  const bloqueada = sel && sel.alistado != null && !miLlave;
+  const pie = !sel ? '' : llamamiento && bloqueada
+    ? `<div class="caja" id="respuesta"><span><strong>${esc(sel.nombre)}</strong> ya ha respondido: ${sel.alistado ? '<span class="teal">en filas</span>' : '<span class="rosa">objetor</span>'}.</span>
+        <p class="med t2">Si eres ${esc(sel.nombre)} y quieres cambiarlo, o alguien ha respondido por ti, usa el enlace del correo del llamamiento o avisa al alto mando.</p></div>`
+    : llamamiento
     ? `<div class="caja teal" id="respuesta"><span>Te has identificado como <strong>${esc(sel.nombre)}</strong>${sel.alistado === true ? ' · <span class="teal">En filas</span>' : sel.alistado === false ? ' · <span class="rosa">Objetor</span>' : ''}</span>
         <div class="fila" style="gap:10px"><button class="btn crece" data-a="alistar" data-v="1">¡Me alisto!</button><button class="btn linea crece" data-a="alistar" data-v="0">No me alisto</button></div>
         <p class="peq t2">Puedes cambiar de opinión hasta que se declare la guerra. Si te alistas, te llegará tu orden de movilización por correo.</p></div>`
@@ -511,7 +516,8 @@ accion('elegirCarta', (id) => {
   if (caja) caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 accion('alistar', async (si) => {
-  await llamar('alistar', { id: S.ui.carta, si: si === '1' });
+  await llamar('alistar', { id: S.ui.carta, si: si === '1', llave: S.llaves[S.guerra + ':' + S.ui.carta] || undefined });
+  recordar();
   S.ui.conv = await llamar('convocatoria', {}, 1);
   aviso(si === '1' ? '¡Alistado! Te llegará la orden de movilización cuando se declare la guerra.' : 'Anotado: no te alistas.', true);
 });

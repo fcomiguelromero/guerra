@@ -138,13 +138,18 @@ prueba('llamamiento por correo: explica el juego, lleva a la carta y no repite',
   assert.strictEqual(r.enviados, 3, 'ni al alto mando ni a quien ya respondió');
   const c = w.correos.find((m) => m.para === 'andres@ejemplo.test');
   assert.ok(/Se avecina la Guerra de la Normalidad/.test(c.asunto));
-  assert.ok(c.html.includes('#g=' + general + '&amp;r=' + idDe['Andrés']) && c.html.includes('Atención, reclutas.') && c.html.includes('Viernes, 20:00') && c.html.includes('Así es esta guerra'));
+  const llaveAndres = new RegExp('#g=' + general.replace('.', '\\.') + '&amp;r=' + idDe['Andrés'] + '~(\\w+)').exec(c.html)[1];
+  assert.ok(llaveAndres && c.html.includes('Atención, reclutas.') && c.html.includes('Viernes, 20:00') && c.html.includes('Así es esta guerra'));
+  // Por el enlace general nadie cambia una respuesta ya dada; con la llave del correo, sí.
+  w.do('alistar', { g: general, id: idDe['Andrés'], si: false });
+  w.falla('respondida', () => w.do('alistar', { g: general, id: idDe['Andrés'], si: true }));
+  w.falla('respondida', () => w.do('alistar', { g: general, id: idDe['Andrés'], si: true, llave: 'inventada' }));
+  w.do('alistar', { g: general, id: idDe['Andrés'], si: true, llave: llaveAndres });
   w.falla('nadie', () => w.mando('enviarLlamamiento', { guerra: id }));
-  assert.strictEqual(w.mando('enviarLlamamiento', { guerra: id, todos: true }).enviados, 3);
+  assert.strictEqual(w.mando('enviarLlamamiento', { guerra: id, todos: true }).enviados, 2, 'Andrés ya ha contestado');
   assert.ok(w.mando('plan', { guerra: id }).plan.gente.find((g) => g.nombre === 'Andrés').llamada);
   assert.ok(w.registro.some((f) => f[3] === 'correo' && /Llamamiento a Andrés/.test(f[4])));
   // Con llamamiento, la orden de movilización ya no repite la explicación.
-  w.do('alistar', { g: general, id: idDe['Andrés'], si: true });
   w.do('alistar', { g: general, id: idDe['Carmen'], si: false });
   w.do('alistar', { g: general, id: idDe['Javier'], si: true });
   const g = declarar(w, id);

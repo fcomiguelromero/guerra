@@ -10,11 +10,12 @@ export const S = {
   mando: mem.leer('mando', null),          // clave del alto mando, sólo en su dispositivo
   sesiones: mem.leer('sesiones', {}),      // guerra → enlace personal
   generales: mem.leer('generales', {}),    // guerra → enlace general
+  llaves: mem.leer('llaves', {}),          // carta → llave personal del llamamiento
   guerra: mem.leer('actual', null),
   est: null, ruta: '/batallas', ui: {}, fotos: {}, desfase: 0, aviso: null, velo: ''
 };
 export function recordar() {
-  mem.poner('mando', S.mando); mem.poner('sesiones', S.sesiones); mem.poner('generales', S.generales); mem.poner('actual', S.guerra);
+  mem.poner('mando', S.mando); mem.poner('sesiones', S.sesiones); mem.poner('generales', S.generales); mem.poner('llaves', S.llaves); mem.poner('actual', S.guerra);
 }
 export const preferencia = { leer: (k, d) => mem.leer('pref.' + k, d), poner: (k, v) => mem.poner('pref.' + k, v) };
 

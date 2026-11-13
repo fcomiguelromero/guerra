@@ -35,7 +35,9 @@ function leerEnlace() {
   if (p.get('mando')) { S.mando = p.get('mando'); recordar(); return '/guerras'; }
   if (p.get('g')) {
     const gid = p.get('g').split('.')[0];
-    S.generales[gid] = p.get('g'); S.guerra = gid; S.ui.carta = p.get('r') || null; S.ui.cartaEnlace = S.ui.carta;
+    const [carta, llave] = (p.get('r') || '').split('~');
+    S.generales[gid] = p.get('g'); S.guerra = gid; S.ui.carta = carta || null; S.ui.cartaEnlace = S.ui.carta;
+    if (carta && llave) S.llaves[gid + ':' + carta] = llave;
     recordar();
     return S.sesiones[gid] ? '/batallas' : '/entrada';
   }

@@ -101,7 +101,7 @@ function seccionLlamamiento() {
     <label class="campo"><span>Tu mensaje para el correo (opcional, va antes de la explicación del juego)</span><textarea id="nota" maxlength="1500" data-m="plan.llamamiento.nota" placeholder="Reclutas: ha llegado la hora.">${esc(p.llamamiento.nota || '')}</textarea></label>
     ${sinEnviar.length ? `<button class="btn medio" data-a="llamarCorreo" data-v="0">Llamamiento por correo (${sinEnviar.length})</button>`
       : conCorreo.length ? `<button class="btn linea medio" data-a="llamarCorreo" data-v="1">Reenviar a quien no contesta (${conCorreo.length})</button>` : ''}
-    ${enviados.length ? `<p class="peq t2">Correo enviado a ${esc(enumerar(enviados.map((g) => g.nombre + ' (' + hora(g.llamada) + ')')))}. Cada uno llega directo a su carta.</p>` : '<p class="peq t2">El correo explica el juego y lleva a cada uno directo a su carta. Sale desde tu Gmail, pero Google no lo guarda en Enviados: aquí verás a quién se mandó.</p>'}
+    ${enviados.length ? `<p class="peq t2">Correo enviado a ${esc(enumerar(enviados.map((g) => g.nombre + ' (' + hora(g.llamada) + ')')))}. Cada uno llega directo a su carta.</p>` : '<p class="peq t2">El correo sale desde tu Gmail, explica el juego y lleva a cada uno directo a su carta con un enlace sólo suyo.</p>'}
     ${fallidos.length ? `<p class="peq rosa">No se pudo enviar a ${esc(enumerar(fallidos.map((g) => g.nombre)))}: revisa su correo.</p>` : ''}
     <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Por WhatsApp</a>
       <button class="btn linea medio" data-a="copiar" data-v="${esc(url)}">${ico('copiar')}Copiar enlace</button></div>

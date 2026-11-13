@@ -970,6 +970,9 @@ function crearMotor(env) {
     exigir(doc.fase === 'llamamiento', 'fase', 'El alistamiento está cerrado.');
     var g = doc.gente.filter(function (x) { return x.id === p.id; })[0];
     exigir(g && (g.vota || g.combate), 'noexiste', 'Esa carta no está en la lista.');
+    var conLlave = !!g.llave && p.llave === g.llave;
+    exigir(g.alistado == null || conLlave || ctx.esMando, 'respondida',
+      'Esta carta ya ha respondido. Si eres ' + g.nombre + ' y quieres cambiarlo, usa el enlace de tu correo o avisa al alto mando.');
     g.alistado = !!p.si;
     anotar(doc, g.nombre, 'alistar', p.si ? 'se alista' : 'no se alista');
     return { alistado: g.alistado };
@@ -1064,13 +1067,14 @@ function crearMotor(env) {
   }
 
   function enviarLlamada(doc, g, t) {
-    var ll = doc.llamamiento, url = urlApp() + '#g=' + claveGeneral(doc) + '&r=' + g.id;
+    if (!g.llave) g.llave = env.id(16);
+    var ll = doc.llamamiento, url = urlApp() + '#g=' + claveGeneral(doc) + '&r=' + g.id + '~' + g.llave;
     var cuerpo = (ll.nota ? parrafos(ll.nota) : '') +
       '<p style="margin:0 0 14px">El alto mando prepara una nueva guerra, la <strong>' + esc(doc.nombre) + '</strong>, y estás en la lista de reclutas.</p>' +
       '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">Qué se dirime</p>' +
       '<p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + esc(doc.pregunta) + '</p>' +
       '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc)) +
-      '<p style="margin:0 0 14px">¿Te alistas? Responde con este botón, que te lleva directo a tu carta.' + (ll.cierre ? ' Cierre del alistamiento: <strong>' + esc(ll.cierre) + '</strong>.' : '') + '</p>' +
+      '<p style="margin:0 0 14px">¿Te alistas? Responde con este botón, que te lleva directo a tu carta. Es sólo tuyo: con él puedes cambiar de opinión hasta que se declare la guerra.' + (ll.cierre ? ' Cierre del alistamiento: <strong>' + esc(ll.cierre) + '</strong>.' : '') + '</p>' +
       '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(url) + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#5ef0d0;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder al llamamiento</a></p>' +
       '<p style="margin:0 0 14px;font-size:13px;color:#b3aecf">Si te alistas, cuando se declare la guerra te llegará otro correo: tu orden de movilización, con tu enlace personal para votar.</p>' +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
