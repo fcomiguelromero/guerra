@@ -214,7 +214,7 @@ async function cartelPodio(e) {
   const [cv, x] = lienzo(), r = e.resultado, G = porId(e.gente), t = r.tabla;
   await fondo(x, 'b', [[0.5, 0.38, 0.46, 'rgba(255,211,106,0.22)'], [0.1, 0.95, 0.4, 'rgba(143,123,255,0.18)']]);
   texto(x, e.guerra.nombre, W / 2, M + 28, { font: `700 28px ${IN}`, may: true, align: 'center', color: C.t2, esp: 6, max: W - 2 * M });
-  texto(x, 'El podio', W / 2, M + 140, { font: `800 112px ${BC}`, may: true, align: 'center' });
+  texto(x, 'Cuadro de honor', W / 2, M + 140, { font: `800 112px ${BC}`, may: true, align: 'center' });
   const base = 930;
   const puesto = async (f, cx, w, fotoH, nomT, alto, color, num, numT, colores, pie, pieColor, brillo) => {
     if (!f) return;

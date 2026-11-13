@@ -11,7 +11,7 @@ function mundo(seed) {
   const docs = new Map(), fotos = new Map(), azar = semilla(seed || 1);
   const w = { t: Date.UTC(2026, 10, 12, 17, 0, 0), correos: [], registro: [], hora: 12, n: 0 };
   const env = {
-    ahora: () => w.t, azar, hora: () => w.hora,
+    ahora: () => w.t, azar, hora: () => w.hora, inicioDia: (ts) => ts - ts % 86400000,
     id: (n) => { let s = ''; while (s.length < n) s += Math.floor(azar() * 36).toString(36); return s; },
     leer: (k) => docs.has(k) ? JSON.parse(docs.get(k)) : null,
     escribir: (k, o) => docs.set(k, JSON.stringify(o)),
@@ -538,6 +538,59 @@ prueba('toque de diana automático: sólo de día y cuando toca', () => {
   assert.ok(w.correos[w.correos.length - 1].html.includes(': quedan 3.'));
   w.motor.reloj();
   assert.strictEqual(w.correos.length, n0 + 4, 'no repite hasta dentro de dos días');
+});
+
+prueba('una ofensiva al día: se abren a las 9:00, con aviso diario, y al final llega el alto el fuego', () => {
+  const w = mundo(18);     // el mundo arranca a las 17:00
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { ritmo: 'diaria', campo: 'Compañeros de trabajo', desfileInfo: 'Sábado a las 21:00', diana: { activa: false } } });
+  const g = declarar(w, id);
+  assert.ok(w.correos[0].html.includes('una nueva cada mañana a las 9:00') && w.correos[0].html.includes('Compañeros de trabajo'));
+  let est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.abiertas, 1);
+  assert.strictEqual(est.guerra.ofensivas, 3);
+  assert.ok(/Una ofensiva al día/.test(est.guerra.ordenanzas[1].t));
+  assert.strictEqual(est.guerra.proxima - w.t, 16 * 3600000, 'la siguiente, mañana a las 9:00');
+  const de = (of) => est.batallas.filter((b) => b.mia && b.of === of);
+  w.falla('cerrada', () => w.do('votar', { token: g.tok['María'], batalla: de(2)[0].id, elegido: de(2)[0].a }));
+  w.do('votar', { token: g.tok['María'], batalla: de(1)[0].id, elegido: de(1)[0].a });
+  est = w.do('estado', { token: g.tok['María'] });
+  assert.ok(!est.progreso.rezagados.some((r) => r.id === g.id['María']), 'quien ha votado lo abierto no es rezagado');
+  assert.strictEqual(est.progreso.rezagados.length, 3);
+  const n0 = w.correos.length;
+  w.pasa(15 * 3600000); w.motor.reloj();
+  assert.strictEqual(w.correos.length, n0, 'a las 8:00 aún no hay ofensiva nueva');
+  w.pasa(2 * 3600000); w.motor.reloj(); w.motor.reloj();
+  const avisos = w.correos.slice(n0);
+  assert.strictEqual(avisos.length, 4, 'un aviso por combatiente, una sola vez');
+  assert.ok(/se abre la ofensiva 2 de 3/.test(avisos[0].asunto) && avisos[0].html.includes('hay batallas nuevas'));
+  assert.strictEqual(w.do('estado', { token: g.tok['María'] }).guerra.abiertas, 2);
+  w.pasa(24 * 3600000); w.motor.reloj();
+  NOMBRES.slice(0, 4).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  const n1 = w.correos.length;
+  w.motor.reloj(); w.motor.reloj();
+  const fin = w.correos.slice(n1);
+  assert.strictEqual(fin.length, 4);
+  assert.ok(/alto el fuego/.test(fin[0].asunto) && fin[0].html.includes('Sábado a las 21:00'));
+  // Ensayo privado del desfile: no cambia nada.
+  const ens = w.mando('ensayo', { guerra: id });
+  assert.ok(ens.vistas.length >= 3 && ['campeon', 'duelo'].includes(ens.vistas[ens.vistas.length - 1].actual.t));
+  assert.strictEqual(w.doc(id).fase, 'terminada');
+  w.falla('mando', () => w.do('ensayo', { token: g.tok['María'] }));
+});
+
+prueba('Radio Macuto: emitir avisando a los combatientes, sin autor', () => {
+  const w = mundo(19);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4) });
+  const g = declarar(w, id);
+  w.do('pulla', { token: g.tok['María'], texto: 'Andrés vota con los ojos cerrados.' });
+  const pl = w.do('estado', { token: g.tok['Fran'], mando: 'clave-mando' }).mando.pullas[0];
+  const n0 = w.correos.length;
+  assert.strictEqual(w.mando('moderar', { guerra: id, id: pl.id, emitir: true, avisar: true }).avisados, 3);
+  const c = w.correos.slice(n0);
+  assert.ok(c.every((m) => m.html.includes('ojos cerrados') && !/María/.test(m.html.replace(/María, alguien/, '')) && m.html.includes('&amp;ir=radio')));
+  assert.ok(!c.some((m) => m.para === 'fran@ejemplo.test'));
+  assert.strictEqual(w.mando('moderar', { guerra: id, id: pl.id, emitir: true, avisar: true }).avisados, 0, 'no se avisa dos veces');
 });
 
 prueba('enlaces: reenviar, liberar una carta y correos que fallan', () => {

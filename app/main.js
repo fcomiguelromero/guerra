@@ -31,7 +31,7 @@ function leerEnlace() {
     const gid = p.get('t').split('.')[0];
     S.sesiones[gid] = p.get('t'); S.guerra = gid;
     recordar();
-    return p.get('ir') === 'cuartel' && S.mando ? '/cuartel' : '/batallas';
+    return p.get('ir') === 'cuartel' && S.mando ? '/cuartel' : p.get('ir') === 'radio' ? '/radio' : '/batallas';
   }
   if (p.get('mando')) { S.mando = p.get('mando'); recordar(); return '/guerras'; }
   if (p.get('g')) {
@@ -55,6 +55,7 @@ async function arrancar() {
   if (S.guerra && ['/entrada', '/parte', '/guerras', '/sin-enlace'].indexOf(ruta) < 0) {
     try {
       await refrescar(true);
+      if (ruta === '/radio' && !S.est.radio) ruta = '/batallas';
       const previa = ['borrador', 'llamamiento'].indexOf(S.est.guerra.fase) >= 0;
       if (previa && S.mando) ruta = '/plan';
       else if (previa) ruta = S.generales[S.guerra] ? '/entrada' : '/batallas';

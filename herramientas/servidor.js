@@ -6,7 +6,7 @@ const M = (0, eval)(fs.readFileSync(path.join(raiz, 'motor', 'motor.js'), 'utf8'
 const docs = new Map(), fotos = new Map(), correos = [];
 let salto = 0;
 const env = {
-  ahora: () => Date.now() + salto, azar: Math.random, hora: () => 12,
+  ahora: () => Date.now() + salto, azar: Math.random, hora: () => 12, inicioDia: (ts) => { const d = new Date(ts); d.setHours(0, 0, 0, 0); return d.getTime(); },
   id: (n) => { let s = ''; while (s.length < n) s += Math.floor(Math.random() * 36).toString(36); return s; },
   leer: (k) => docs.has(k) ? JSON.parse(docs.get(k)) : null, escribir: (k, o) => docs.set(k, JSON.stringify(o)), borrar: (k) => docs.delete(k),
   leerFoto: (id) => fotos.get(id) || null, escribirFoto: (id, d) => fotos.set(id, d),
@@ -15,7 +15,7 @@ const env = {
 };
 const motor = M.crear(env);
 const puerto = Number(process.argv[2]) || 8123;
-const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.txt': 'text/plain' };
+const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.txt': 'text/plain', '.png': 'image/png', '.jpg': 'image/jpeg', '.webmanifest': 'application/manifest+json' };
 http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/api' || url.pathname === '/_prueba') {
@@ -25,7 +25,7 @@ http.createServer((req, res) => {
       let salida;
       try {
         const p = JSON.parse(cuerpo || '{}');
-        if (url.pathname === '/_prueba') { if (p.salto) salto += p.salto; salida = { ok: true, datos: { correos, salto } }; }
+        if (url.pathname === '/_prueba') { if (p.salto) salto += p.salto; if (p.reloj) motor.reloj(); salida = { ok: true, datos: { correos, salto } }; }
         else salida = { ok: true, datos: motor.atender(p) };
       } catch (e) {
         if (!e.fallo) console.error(e);

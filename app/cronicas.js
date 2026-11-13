@@ -68,12 +68,12 @@ function pestanaGuerras() {
   return lista.map((c) => {
     const G = porId(c.gente), g = c.campeon && G[c.campeon], des = c.gente.filter((x) => x.desertor).length;
     if (c.id !== abierta) {
-      return `<div class="caja"><div class="fila entre"><h2 class="h2">${esc(c.nombre)}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
+      return `<div class="caja"><div class="fila entre"><h2 class="h2">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
         <p class="med"><span class="oro">1.er puesto:</span> ${g ? esc(nombre(g)) : 'pendiente del duelo final'}</p>
         <p class="peq t2">${c.porraGana.length ? 'Porra: ' + esc(enumerar(c.porraGana.map((id) => nombre(G[id])))) + ' · ' : ''}${des ? plural(des, 'desertor', 'desertores') : 'Sin desertores'}</p>
         <button class="btn linea chico" style="align-self:flex-start" data-a="abrirCronica" data-v="${c.id}">Ver el parte</button></div>`;
     }
-    return `<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre)}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
+    return `<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
       <p class="med t2" style="margin-top:-6px">${esc(c.pregunta)}</p>
       ${campeon(c)}<section class="caja">${parte(c)}${porraTexto(c) ? `<p class="med t2">${porraTexto(c)}</p>` : ''}</section>${tuGuerra(c)}</section>`;
   }).join('');
@@ -96,6 +96,13 @@ function pestanaEscalafon() {
   }).join('');
   return `${chips}<section class="caja"><h2 class="h2">Escalafón</h2>
     <table class="tabla"><thead><tr><th>#</th><th>Combatiente</th><th title="Guerras jugadas">GJ</th><th title="Títulos">Tít.</th><th>Pts</th><th>Dif.</th><th title="Deserciones">Des.</th></tr></thead><tbody>${filas}</tbody></table>
+    <dl class="leyenda-fija">
+      <dt>GJ</dt><dd>Guerras jugadas: las que terminó sin desertar.</dd>
+      <dt>Tít.</dt><dd>Títulos: guerras que ha ganado.</dd>
+      <dt>Pts</dt><dd>Puntos sumados en todas sus guerras: 3 por batalla ganada y 1 por empatada.</dd>
+      <dt>Dif.</dt><dd>Diferencia de votos acumulada: los votos que ha recibido en todas sus batallas menos los que han recibido sus rivales contra él. Ganar una batalla 5 a 2 suma +3; perderla 1 a 6 resta 5. Desempata a igualdad de puntos.</dd>
+      <dt>Des.</dt><dd>Deserciones: guerras de las que fue expulsado por no votar.</dd>
+    </dl>
     <p class="peq t2">Suma todas las ediciones de esta guerra. Los puntos se cuentan siempre a 3-1-0, aunque alguna edición se jugara por votos. El grado, con galones y estrellas, cuenta todas las guerras que cada uno ha terminado, se llamen como se llamen.</p></section>`;
 }
 

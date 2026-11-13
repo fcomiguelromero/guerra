@@ -166,3 +166,11 @@ ul, ol { padding: 0; list-style: none; }
 .rejilla2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .rejilla3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 @media (min-width: 900px) { .cols-pc { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; } .enorme { font-size: 76px; } .cita { font-size: 44px; padding: 20px; } }
+
+/* Foto grande del ganador de la porra y leyendas de las tablas */
+.avatar.gigante { width: 104px; height: 104px; font-size: 40px; border-width: 3px; }
+.avatar.oro { border-color: var(--oro); box-shadow: 0 0 0 5px rgba(255, 211, 106, 0.16); }
+.leyenda summary { cursor: pointer; font-size: 13px; color: var(--teal); padding: 6px 0; }
+.leyenda dl, .leyenda-fija { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--txt2); }
+.leyenda dt, .leyenda-fija dt { font-family: var(--bc); font-weight: 700; font-size: 16px; color: #fff; white-space: nowrap; }
+.leyenda dd, .leyenda-fija dd { margin: 0; }

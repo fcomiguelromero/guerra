@@ -1,0 +1,16 @@
+{
+  "name": "Guerra de la Normalidad",
+  "short_name": "Guerra",
+  "description": "Batallas, ofensivas y un desfile de la victoria. ¡Sólo puede quedar uno!",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0b1a",
+  "theme_color": "#0d0b1a",
+  "icons": [
+    { "src": "assets/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -11,6 +11,7 @@ var GRACIA = 10000;          // 10 segundos de cortesía para retirar un voto
 var MARGEN = 4000;           // holgura por la latencia de la red
 var DIA = 86400000;
 var DUELO_SEG = 60;
+var HORA_OFENSIVA = 9;     // con una ofensiva al día, la nueva se abre a las 9:00
 var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta'];
 var GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
 
@@ -76,12 +77,15 @@ function votoDe(doc, b, vid) { var vs = doc.votos[b.id]; return vs && vs[vid] ? 
 function faltan(doc, v) {
   return batallasDe(doc, v).filter(function (b) { return !votoDe(doc, b, v.id); }).length;
 }
-function progreso(doc) {
+// Con «limite» (ofensivas ya abiertas), sólo es rezagado quien debe batallas que ya puede votar.
+function progreso(doc, limite) {
   var total = 0, emitidos = 0, rezagados = [];
   votantes(doc).forEach(function (v) {
-    var suyas = batallasDe(doc, v).length, f = faltan(doc, v);
-    total += suyas; emitidos += suyas - f;
-    if (f > 0 && v.estado === 'activo') rezagados.push({ id: v.id, faltan: f, de: suyas });
+    var suyas = batallasDe(doc, v), f = faltan(doc, v);
+    total += suyas.length; emitidos += suyas.length - f;
+    var abiertas = limite ? suyas.filter(function (b) { return b.of <= limite; }) : suyas;
+    var debe = abiertas.filter(function (b) { return !votoDe(doc, b, v.id); }).length;
+    if (debe > 0 && v.estado === 'activo') rezagados.push({ id: v.id, faltan: debe, de: abiertas.length });
   });
   rezagados.sort(function (x, y) { return y.faltan - x.faltan; });
   return { total: total, emitidos: emitidos, rezagados: rezagados };
@@ -340,10 +344,16 @@ function ordenanzasAuto(doc) {
   lista.push({ t: 'El combate', x: 'Cada batalla enfrenta a dos ' + (cosas ? 'contendientes' : 'combatientes') +
     ' y tú eliges a uno según la pregunta de la guerra: «' + (doc.pregunta || '') + '». Hay que mojarse: no vale votar empate.' +
     (cosas ? '' : ' En tus propios combates no votas.') });
-  lista.push({ t: 'Todas las ofensivas, de golpe', x: (nc ? 'Las ' + nc + ' ofensivas' : 'Todas las ofensivas') +
-    ' se abren a la vez, como una temporada de Netflix. Vota a tu ritmo: la guerra no termina hasta que vota todo el mundo, y todos ven quién la tiene en pausa.' +
-    (doc.diana && doc.diana.activa ? ' Al que se duerma le tocarán diana' + (x.parte ? ', y a mitad de contienda saldrá un parte de guerra con los rezagados.' : '.')
-      : (x.parte ? ' A mitad de contienda saldrá un parte de guerra con los rezagados.' : '')) });
+  var cola = doc.diana && doc.diana.activa ? ' Al que se duerma le tocarán diana' + (x.parte ? ', y a mitad de contienda saldrá un parte de guerra con los rezagados.' : '.')
+    : (x.parte ? ' A mitad de contienda saldrá un parte de guerra con los rezagados.' : '');
+  if (doc.ritmo === 'diaria') {
+    lista.push({ t: 'Una ofensiva al día', x: (nc ? 'Las ' + nc + ' ofensivas' : 'Las ofensivas') + ' se abren de una en una: la primera, al declararse la guerra; después, una nueva cada mañana a las ' + HORA_OFENSIVA + ':00. Cada día te llegará un correo avisando de que hay batallas nuevas.' +
+      ' Las batallas de una ofensiva abierta no caducan: puedes votarlas ese día o cualquier otro, pero no puedes adelantarte a las ofensivas que aún no se han abierto.' +
+      (nc ? ' La guerra dura, como mínimo, ' + nc + ' días,' : ' La guerra') + ' y no termina hasta que vota todo el mundo: todos ven quién va con retraso.' + cola });
+  } else {
+    lista.push({ t: 'Todas las ofensivas, de golpe', x: (nc ? 'Las ' + nc + ' ofensivas' : 'Todas las ofensivas') +
+      ' se abren a la vez, como una temporada de Netflix. Vota a tu ritmo: la guerra no termina hasta que vota todo el mundo, y todos ven quién la tiene en pausa.' + cola });
+  }
   lista.push({ t: 'Secreto y sin vuelta atrás', x: 'Tu voto es secreto para los demás combatientes y los resultados se ' +
     (x.desfile ? 'revelan en el desfile.' : 'publican cuando acabe la guerra.') +
     (x.proclamas ? ' No hace falta dar razones, pero si quieres puedes dejar una proclama: se leerá ' + (x.desfile ? 'en el desfile' : 'al final') + ' sin tu nombre.' : '') +
@@ -378,7 +388,7 @@ function resumenJuego(doc) {
     ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana según la pregunta. Hay que mojarse: no vale el empate.'
     : 'Todos contra todos: cada batalla enfrenta a dos combatientes y el resto elige a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.');
   l.push((nc >= 3 ? 'Con ' + nc + (cosas ? ' contendientes' : ' combatientes') + ' habrá ' + nb + ' batallas. ' : '') +
-    'Se abren todas de golpe y votas a tu ritmo, desde el móvil. La guerra no termina hasta que vota todo el mundo.');
+    (doc.ritmo === 'diaria' ? 'Cada día se abre una ofensiva nueva, a las ' + HORA_OFENSIVA + ':00, y te avisamos por correo. Votas desde el móvil cuando quieras.' : 'Se abren todas de golpe y votas a tu ritmo, desde el móvil.') + ' La guerra no termina hasta que vota todo el mundo.');
   l.push('Tu voto es secreto para los demás. ' + (x.desfile ? 'El parte de guerra se revela al final, en el desfile de la victoria, del último puesto al primero.' : 'El parte de guerra se publica al final, de golpe.') +
     (doc.premio ? ' Premio: ' + doc.premio + '.' : ''));
   var extras = [];
@@ -403,7 +413,7 @@ function marcoCorreo(doc, cuerpo, pie, o) {
   return '<div style="margin:0;padding:44px 14px 64px;background-color:#0d0b1a;' + fondo + 'font-family:Arial,Helvetica,sans-serif">' +
     // Portada: nombre de la guerra y rótulo, directamente sobre el fondo.
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">' +
-    '<tr><td style="padding:0 8px;text-align:center;font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0;text-shadow:0 1px 6px #0d0b1a">' + esc(doc.nombre) + '</td></tr>' +
+    '<tr><td style="padding:0 8px;text-align:center;font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0;text-shadow:0 1px 6px #0d0b1a">' + esc(doc.nombre + (doc.campo ? ' · ' + doc.campo : '')) + '</td></tr>' +
     (o.titulo ? '<tr><td style="padding:10px 8px 0;text-align:center;' + condensada + ';font-size:44px;line-height:1;color:#ffffff;text-shadow:0 2px 14px #0d0b1a">' + esc(o.titulo) + '</td></tr>' : '') +
     '<tr><td style="padding:14px 0 26px;text-align:center"><span style="display:inline-block;width:64px;height:4px;border-radius:2px;background-color:#ff6ad5;background-image:linear-gradient(90deg,#5ef0d0,#8f7bff,#ff6ad5,#ffd36a)"></span></td></tr>' +
     '</table>' +
@@ -440,7 +450,7 @@ function crearMotor(env) {
     doc.actualizada = ahora();
     env.escribir('guerra:' + doc.id, doc, doc.nombre + ' · ' + doc.fase);
     var indice = env.leer('indice', true) || { guerras: [] };
-    var ficha = { id: doc.id, nombre: doc.nombre, fase: doc.fase, creada: doc.creada, publicada: doc.publicada || null };
+    var ficha = { id: doc.id, nombre: doc.nombre, campo: doc.campo || '', fase: doc.fase, creada: doc.creada, publicada: doc.publicada || null };
     var i = indice.guerras.findIndex(function (g) { return g.id === doc.id; });
     if (i < 0) indice.guerras.push(ficha);
     else if (JSON.stringify(indice.guerras[i]) === JSON.stringify(ficha)) return;
@@ -520,6 +530,62 @@ function crearMotor(env) {
     else cerrarDuelo(doc, t);
     return true;
   }
+  function totalOfensivas(doc) { return doc.batallas.length ? Math.max.apply(null, doc.batallas.map(function (b) { return b.of; })) : 0; }
+  // Con una ofensiva al día: la 1.ª, al declarar; la siguiente, a las 9:00 del día siguiente, y así sucesivamente.
+  function primeraHora(doc) { return env.inicioDia(doc.declarada) + HORA_OFENSIVA * 3600000; }
+  function abiertas(doc, t) {
+    var total = totalOfensivas(doc);
+    if (doc.ritmo !== 'diaria' || doc.fase !== 'abierta') return total;
+    return Math.min(total, 1 + Math.max(0, Math.floor((t - primeraHora(doc)) / DIA)));
+  }
+  function proximaOfensiva(doc, t) {
+    var ab = abiertas(doc, t);
+    return doc.ritmo === 'diaria' && doc.fase === 'abierta' && ab < totalOfensivas(doc) ? primeraHora(doc) + ab * DIA : null;
+  }
+  function pieFirma(doc) {
+    return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+  }
+  function avisarOfensiva(doc, n, t) {
+    var total = totalOfensivas(doc), enviados = 0;
+    votantes(doc).forEach(function (g) {
+      if (!g.correo || g.estado !== 'activo') return;
+      var debe = batallasDe(doc, g).filter(function (b) { return b.of <= n && !votoDe(doc, b, g.id); }).length;
+      if (!debe) return;
+      try {
+        env.correo({
+          para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': se abre la ofensiva ' + n + ' de ' + total,
+          html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', hay batallas nuevas.</p>' +
+            '<p style="margin:0 0 14px;color:#cdc8e6">Se ha abierto la ofensiva ' + n + ' de ' + total + '. Tienes ' + plural(debe, 'batalla', 'batallas') + ' por votar' + (n < total ? '; mañana a las ' + HORA_OFENSIVA + ':00, la siguiente.' : ': es la última ofensiva.') + '</p>' +
+            botonCorreo(enlacePersonal(g), 'A las trincheras') + pieFirma(doc),
+            'Recibirás un aviso cada día mientras se abran ofensivas.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Ofensiva ' + n + ' de ' + total }),
+          texto: g.nombre + ', se ha abierto la ofensiva ' + n + ' de ' + total + '. A votar: ' + enlacePersonal(g)
+        });
+        enviados++;
+      } catch (e) { g.correoError = String(e && e.message || e).slice(0, 200); }
+    });
+    anotar(doc, '', 'correo', 'Aviso de la ofensiva ' + n + ': ' + enviados + ' correos');
+  }
+  function avisarFin(doc, t) {
+    var x = doc.extras, enviados = 0;
+    doc.finAvisado = t;
+    votantes(doc).forEach(function (g) {
+      if (!g.correo) return;
+      try {
+        env.correo({
+          para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': alto el fuego',
+          html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la guerra ha terminado.</p>' +
+            '<p style="margin:0 0 14px;color:#cdc8e6">Ya no quedan batallas por librar. ' + (x.desfile ? 'El parte de guerra se revelará en el desfile de la victoria.' : 'El alto mando publicará el parte de guerra.') + '</p>' +
+            (doc.desfileInfo ? '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">' + (x.desfile ? 'El desfile' : 'El parte') + '</p><p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + esc(doc.desfileInfo) + '</p>' : '') +
+            (x.espia ? '<p style="margin:0 0 14px;color:#cdc8e6">Mientras tanto, puedes mandar a tu espía a descubrir quién ganó un combate. Sólo uno.</p>' : '') +
+            botonCorreo(enlacePersonal(g), x.espia ? 'Mandar al espía' : 'Entrar') + pieFirma(doc),
+            '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Alto el fuego' }),
+          texto: g.nombre + ', la guerra ha terminado. ' + (doc.desfileInfo || '') + ' ' + enlacePersonal(g)
+        });
+        enviados++;
+      } catch (e) { g.correoError = String(e && e.message || e).slice(0, 200); }
+    });
+    anotar(doc, '', 'correo', 'Aviso de alto el fuego: ' + enviados + ' correos');
+  }
   function terminar(doc, t) {
     doc.fase = 'terminada';
     doc.terminada = t;
@@ -582,7 +648,7 @@ function crearMotor(env) {
       (premiosDe[r.premios[k].id] = premiosDe[r.premios[k].id] || []).push(Object.assign({ cual: k }, r.premios[k]));
     });
     return {
-      id: doc.id, nombre: doc.nombre, serie: norm(doc.nombre), pregunta: doc.pregunta, fecha: doc.publicada || doc.terminada,
+      id: doc.id, nombre: doc.nombre, campo: doc.campo || '', serie: norm(doc.nombre) + '|' + norm(doc.campo || ''), pregunta: doc.pregunta, fecha: doc.publicada || doc.terminada,
       modo: doc.modo, puntuacion: doc.puntuacion, premio: doc.premio || '',
       campeon: r.empate ? null : r.tabla[0].id,
       porraGana: r.porra.gana, porraSuma: r.porra.lista.length ? r.porra.lista[0].suma : null,
@@ -614,7 +680,7 @@ function crearMotor(env) {
   function vistaGuerra(doc) {
     var bat = doc.batallas || [];
     return {
-      id: doc.id, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio || '', botin: doc.botin || '',
+      id: doc.id, nombre: doc.nombre, campo: doc.campo || '', ritmo: doc.ritmo || 'golpe', pregunta: doc.pregunta, premio: doc.premio || '', botin: doc.botin || '',
       fase: doc.fase, modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras,
       ofensivas: bat.length ? Math.max.apply(null, bat.map(function (b) { return b.of; })) : 0,
       ordenanzas: doc.ordenanzas || ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
@@ -709,7 +775,8 @@ function crearMotor(env) {
     if (yo) res.yo = { id: yo.id, nombre: yo.nombre, mando: !!yo.mando, vota: !!yo.vota, combate: !!yo.combate, estado: yo.estado, fin: yo.fin || null, grado: yo.grado || 0, persona: yo.persona || null };
     var declarada = ['abierta', 'terminada', 'desfile', 'publicada'].indexOf(doc.fase) >= 0;
     if (declarada) {
-      var pr = progreso(doc);
+      var ab = abiertas(doc, t), pr = progreso(doc, ab);
+      res.guerra.abiertas = ab; res.guerra.proxima = proximaOfensiva(doc, t);
       res.progreso = pr;
       res.batallas = batallasVivas(doc).map(function (b) {
         var fila = { id: b.id, of: b.of, a: b.a, b: b.b };
@@ -791,7 +858,7 @@ function crearMotor(env) {
     return {
       rev: doc.rev,
       plan: {
-        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin, firma: doc.firma || '',
+        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe',
         modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras, diana: doc.diana, correo: doc.correo,
         ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
@@ -823,8 +890,23 @@ function crearMotor(env) {
     return {
       rev: doc.rev, guerra: vistaGuerra(doc), gente: genteOrdenada(doc).map(function (g) { return fichaPublica(doc, g); }),
       resultado: doc.resultado, votos: detalle, proclamas: proclamas,
-      porras: doc.porras, espias: doc.espias || {}, duelo: doc.duelo || null
+      porras: doc.porras, espias: doc.espias || {}, duelo: doc.duelo || null,
+      pullas: (doc.pullas || []).map(function (x) { return { id: x.id, de: x.de, texto: x.texto, ts: x.ts, estado: x.estado }; })
     };
+  });
+
+  // Ensayo privado del desfile: todos sus pasos, sin tocar la guerra ni enseñárselos a nadie.
+  definir('ensayo', { quien: 'mando' }, function (ctx) {
+    exigir(ctx.doc.fase === 'terminada' && ctx.doc.resultado, 'fase', 'El ensayo se hace entre el alto el fuego y el desfile.');
+    var doc = JSON.parse(JSON.stringify(ctx.doc)), vistas = [];
+    doc.fase = 'desfile';
+    doc.desfile = { paso: 0, pasos: pasosDesfile(doc), iniciado: ctx.ahora };
+    for (var i = 0; i < doc.desfile.pasos.length; i++) {
+      doc.desfile.paso = i;
+      if (doc.desfile.pasos[i].t === 'duelo' && !doc.duelo) abrirDuelo(doc, ctx.ahora, DUELO_SEG);
+      vistas.push(vistaDesfile(doc, ctx.yo));
+    }
+    return { vistas: vistas, conDuelo: !!doc.resultado.empate };
   });
 
   // Llamamiento a filas y «quién eres»: lo que ve cualquiera con el enlace general.
@@ -857,7 +939,7 @@ function crearMotor(env) {
       });
       var orden = Object.keys(filas).map(function (k) { return filas[k]; })
         .sort(function (x, y) { return y.pts - x.pts || y.dif - x.dif || y.tit - x.tit; });
-      return { serie: s, nombre: series[s][0].nombre, ediciones: series[s].length, filas: orden };
+      return { serie: s, nombre: series[s][0].nombre + (series[s][0].campo ? ' · ' + series[s][0].campo : ''), ediciones: series[s].length, filas: orden };
     });
   }
   definir('cronicas', {}, function (ctx) {
@@ -889,6 +971,7 @@ function crearMotor(env) {
     var previa = ['borrador', 'llamamiento'].indexOf(doc.fase) >= 0;
     if (p.premio != null) doc.premio = txt(p.premio, 160);
     if (p.firma != null) doc.firma = txt(p.firma, 60);
+    if (p.campo != null) doc.campo = txt(p.campo, 60);
     if (p.botin != null) doc.botin = txt(p.botin, 160);
     if (p.desfileInfo != null) doc.desfileInfo = txt(p.desfileInfo, 200);
     if (p.ordenanzas !== undefined) {
@@ -906,6 +989,7 @@ function crearMotor(env) {
       if (p.pregunta != null) doc.pregunta = txt(p.pregunta, 160);
       if (p.modo) doc.modo = p.modo === 'cosas' ? 'cosas' : 'combatientes';
       if (p.puntuacion) doc.puntuacion = p.puntuacion === 'votos' ? 'votos' : 'liga';
+      if (p.ritmo) doc.ritmo = p.ritmo === 'diaria' ? 'diaria' : 'golpe';
       if (p.dueloPorPuntos != null) doc.dueloPorPuntos = !!p.dueloPorPuntos;
       if (p.extras) EXTRAS.forEach(function (k) { if (p.extras[k] != null) doc.extras[k] = !!p.extras[k]; });
       if (p.llamamiento) {
@@ -1046,6 +1130,7 @@ function crearMotor(env) {
     doc.votos = {}; doc.porras = {}; doc.espias = {}; doc.estrellas = []; doc.parte = null;
     doc.fase = 'abierta';
     doc.declarada = t;
+    doc.avisadas = 1; doc.finAvisado = null;
     doc.diana.ultimo = null;
     guardar(doc);                       // primero se guarda la guerra; los correos no pueden dejarla a medias
     anotar(doc, 'mando', 'declarar', cs.length + ' contendientes, ' + doc.batallas.length + ' batallas');
@@ -1066,8 +1151,10 @@ function crearMotor(env) {
     var k = cuentasDe(doc, g), mias = k.mias, of = k.of;
     var c = doc.correo || {};
     var cuerpo = '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la patria te reclama.</p>' + parrafos(c.apertura) +
-      '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
-      ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>' +
+      (doc.ritmo === 'diaria'
+        ? '<p style="margin:0 0 14px">La primera ofensiva ya está abierta. Después se abrirá una nueva cada mañana a las ' + HORA_OFENSIVA + ':00, hasta completar las ' + of + ', y te avisaremos por correo. En total tienes ' + plural(mias, 'batalla', 'batallas') + ' por votar. La guerra no termina hasta que vota todo el mundo.</p>'
+        : '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
+      ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>') +
       (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc))) +
       botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
@@ -1184,6 +1271,7 @@ function crearMotor(env) {
     var b = doc.batallas.filter(function (x) { return x.id === Number(p.batalla); })[0];
     exigir(b, 'noexiste', 'Esa batalla no existe.');
     exigir(puedeVotar(yo, b), 'propia', 'En tus propios combates no votas.');
+    exigir(b.of <= abiertas(doc, t), 'cerrada', 'Esa ofensiva aún no se ha abierto.');
     exigir(p.elegido === b.a || p.elegido === b.b, 'voto', 'Hay que elegir a uno de los dos.');
     var vs = doc.votos[b.id] || (doc.votos[b.id] = {});
     if (vs[yo.id]) {
@@ -1255,7 +1343,27 @@ function crearMotor(env) {
     exigir(pl, 'noexiste', 'Esa pulla no existe.');
     pl.estado = p.emitir ? 'emitida' : 'censurada';
     pl.tsEmision = p.emitir ? ctx.ahora : null;
-    return {};
+    var doc = ctx.doc, avisados = 0;
+    if (p.emitir && p.avisar && !pl.avisada) {
+      pl.avisada = ctx.ahora;
+      votantes(doc).forEach(function (g) {
+        if (!g.correo || g.mando) return;
+        try {
+          env.correo({
+            para: g.correo, nombre: 'Radio Macuto', asunto: doc.nombre + ': Radio Macuto está en antena',
+            html: marcoCorreo(doc, '<p style="margin:0 0 14px">' + esc(g.nombre) + ', alguien ha dicho esto por Radio Macuto:</p>' +
+              '<p style="margin:0 0 14px;font-size:19px;font-style:italic">«' + esc(pl.texto) + '»</p>' +
+              '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(enlacePersonal(g) + '&ir=radio') + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#ff6ad5;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder con otra pulla</a></p>' +
+              '<p style="margin:0;font-size:13px;color:#b3aecf">Las pullas salen en antena sin firma. Este enlace es sólo tuyo: no lo reenvíes.</p>',
+              'Radio Macuto: pullas anónimas desde las trincheras.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto' }),
+            texto: 'Alguien ha dicho por Radio Macuto: «' + pl.texto + '». Responde: ' + enlacePersonal(g) + '&ir=radio'
+          });
+          avisados++;
+        } catch (e) { /* un correo fallido no para la emisión */ }
+      });
+      anotar(doc, 'mando', 'correo', 'Aviso de Radio Macuto: ' + avisados + ' correos');
+    }
+    return { avisados: avisados };
   });
 
   definir('tocarDiana', { escribe: true, quien: 'mando' }, function (ctx) {
@@ -1264,7 +1372,7 @@ function crearMotor(env) {
   });
 
   function tocarDiana(doc, t) {
-    var pr = progreso(doc), gente = porId(doc.gente), enviados = 0;
+    var pr = progreso(doc, abiertas(doc, t)), gente = porId(doc.gente), enviados = 0;
     var frases = doc.diana.frases && doc.diana.frases.length ? doc.diana.frases : null;
     pr.rezagados.forEach(function (r) {
       var g = gente[r.id];
@@ -1318,6 +1426,8 @@ function crearMotor(env) {
     });
     anotar(doc, 'mando', 'armisticio', expulsados.length + ' expulsados, ' + (rez.length - expulsados.length) + ' indultados');
     terminar(doc, t);
+    guardar(doc);
+    avisarFin(doc, t);
     return { contendientes: quedan.length, batallas: batallasVivas(doc).length };
   });
 
@@ -1407,7 +1517,7 @@ function crearMotor(env) {
 
   definir('contraofensiva', { escribe: true, quien: 'mando' }, function (ctx) {
     var vieja = ctx.doc, doc = guerraNueva(ctx.ahora);
-    ['nombre', 'pregunta', 'premio', 'botin', 'firma', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
+    ['nombre', 'pregunta', 'premio', 'botin', 'firma', 'campo', 'ritmo', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
     doc.extras = JSON.parse(JSON.stringify(vieja.extras));
     doc.diana = { activa: vieja.diana.activa, cadaDias: vieja.diana.cadaDias, frases: vieja.diana.frases.slice(), ultimo: null };
     doc.correo = JSON.parse(JSON.stringify(vieja.correo));
@@ -1434,7 +1544,7 @@ function crearMotor(env) {
 
   function reloj() {
     var t = ahora(), hora = env.hora();
-    indice().filter(function (g) { return g.fase === 'abierta' || g.fase === 'desfile' || g.fase === 'publicada'; }).forEach(function (g) {
+    indice().filter(function (g) { return g.fase === 'abierta' || g.fase === 'terminada' || g.fase === 'desfile' || g.fase === 'publicada'; }).forEach(function (g) {
       env.candado(function () {
         var doc = env.leer('guerra:' + g.id, true);
         if (!doc) return;
@@ -1444,6 +1554,11 @@ function crearMotor(env) {
           tocarDiana(doc, t);
           cambio = true;
         }
+        if (doc.fase === 'abierta' && doc.ritmo === 'diaria') {
+          var ab = abiertas(doc, t);
+          if (ab > (doc.avisadas || 1)) { doc.avisadas = ab; avisarOfensiva(doc, ab, t); cambio = true; }
+        }
+        if (doc.fase === 'terminada' && !doc.finAvisado && t - doc.terminada < 2 * DIA) { avisarFin(doc, t); cambio = true; }
         if (cambio) guardar(doc);
       });
     });
@@ -1517,6 +1632,10 @@ function gas(cfg) {
     ahora: function () { return Date.now(); },
     azar: Math.random,
     hora: function () { return Number(Utilities.formatDate(new Date(), 'Europe/Madrid', 'H')); },
+    inicioDia: function (ts) {
+      var p = Utilities.formatDate(new Date(ts), 'Europe/Madrid', 'H:m:s').split(':').map(Number);
+      return ts - (ts % 1000) - (p[0] * 3600 + p[1] * 60 + p[2]) * 1000;
+    },
     id: function (n) { var s = ''; while (s.length < n) s += Utilities.getUuid().replace(/-/g, ''); return s.slice(0, n); },
     leer: function (clave, fresco) {
       var texto = fresco ? null : cacheLeer(clave);

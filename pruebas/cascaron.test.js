@@ -59,7 +59,7 @@ function nube() {
     MailApp: { sendEmail: (m) => correos.push(m) },
     Utilities: {
       getUuid: () => crypto.randomUUID(),
-      formatDate: () => '12',
+      formatDate: (d, z, f) => (f === 'H' ? '12' : '12:0:0'),
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
       computeDigest: (alg, texto) => Array.from(crypto.createHash('sha256').update(texto, 'utf8').digest()).map((b) => b > 127 ? b - 256 : b)
     },

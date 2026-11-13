@@ -90,7 +90,7 @@ export function latido() {
   const vivo = fase === 'desfile' || (S.est && S.est.duelo && !S.est.duelo.cerrado);
   const ms = vivo ? 2500 : fase === 'abierta' || fase === 'terminada' ? 10000 : 30000;
   reloj = setTimeout(async () => {
-    const quieta = /^\/(plan|guerras|entrada|informe|armisticio)/.test(S.ruta);
+    const quieta = /^\/(plan|guerras|entrada|informe|armisticio|ensayo)/.test(S.ruta);
     if (!document.hidden && S.guerra && !enCola && !quieta) {
       try { if (await refrescar()) pintar(); } catch (e) { /* ya se reintentará */ }
     }
@@ -103,6 +103,7 @@ export function latido() {
 export function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
+export const tituloGuerra = (g) => (g ? g.nombre + (g.campo ? ' · ' + g.campo : '') : '');
 export const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
 export const signo = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 export const ordinal = (n) => n + (n === 1 || n === 3 ? '.er' : '.º');
