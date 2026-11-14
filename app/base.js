@@ -180,12 +180,12 @@ export function silueta(id, estilo) {
 }
 export function nombreDe(g) { return S.est && S.est.yo && g.id === S.est.yo.id ? 'Tú' : g.nombre; }
 
-// Carta holográfica de un contendiente. Opciones: clase, sello, selloClase, pie.
+// Carta holográfica de un contendiente. Opciones: clase, sello, selloClase, pie y figura (un dibujo en lugar de la silueta).
 export function carta(g, o = {}) {
   const foto = g.foto && S.fotos[g.foto];
   const grado = g.grado ? `<span class="pildora grado">${insignia(g.grado)}${GRADOS[Math.min(g.grado, 9)]}</span>` : '';
   return `<div class="carta ${o.clase || ''}"><div>
-    <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : silueta(g.id, 'height:82%')}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
+    <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : o.figura || silueta(g.id, 'height:82%')}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
     <div class="nombre">${esc(g.nombre)}</div><div class="raya" aria-hidden="true"></div>
     <p class="frase">${esc(g.frase || '')}</p>${o.pie || ''}
   </div></div>`;
