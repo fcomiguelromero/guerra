@@ -58,7 +58,7 @@ registrar('/presentacion', () => {
     ['Votas desde el móvil', (d.ritmo === 'diaria' ? `Cada mañana, a las ${d.hora}:00, se abre una ofensiva nueva con unas pocas batallas, y te avisamos por correo. Las votas en un par de minutos, cuando te venga bien.` : 'Todas las batallas se abren a la vez y las votas a tu ritmo, cuando te venga bien.') + ' Sin instalar nada: entras con un enlace que es sólo tuyo.'],
     ['En secreto', 'Los demás combatientes nunca sabrán a quién has votado. Y nadie ve cómo va la clasificación hasta el final: sólo se sabe quién se está retrasando.'],
     [d.puntuacion === 'votos' ? 'Cada voto cuenta' : 'Puntos, como en el fútbol', d.puntuacion === 'votos' ? 'Cada voto que recibe un contendiente le da puntos. Gana quien más sume al acabar todas las batallas.' : 'Ganar una batalla da 3 puntos; empatarla, 1; perderla, 0. Gana quien más sume al acabar todas las batallas.'],
-    x.desfile ? ['El desfile de la victoria', 'El gran final: el parte de guerra se revela en directo, del último puesto al primero, con redoble de tambor. Hasta entonces, nadie sabe nada.']
+    x.desfile ? ['El desfile de la victoria', 'El gran final: el parte de guerra se revela en directo, del último puesto al primero' + (x.corneta ? ', con redoble de tambor' : '') + (x.narrador ? ' y un narrador con retranca que comenta cada puesto' : '') + '. Hasta entonces, nadie sabe nada.']
       : ['El parte de guerra', 'Cuando vota el último, se publica la clasificación completa, de golpe.']
   ];
   const propinas = [

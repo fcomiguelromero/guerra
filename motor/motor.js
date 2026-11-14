@@ -413,7 +413,11 @@ var FRASES = {
     '{n}, {pos}. Se esperaba más, se esperaba menos; ha salido esto.',
     '{pos} puesto para {n}. Volverá, y esta vez con estrategia.']
 };
-function narrar(doc, r) {
+// Frases propias del alto mando, guardadas para todas sus guerras. Cada una vale para un tipo de puesto
+// y va antes que las de serie de ese tipo.
+var GRUPO_FRASES = { pleno: 'campeon', imbatible: 'campeon', duelo: 'campeon', ajustado: 'campeon', campeon: 'campeon', casi: 'segundo', segundo: 'segundo',
+  tercero: 'tercero', blanco: 'ultimo', ultimo: 'ultimo' };
+function narrar(doc, r, propias) {
   if (doc.extras && doc.extras.narrador === false) return {};
   var t = r.tabla, n = t.length, usadas = {}, res = {}, nombres = porId(doc.gente);
   var semilla = function (s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000003; return h; };
@@ -439,10 +443,11 @@ function narrar(doc, r) {
     else if (f.g === f.p && f.g > 0) cat = 'equilibrio';
     else cat = 'tropa';
     // Si ya se usaron todas las de su tipo, se tira de las generales: ninguna frase se repite.
-    var cadena = [cat].concat(f.pos > 3 && f.pos < n ? ['tropa', 'comodin'] : []), frase = null;
+    var grupo = GRUPO_FRASES[cat] || 'mitad', mias = (propias || []).filter(function (p) { return p.cat === grupo; }).map(function (p) { return p.texto; });
+    var cadena = (mias.length ? ['propias'] : []).concat([cat]).concat(f.pos > 3 && f.pos < n ? ['tropa', 'comodin'] : []), frase = null;
     cadena.forEach(function (c) {
       if (frase) return;
-      var lista = FRASES[c], k = semilla(String(doc.id) + f.id) % lista.length;
+      var lista = c === 'propias' ? mias : FRASES[c], k = semilla(String(doc.id) + f.id) % lista.length;
       for (var i = 0; i < lista.length; i++) { var cand = lista[(k + i) % lista.length]; if (!usadas[cand]) { frase = cand; return; } }
     });
     if (!frase) frase = FRASES[cat][0];
@@ -917,7 +922,7 @@ function crearMotor(env) {
     };
   }
   function vistaDesfile(doc, yo) {
-    var df = doc.desfile, r = doc.resultado, fila = {}, narrador = narrar(doc, r);
+    var df = doc.desfile, r = doc.resultado, fila = {}, narrador = narrar(doc, r, repertorio().frases);
     r.tabla.forEach(function (f) { fila[f.pos] = f; });
     var vistos = df.pasos.slice(0, df.paso + 1), revelados = [], premios = [], campeonesPregunta = [];
     vistos.forEach(function (p) {
@@ -1111,7 +1116,7 @@ function crearMotor(env) {
     return {
       nombre: doc.nombre, campo: doc.campo || '', pregunta: doc.pregunta, preguntas: preguntas(doc), premio: doc.premio || '', botin: doc.botin || '',
       modo: doc.modo, ritmo: doc.ritmo || 'golpe', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
-      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas },
+      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas, corneta: !!x.corneta, narrador: x.narrador !== false },
       firma: nombreMando(doc), pitch: doc.pitch || '', enMarcha: ['borrador', 'llamamiento'].indexOf(doc.fase) < 0
     };
   });
@@ -1141,6 +1146,24 @@ function crearMotor(env) {
       }),
       batallasSiTodos: nc * (nc - 1) / 2
     };
+  });
+
+  // Repertorio del narrador: las frases propias del alto mando, para todas sus guerras.
+  function repertorio() { return env.leer('narrador', true) || { frases: [], sig: 1 }; }
+  definir('narrador', { quien: 'mando' }, function () { return repertorio(); });
+  definir('guardarFrase', { escribe: true, quien: 'mando' }, function (ctx, p) {
+    var rep = repertorio();
+    if (p.borrar) rep.frases = rep.frases.filter(function (f) { return f.id !== String(p.borrar); });
+    else {
+      var texto = txt(p.texto, 220), cat = ['campeon', 'segundo', 'tercero', 'ultimo', 'mitad'].indexOf(p.cat) >= 0 ? p.cat : 'mitad';
+      exigir(texto, 'frase', 'Escribe la frase.');
+      exigir(/\{n\}/.test(texto), 'frase', 'La frase tiene que llevar {n}, que es donde va el nombre.');
+      exigir(rep.frases.length < 150, 'frase', 'Ya tienes 150 frases: borra alguna antes.');
+      rep.frases.push({ id: 'n' + rep.sig++, cat: cat, texto: texto });
+    }
+    env.escribir('narrador', rep, plural(rep.frases.length, 'frase', 'frases'));
+    ctx.sinGuardar = true;
+    return rep;
   });
 
   // Plato fuerte de cada ofensiva, a partir de las ediciones anteriores de la misma guerra:

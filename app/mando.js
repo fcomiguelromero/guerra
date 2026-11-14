@@ -103,6 +103,39 @@ function filaGente(g, i, cosa) {
         ${estado}${p.fase === 'borrador' || p.fase === 'llamamiento' ? `<button class="btn chico peligro" data-a="quitarGente" data-v="${i}">Quitar</button>` : ''}</div>
     </div></div>`;
 }
+// Frases propias del narrador del desfile: se guardan para todas las guerras del alto mando.
+const GRUPOS_FRASE = [['campeon', 'Campeón'], ['segundo', '2.º puesto'], ['tercero', '3.er puesto'], ['ultimo', 'Último puesto'], ['mitad', 'Mitad de tabla']];
+function seccionNarrador() {
+  const p = S.ui.plan, rep = S.ui.repertorio;
+  if (rep === undefined) {
+    S.ui.repertorio = null;
+    llamar('narrador', {}).then((r) => { S.ui.repertorio = r; pintar(); }).catch(() => { S.ui.repertorio = { frases: [], error: true }; pintar(); });
+  }
+  const frases = rep ? rep.frases : [];
+  const ejemplo = (t) => t.replace(/\{n\}/g, 'María').replace(/\{pos\}/g, '4.º').replace(/\{puntos\}/g, '9 puntos').replace(/\{victorias\}/g, '3 victorias')
+    .replace(/\{derrotas\}/g, '2 derrotas').replace(/\{empates\}/g, '1 empate');
+  return `<section class="caja"><h2 class="h2">Frases del narrador</h2>
+    <p class="med t2">Tus propias frases para el desfile. Se guardan para todas tus guerras y salen antes que las de serie: si escribes dos para el campeón, el campeón se llevará una de las tuyas.${p.extras && p.extras.narrador === false ? ' <strong class="rosa">En esta guerra el narrador está apagado</strong> (en Extras).' : ''}</p>
+    <p class="peq t2">Pon <strong>{n}</strong> donde va el nombre. También puedes usar {pos} (4.º), {puntos}, {victorias}, {derrotas} y {empates}.</p>
+    ${!rep ? '<p class="peq t2">Cargando tus frases…</p>' : GRUPOS_FRASE.map(([c, t]) => {
+      const mias = frases.filter((f) => f.cat === c);
+      return mias.length ? `<div class="col g4"><span class="etiqueta">${t}</span>${mias.map((f) => `<div class="fila entre" style="gap:8px;align-items:flex-start"><span class="med" style="font-style:italic">«${esc(f.texto)}»<br><span class="peq t2" style="font-style:normal">${esc(ejemplo(f.texto))}</span></span>
+        <button class="btn chico linea" data-a="borrarFrase" data-v="${f.id}" aria-label="Borrar la frase">Borrar</button></div>`).join('')}</div>` : '';
+    }).join('')}
+    ${rep && !frases.length ? '<p class="peq t2">Aún no tienes frases propias.</p>' : ''}
+    <div class="col g4"><label class="campo" style="margin:0"><span>Para</span><select id="nf-cat">${GRUPOS_FRASE.map(([c, t]) => `<option value="${c}">${t}</option>`).join('')}</select></label>
+      <label class="campo" style="margin:0"><span>Frase nueva</span><input id="nf-texto" maxlength="220" placeholder="{n} acaba {pos}: lo normal, vaya."></label>
+      <button class="btn linea medio" data-a="anadirFrase">Guardar la frase</button></div></section>`;
+}
+accion('anadirFrase', async () => {
+  const cat = document.getElementById('nf-cat').value, texto = document.getElementById('nf-texto').value.trim();
+  if (!texto) return aviso('Escribe la frase.');
+  S.ui.repertorio = await llamar('guardarFrase', { cat, texto });
+  aviso('Frase guardada para todas tus guerras.', true);
+  pintar();
+});
+accion('borrarFrase', async (id) => { S.ui.repertorio = await llamar('guardarFrase', { borrar: id }); pintar(); });
+
 // Presentación: una página sólo explicativa, para animar a la gente antes de meterla en la guerra.
 function seccionPresentacion() {
   const p = S.ui.plan;
@@ -236,6 +269,7 @@ registrar('/plan', () => {
       <div class="opciones"><button aria-pressed="${p.ritmo !== 'diaria'}" data-a="opcion" data-v="plan.ritmo=golpe">Todas de golpe</button><button aria-pressed="${p.ritmo === 'diaria'}" data-a="opcion" data-v="plan.ritmo=diaria">Una ofensiva al día</button></div>
       <p class="med t2">${p.ritmo === 'diaria' ? `La primera ofensiva se abre al declarar la guerra y, después, una nueva cada mañana a las 9:00${nc >= 3 ? `: la guerra durará al menos ${nc % 2 ? nc : nc - 1} días` : ''}. Cada día sale un correo avisando de las batallas nuevas a quien tenga algo por votar. Las ofensivas abiertas no caducan: el que se retrase puede ponerse al día cuando quiera.` : 'Todas las ofensivas se abren a la vez y cada uno vota a su ritmo.'}</p></section>
     <section class="caja"><h2 class="h2">Extras</h2>${EXTRAS.map(([k, t, n]) => interruptor('plan.extras.' + k, p.extras[k], t, n)).join('')}</section>` : ''}
+    ${seccionNarrador()}
     ${seccionPresentacion()}
     ${seccionOrdenanzas()}
     <section class="caja"><h2 class="h2">Toque de diana</h2>

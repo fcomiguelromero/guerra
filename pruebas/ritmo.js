@@ -76,6 +76,24 @@ const texto = (p) => p.locator('#app').innerText();
     const prPc = await pagina(navegador, 1280, 860, urlPres.slice(urlPres.indexOf('#')));
     await prPc.waitForSelector('.enorme');
     await foto(prPc, '00-presentacion-pc', true);
+    // --- frases propias del narrador, desde el plan
+    await m.waitForSelector('#nf-texto');
+    await m.selectOption('#nf-cat', 'ultimo');
+    await m.fill('#nf-texto', '{n}, en el furgón de cola, como el autobús de las tres.');
+    await pulsa(m, 'Guardar la frase');
+    assert.ok(/María, en el furgón de cola/.test(await texto(m)), 'la frase se guarda y se ve con un ejemplo');
+    assert.strictEqual((await api('narrador', { mando: 'mando-local' })).frases.length, 1);
+    await m.locator('#nf-texto').scrollIntoViewIfNeeded();
+    await m.locator('.caja', { hasText: 'Frases del narrador' }).screenshot({ path: path.join(SALIDA, '00-frases-narrador.png') });
+    // --- presentación de una guerra con extras apagados: no se explican
+    const { id: idSin } = await api('crearGuerra', { mando: 'mando-local', plan: { nombre: 'Guerra sin extras', pregunta: '¿Quién es más normal?', extras: { porra: false, radio: false, espia: false, apuestas: false, termometro: false, corneta: false, narrador: false } } });
+    const presSin = (await api('plan', { mando: 'mando-local', guerra: idSin })).plan.presenta;
+    const ps = await pagina(navegador, 390, 844, '#p=' + presSin);
+    await ps.waitForSelector('.enorme');
+    const tps = await texto(ps);
+    assert.ok(!/La porra|Radio Macuto|El espía|batalla del día|batalla estrella|termómetro|redoble|narrador/i.test(tps), 'los extras apagados no salen en la presentación');
+    assert.ok(/Proclamas anónimas/i.test(tps), 'los encendidos, sí');
+    await api('borrarGuerra', { mando: 'mando-local', guerra: idSin });
     await pulsa(m, '¡Declarar la guerra!');
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');

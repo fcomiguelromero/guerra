@@ -371,6 +371,37 @@ prueba('narrador del desfile: una frase distinta para cada puesto, la misma para
   assert.ok(!/ 1 victorias| 1 puntos| 1 derrotas/.test(lista.join(' ')), 'singulares bien puestos');
 });
 
+prueba('frases propias del narrador: se guardan para todas las guerras y van primero', () => {
+  const w = mundo(53);
+  w.falla('frase', () => w.mando('guardarFrase', { cat: 'campeon', texto: 'Sin nombre no vale.' }));
+  w.mando('guardarFrase', { cat: 'campeon', texto: '¡{n} es la normalidad! {puntos} y a casa.' });
+  w.mando('guardarFrase', { cat: 'ultimo', texto: '{n}, última, como el autobús de las tres.' });
+  const rep = w.mando('guardarFrase', { cat: 'mitad', texto: '{n} acaba {pos}: lo normal.' });
+  assert.strictEqual(rep.frases.length, 3);
+  w.falla('mando', () => w.do('narrador', {}));
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 6) });
+  const g = declarar(w, id);
+  NOMBRES.slice(0, 6).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  w.do('estado', { token: g.tok['María'] });
+  w.mando('desfile', { guerra: id, orden: 'empezar' });
+  const vistas = [];
+  for (let k = 0; k < 40; k++) {
+    const d = w.do('estado', { token: g.tok['María'] }).desfile;
+    vistas.push(d.actual);
+    if (d.ultimo || d.actual.t === 'duelo') break;
+    w.mando('desfile', { guerra: id, orden: 'siguiente' });
+  }
+  const puestos = vistas.filter((a) => a.t === 'puesto');
+  assert.ok(/como el autobús de las tres/.test(puestos[0].frase), 'el último lleva la frase propia');
+  assert.strictEqual(puestos.filter((a) => /: lo normal\.$/.test(a.frase)).length, 1, 'la propia de mitad de tabla, una sola vez');
+  const campeon = vistas.find((a) => a.t === 'campeon');
+  if (campeon) assert.ok(/es la normalidad! \d+ puntos? y a casa/.test(campeon.frase), campeon.frase);
+  const borrar = rep.frases[0].id;
+  assert.strictEqual(w.mando('guardarFrase', { borrar }).frases.length, 2);
+  assert.strictEqual(w.mando('narrador', {}).frases.length, 2);
+});
+
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
   const w = mundo(17);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
