@@ -161,7 +161,7 @@ const texto = (p) => p.locator('#app').innerText();
     await api('_prueba', { salto: 60000, reloj: true });
     const fin = (await api('_prueba', {})).correos.slice(n1);
     fs.writeFileSync(path.join(SALIDA, 'correo-fin.html'), fin[0] ? fin[0].html : '');
-    assert.ok(fin.length === 5 && /alto el fuego/.test(fin[0].asunto) && /En el bar de siempre/.test(fin[0].html) && /noviembre/.test(fin[0].html), 'aviso de alto el fuego');
+    assert.ok(fin.length === 5 && /alto el fuego/.test(fin[0].asunto) && /, en el bar de siempre/.test(fin[0].html) && /noviembre/.test(fin[0].html), 'aviso de alto el fuego');
     assert.ok(fin[0].adjuntos[0].texto.includes('DTSTART:20301123T200000Z') && /calendar\.google\.com/.test(fin[0].html), 'calendario en el correo');
     fs.writeFileSync(path.join(SALIDA, 'correo-fin.html'), fin[0].html);
 
