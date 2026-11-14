@@ -637,12 +637,18 @@ function crearMotor(env) {
   }
   function cronicas() {
     return indice().filter(function (g) { return g.fase === 'publicada'; })
-      .map(function (g) { var d = env.leer('guerra:' + g.id); return d && d.cronica; }).filter(Boolean)
+      .map(function (g) {
+        var d = env.leer('guerra:' + g.id), c = d && d.cronica;
+        // Las crónicas de antes no guardaban las batallas: se sacan del resultado, que sigue ahí.
+        if (c && !c.batallas && d.resultado) c.batallas = marcadores(d.resultado);
+        return c;
+      }).filter(Boolean)
       .sort(function (x, y) { return y.fecha - x.fecha; });
   }
   function guerrasTerminadas(persona, lista) {
     return lista.filter(function (c) { return c.gente.some(function (g) { return g.persona === persona && !g.desertor; }); }).length;
   }
+  function marcadores(r) { return (r.batallas || []).map(function (b) { return [b.a, b.b, b.va, b.vb]; }); }
   // Resumen congelado de una guerra publicada: es lo que leen las crónicas.
   function cronicaDe(doc) {
     var r = doc.resultado, pos = {}, fila = porId(r.tabla);
@@ -655,7 +661,7 @@ function crearMotor(env) {
     });
     return {
       id: doc.id, nombre: doc.nombre, campo: doc.campo || '', serie: norm(doc.nombre) + '|' + norm(doc.campo || ''), pregunta: doc.pregunta, fecha: doc.publicada || doc.terminada,
-      modo: doc.modo, puntuacion: doc.puntuacion, premio: doc.premio || '',
+      modo: doc.modo, puntuacion: doc.puntuacion, premio: doc.premio || '', batallas: marcadores(r),
       campeon: r.empate ? null : r.tabla[0].id,
       porraGana: r.porra.gana, porraSuma: r.porra.lista.length ? r.porra.lista[0].suma : null,
       gente: doc.gente.map(function (g) {
@@ -941,6 +947,25 @@ function crearMotor(env) {
     };
   });
 
+  // Cara a cara: lo que se han hecho dos combatientes en todas las ediciones de una misma guerra.
+  // Cada par va con su clave ordenada: x < y. gx y gy son victorias; vx y vy, votos.
+  function caraACara(ediciones) {
+    var pares = {};
+    ediciones.forEach(function (c) {
+      var clave = {};
+      c.gente.forEach(function (g) { if (g.combate) clave[g.id] = g.persona || 'cosa:' + norm(g.nombre); });
+      (c.batallas || []).forEach(function (b) {
+        var ka = clave[b[0]], kb = clave[b[1]];
+        if (!ka || !kb || ka === kb) return;
+        var al = ka < kb, x = al ? ka : kb, y = al ? kb : ka, vx = al ? b[2] : b[3], vy = al ? b[3] : b[2];
+        var p = pares[x + '|' + y] || (pares[x + '|' + y] = { x: x, y: y, n: 0, gx: 0, e: 0, gy: 0, vx: 0, vy: 0 });
+        p.n++; p.vx += vx; p.vy += vy;
+        if (vx > vy) p.gx++; else if (vy > vx) p.gy++; else p.e++;
+      });
+    });
+    return Object.keys(pares).map(function (k) { return pares[k]; });
+  }
+
   // Escalafón: suma de todas las ediciones de una misma guerra, siempre a 3-1-0.
   function escalafones(lista, visible) {
     var series = {};
@@ -958,7 +983,7 @@ function crearMotor(env) {
       });
       var orden = Object.keys(filas).map(function (k) { return filas[k]; })
         .sort(function (x, y) { return y.pts - x.pts || y.dif - x.dif || y.tit - x.tit; });
-      return { serie: s, nombre: series[s][0].nombre + (series[s][0].campo ? ' · ' + series[s][0].campo : ''), ediciones: series[s].length, filas: orden };
+      return { serie: s, nombre: series[s][0].nombre + (series[s][0].campo ? ' · ' + series[s][0].campo : ''), ediciones: series[s].length, filas: orden, caras: caraACara(series[s]) };
     });
   }
   definir('cronicas', {}, function (ctx) {

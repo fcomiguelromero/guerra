@@ -183,6 +183,15 @@ const texto = (p) => p.locator('#app').innerText();
     await ma.locator('[data-a="pestanaCronicas"][data-v="escalafon"]').click(); await ma.waitForTimeout(200);
     assert.ok(/Guerras jugadas/.test(await texto(ma)) && /Compañeros de trabajo/.test(await texto(ma)));
     await foto(ma, '12-escalafon', true);
+    // Cara a cara: María contra su rival, y luego otra pareja elegida a mano.
+    assert.ok(/Cara a cara/i.test(await texto(ma)) && /En votos, \d+ a \d+/.test(await texto(ma)), 'cara a cara');
+    assert.strictEqual(await ma.locator('[data-c="cara"][data-v="a"]').inputValue(), (await api('cronicas', { token: tok['María'] })).persona);
+    const opciones = await ma.locator('[data-c="cara"][data-v="a"] option').evaluateAll((os) => os.map((o) => o.value));
+    await ma.selectOption('[data-c="cara"][data-v="a"]', opciones[opciones.length - 1]);
+    await ma.waitForTimeout(150);
+    assert.strictEqual(await ma.locator('[data-c="cara"][data-v="a"]').inputValue(), opciones[opciones.length - 1]);
+    assert.notStrictEqual(await ma.locator('[data-c="cara"][data-v="b"]').inputValue(), opciones[opciones.length - 1]);
+    await ma.locator('.caja', { hasText: 'Cara a cara' }).screenshot({ path: path.join(SALIDA, '13-cara-a-cara.png') });
 
     assert.deepStrictEqual(errores, [], 'sin errores en el navegador');
     console.log('Ritmo diario sin errores. Capturas en ' + SALIDA);

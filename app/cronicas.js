@@ -103,8 +103,66 @@ function pestanaEscalafon() {
       <dt>Dif.</dt><dd>Diferencia de votos acumulada: los votos que ha recibido en todas sus batallas menos los que han recibido sus rivales contra él. Ganar una batalla 5 a 2 suma +3; perderla 1 a 6 resta 5. Desempata a igualdad de puntos.</dd>
       <dt>Des.</dt><dd>Deserciones: guerras de las que fue expulsado por no votar.</dd>
     </dl>
-    <p class="peq t2">Suma todas las ediciones de esta guerra. Los puntos se cuentan siempre a 3-1-0, aunque alguna edición se jugara por votos. El grado, con galones y estrellas, cuenta todas las guerras que cada uno ha terminado, se llamen como se llamen.</p></section>`;
+    <p class="peq t2">Suma todas las ediciones de esta guerra. Los puntos se cuentan siempre a 3-1-0, aunque alguna edición se jugara por votos. El grado, con galones y estrellas, cuenta todas las guerras que cada uno ha terminado, se llamen como se llamen.</p></section>
+    ${bloqueCaraACara(elegida)}`;
 }
+
+// ---------------------------------------------------------------- cara a cara
+
+// Pone el par mirado desde «a»: sus victorias, las del otro y los votos de cada uno.
+function desde(p, a) { return p.x === a ? { g: p.gx, e: p.e, p: p.gy, vf: p.vx, vc: p.vy, n: p.n } : { g: p.gy, e: p.e, p: p.gx, vf: p.vy, vc: p.vx, n: p.n }; }
+function bloqueCaraACara(serie) {
+  const caras = serie.caras || [], filas = serie.filas;
+  if (!caras.length || filas.length < 2) return '';
+  const quien = porId(filas.map((f) => Object.assign({ id: f.clave }, f)));
+  const yo = S.ui.cronicas.persona && quien[S.ui.cronicas.persona] ? S.ui.cronicas.persona : null;
+  const nom = (k) => (k === yo ? 'Tú' : quien[k] ? quien[k].nombre : '¿?');
+  const par = (a, b) => caras.find((p) => (p.x === a && p.y === b) || (p.x === b && p.y === a));
+  const mios = yo ? caras.filter((p) => p.x === yo || p.y === yo).map((p) => Object.assign({ rival: p.x === yo ? p.y : p.x }, desde(p, yo))) : [];
+
+  // El par elegido: lo que haya escogido, o yo contra mi rival más visto, o la gran rivalidad.
+  const igualada = (p) => Math.abs(p.gx - p.gy) * 100 + Math.abs(p.vx - p.vy);
+  const grande = caras.slice().sort((p, q) => q.n - p.n || igualada(p) - igualada(q))[0];
+  const elegido = S.ui.cara && S.ui.cara.serie === serie.serie ? S.ui.cara : null;
+  let a = elegido ? elegido.a : yo || grande.x;
+  let b = elegido ? elegido.b : yo ? mios.slice().sort((p, q) => q.n - p.n)[0].rival : grande.y;
+  if (!quien[a]) a = filas[0].clave;
+  if (!quien[b] || b === a) b = filas.find((f) => f.clave !== a).clave;
+  const p = par(a, b), d = p ? desde(p, a) : null;
+  const opciones = (sel, otro) => filas.map((f) => `<option value="${esc(f.clave)}" ${f.clave === sel ? 'selected' : ''} ${f.clave === otro ? 'disabled' : ''}>${esc(nom(f.clave))}</option>`).join('');
+  const lado = (k, g, color) => `<div class="col g4" style="align-items:center;flex:1;min-width:0">${circulo(quien[k], 'cara')}
+      <b class="bc ${color}" style="font-size:52px;line-height:1;font-weight:800">${g}</b></div>`;
+  const marcador = d ? `<div class="fila" style="align-items:center;gap:8px">${lado(a, d.g, d.g > d.p ? 'teal' : d.g < d.p ? 'rosa' : '')}
+      <span class="bc t2" style="font-size:22px;font-weight:800">VS</span>${lado(b, d.p, d.p > d.g ? 'teal' : d.p < d.g ? 'rosa' : '')}</div>
+    <p class="med centro">${d.g === d.p ? 'Igualdad absoluta' : (d.g > d.p ? a : b) === yo ? 'Dominas <strong>tú</strong>' : `Domina <strong>${esc(nom(d.g > d.p ? a : b))}</strong>`}: ${plural(d.n, 'batalla', 'batallas')}${d.e ? `, ${plural(d.e, 'empate', 'empates')}` : ''}. En votos, ${d.vf} a ${d.vc}.</p>`
+    : '<p class="med t2 centro">Nunca se han enfrentado en esta guerra.</p>';
+
+  const linea = (titulo, txt) => `<p class="med"><strong class="teal">${titulo}.</strong> <span class="t3">${txt}</span></p>`;
+  const extra = [];
+  if (yo) {
+    const negra = mios.filter((m) => m.p > m.g).sort((m, q) => (q.p - q.g) - (m.p - m.g) || q.vc - m.vc)[0];
+    const victima = mios.filter((m) => m.g > m.p).sort((m, q) => (q.g - q.p) - (m.g - m.p) || q.vf - m.vf)[0];
+    if (negra) extra.push(linea('Tu bestia negra', `${esc(nom(negra.rival))}, que te gana ${negra.p} a ${negra.g}.`));
+    if (victima) extra.push(linea('Tu víctima favorita', `${esc(nom(victima.rival))}: le ganas ${victima.g} a ${victima.p}.`));
+  }
+  if (grande.n > 1 || serie.ediciones > 1) {
+    const dg = desde(grande, grande.x);
+    extra.push(linea('La gran rivalidad', `${esc(nom(grande.x))} contra ${esc(nom(grande.y))}: ${plural(grande.n, 'batalla', 'batallas')}, ${dg.g}-${dg.e}-${dg.p}.`));
+  }
+  return `<section class="caja"><h2 class="h2">Cara a cara</h2>
+    <p class="peq t2">Elige a dos combatientes y mira quién ha ganado más veces cuando se han enfrentado, sumando todas las ediciones.</p>
+    <div class="fila" style="gap:8px"><label class="campo crece" style="margin:0"><span class="vh">Primer combatiente</span><select data-c="cara" data-v="a">${opciones(a, b)}</select></label>
+      <label class="campo crece" style="margin:0"><span class="vh">Segundo combatiente</span><select data-c="cara" data-v="b">${opciones(b, a)}</select></label></div>
+    ${marcador}
+    ${extra.join('')}</section>`;
+}
+accion('cara', (lado, el) => {
+  const series = S.ui.cronicas.series, serie = series.find((x) => x.serie === S.ui.serie) || series[0];
+  const actual = Array.from(document.querySelectorAll('[data-c="cara"]')).map((s) => s.value);
+  S.ui.cara = { serie: serie.serie, a: actual[0], b: actual[1] };
+  if (lado === 'a' && el.value === actual[1]) S.ui.cara.b = '';
+  pintar();
+});
 
 // ---------------------------------------------------------------- pestaña «Medallero»
 

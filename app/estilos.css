@@ -174,3 +174,5 @@ ul, ol { padding: 0; list-style: none; }
 .leyenda dl, .leyenda-fija { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--txt2); }
 .leyenda dt, .leyenda-fija dt { font-family: var(--bc); font-weight: 700; font-size: 16px; color: #fff; white-space: nowrap; }
 .leyenda dd, .leyenda-fija dd { margin: 0; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.avatar.cara { width: 72px; height: 72px; font-size: 28px; border-width: 3px; }

@@ -173,6 +173,36 @@ prueba('vista previa: los dos correos se componen sin enviar nada, antes de decl
   w.falla('mando', () => w.do('previaCorreo', { guerra: id }));
 });
 
+prueba('cara a cara: suma las batallas de dos combatientes en todas las ediciones', () => {
+  const w = mundo(23);
+  const jugar = (id) => {
+    const g = declarar(w, id);
+    NOMBRES.slice(0, 4).forEach((n) => votarTodo(w, g, n));
+    w.pasa(60000);
+    w.do('estado', { token: g.tok['María'] });
+    w.mando('publicar', { guerra: id });
+    return g;
+  };
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
+  const g1 = jugar(id);
+  const { id: id2 } = w.mando('contraofensiva', { guerra: id });
+  const g2 = jugar(id2);
+  const cr = w.do('cronicas', { token: g2.tok['María'] });
+  const s = cr.series[0];
+  assert.strictEqual(s.ediciones, 2);
+  assert.strictEqual(s.caras.length, 6, 'cuatro combatientes: seis parejas');
+  assert.ok(s.caras.every((p) => p.n === 2 && p.gx + p.e + p.gy === 2 && p.x < p.y));
+  // Cuadra con las batallas de cada edición.
+  const total = [g1, g2].reduce((t, g) => t + w.do('estado', { token: g.tok['María'] }).resultado.batallas.reduce((u, b) => u + b.va + b.vb, 0), 0);
+  assert.strictEqual(s.caras.reduce((t, p) => t + p.vx + p.vy, 0), total);
+  const claves = new Set(s.filas.map((f) => f.clave));
+  assert.ok(s.caras.every((p) => claves.has(p.x) && claves.has(p.y)), 'cada pareja se cruza con su fila del escalafón');
+  // Una crónica antigua, sin batallas guardadas, se completa con el resultado.
+  const viejo = w.doc(id); delete viejo.cronica.batallas; w.docs.set('guerra:' + id, JSON.stringify(viejo));
+  assert.ok(!w.doc(id).cronica.batallas);
+  assert.deepStrictEqual(w.do('cronicas', { token: g2.tok['María'] }).series[0].caras, s.caras);
+});
+
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
   const w = mundo(17);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
