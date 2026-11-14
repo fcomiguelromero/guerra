@@ -176,3 +176,4 @@ ul, ol { padding: 0; list-style: none; }
 .leyenda dd, .leyenda-fija dd { margin: 0; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .avatar.cara { width: 72px; height: 72px; font-size: 28px; border-width: 3px; }
+.termo { gap: 6px; font-size: 14px; } .termo.teal { color: var(--teal); } .termo.rosa { color: var(--rosa); }

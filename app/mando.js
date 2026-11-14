@@ -9,7 +9,9 @@ const EXTRAS = [
   ['porra', 'La porra', 'Quién acierta el parte final'], ['espia', 'El espía', 'Descubrir un combate antes del desfile'],
   ['desfile', 'Desfile de la victoria', 'Revelación en directo, puesto a puesto'], ['proclamas', 'Proclamas anónimas', 'Motivos al votar, leídos sin firma'],
   ['condecoraciones', 'Condecoraciones', 'El más rebelde (vota contra la mayoría), el más borrego (vota con ella) y el más tardón'], ['radio', 'Radio Macuto', 'Pullas anónimas con censura'],
-  ['parte', 'Parte a mitad de contienda', 'Aviso con los rezagados, sin resultados'], ['corneta', 'Toque de corneta en el desfile', 'Suena en tu móvil']
+  ['parte', 'Parte a mitad de contienda', 'Aviso con los rezagados, sin resultados'], ['corneta', 'Toque de corneta en el desfile', 'Suena en tu móvil'],
+  ['termometro', 'Termómetro de la guerra', 'Tras votar, cada uno ve si va con la mayoría o contra ella, sin cifras'],
+  ['apuestas', 'Apuesta de la batalla del día', 'Adivinar quién gana una batalla de cada ofensiva; título de «El adivino»']
 ];
 const enlaceApp = () => location.origin + location.pathname;
 const cab = (sobre, titulo, extra = '') => `<header class="fila entre" style="align-items:flex-start"><div class="col g4 crece"><div class="sobre">${esc(sobre)}</div><h1 class="h1">${esc(titulo)}</h1></div>${extra}</header>`;
@@ -23,6 +25,12 @@ export function textoCierre(ts) {
   const d = new Date(ts);
   return d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) + ' a las ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
+accion('desfileFecha', (v, el) => {
+  const ts = el.value ? new Date(el.value).getTime() : 0;
+  S.ui.plan.desfileTs = ts || null;
+  S.ui.plan.desfileFecha = ts ? textoCierre(ts) : '';
+  pintar();
+});
 accion('cierre', (v, el) => {
   const ts = el.value ? new Date(el.value).getTime() : 0;
   S.ui.plan.llamamiento.cierreTs = ts || null;
@@ -200,7 +208,9 @@ registrar('/plan', () => {
       <label class="campo"><span>Botín de la porra</span><input id="p-botin" maxlength="160" data-m="plan.botin" value="${esc(p.botin)}" placeholder="2 € por cabeza"></label>
       <label class="campo"><span>Tu firma como alto mando</span><input id="p-firma" maxlength="60" data-m="plan.firma" value="${esc(p.firma || '')}" placeholder="Francisco M. Romero"></label>
       <p class="peq t2" style="margin-top:-6px">Así firmas los correos y el diploma. Si lo dejas vacío, se usa el nombre de tu carta.</p>
-      <label class="campo"><span>Día, hora y lugar del desfile</span><input id="p-desfile" maxlength="200" data-m="plan.desfileInfo" value="${esc(p.desfileInfo)}" placeholder="Se anunciará cuando acabe la guerra"></label></section>
+      <label class="campo"><span>Día y hora del desfile</span><input id="p-desfile-ts" type="datetime-local" data-c="desfileFecha" value="${p.desfileTs ? localISO(p.desfileTs) : ''}"></label>
+      <p class="peq t2" style="margin-top:-6px">Opcional. Con fecha y hora, cada combatiente podrá apuntárselo en su calendario, y el correo de alto el fuego lo llevará adjunto.</p>
+      <label class="campo"><span>Lugar y detalles del desfile</span><input id="p-desfile" maxlength="200" data-m="plan.desfileInfo" value="${esc(p.desfileInfo)}" placeholder="En el bar de siempre"></label></section>
     ${previa ? `<section class="caja"><h2 class="h2">Quién compite</h2>
       <div class="opciones"><button aria-pressed="${!cosas}" data-a="modo" data-v="combatientes">Los combatientes</button><button aria-pressed="${cosas}" data-a="modo" data-v="cosas">Otra cosa</button></div>
       <p class="med t2">${cosas ? 'Compiten otras cosas (bodas, películas, tortillas) y los combatientes sólo votan: todos votan todas las batallas.' : 'Cada combatiente también es contendiente: no vota en sus propios combates.'}</p></section>
@@ -282,7 +292,7 @@ accion('foto', async (i, el) => {
 async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
-    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '', desfileInfo: p.desfileInfo, modo: p.modo, puntuacion: p.puntuacion,
+    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '', desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,
@@ -467,7 +477,7 @@ registrar('/informe', () => {
     <strong class="bc" style="font-size:20px;color:#fff">${nom(b.a)} <span class="teal">${b.va}–${b.vb}</span> ${nom(b.b)}</strong>
     <span class="med t2">A ${nom(b.a)} (${b.va}): ${votos[b.id].a.map(nom).join(', ') || 'nadie'}</span><span class="med t2">A ${nom(b.b)} (${b.vb}): ${votos[b.id].b.map(nom).join(', ') || 'nadie'}</span></div>`).join('');
   const descansan = inf.gente.filter((g) => g.combate && g.estado !== 'expulsado' && !r.batallas.some((b) => b.of === of && (b.a === g.id || b.b === g.id))).map((g) => g.nombre);
-  const premios = ['rebelde', 'borrego', 'tardon'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
+  const premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
   const bat = porId(r.batallas), curios = listaCuriosidades(r, G);
   let orden;
   if (fase === 'terminada') {
@@ -485,6 +495,8 @@ registrar('/informe', () => {
       ${r.porra.lista.length ? `<section class="caja"><h2 class="h2">La porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>
         <ol class="lista-puestos">${r.porra.lista.map((p) => `<li><b>${p.pos}</b><span>${nom(p.id)}</span><em>${p.suma}</em></li>`).join('')}</ol>${inf.guerra.botin ? `<p class="med t2">Botín: ${esc(inf.guerra.botin)}</p>` : ''}</section>` : ''}
       ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
+      ${(r.apuestas || []).length ? `<section class="caja"><h2 class="h2">Apuestas</h2><p class="peq t2">Aciertos en la batalla ${inf.guerra.ritmo === 'diaria' ? 'del día' : 'estrella'} de cada ofensiva. Sólo los ves tú.</p>
+        ${r.apuestas.map((a) => `<div class="fila entre"><span>${nom(a.id)}</span><span class="med"><strong class="teal">${a.n}</strong> de ${a.de}</span></div>`).join('')}</section>` : ''}
       ${curios.length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${curios.map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
       ${r.desertores.length || r.indultados.length ? `<section class="caja"><h2 class="h2">Bajas</h2>
         ${r.desertores.map((x) => `<p class="med"><strong>${nom(x.id)}:</strong> expulsado con deshonor, con ${plural(x.faltaban, 'batalla', 'batallas')} sin votar. ${x.sentencia ? '<em>«' + esc(x.sentencia) + '»</em>' : ''}</p>`).join('')}

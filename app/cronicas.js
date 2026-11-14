@@ -2,11 +2,12 @@
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
   registrar, accion, alEntrar, pedirFotos } from './base.js';
 
-const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón' };
-const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón' };
+const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón', adivino: 'Medalla al adivino' };
+const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
 function detalle(p) {
   if (p.cual === 'rebelde') return `Contra la mayoría en ${p.n} de ${p.de}`;
   if (p.cual === 'borrego') return `Con la mayoría en ${p.n} de ${p.de}`;
+  if (p.cual === 'adivino') return `Acertó ${p.n} de ${plural(p.de, 'apuesta', 'apuestas')}`;
   return p.motivo === 'indulto' ? `Indulto con ${plural(p.n, 'voto', 'votos')} sin emitir` : 'La última papeleta';
 }
 

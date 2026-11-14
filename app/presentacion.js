@@ -67,6 +67,8 @@ registrar('/presentacion', () => {
     x.espia ? ['El espía', 'Un solo uso: descubre quién ganó un combate antes que nadie.'] : null,
     x.proclamas ? ['Proclamas anónimas', 'Explica tu voto, si te atreves. Las mejores se leen al final, sin firma.'] : null,
     x.condecoraciones ? ['Condecoraciones', 'Medallas al más rebelde, al más borrego y al más tardón.'] : null,
+    x.apuestas ? [d.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', 'En cada ofensiva, apuesta quién ganará una batalla elegida para todos. Quien más acierte, se lleva el título de «El adivino».'] : null,
+    x.termometro ? ['El termómetro', 'Después de votar, sabrás si vas con la mayoría o contra ella. Sin cifras, que esto es secreto.'] : null,
     ['Galones', 'Cada guerra terminada cuenta: se asciende de recluta a general. Y hay consejo de guerra para los desertores.']
   ].filter(Boolean);
   const demo = cosas ? '' : `<section class="col g4"><div class="duelo">${carta({ id: 'c1', nombre: 'Tú', frase: 'Aquí irá tu grito de guerra' }, { figura: soldado('usa') })}${carta({ id: 'c2', nombre: 'Tu rival', frase: 'Y aquí, el suyo' }, { clase: 'izq', figura: soldado('prusia') })}<div class="vs" aria-hidden="true">VS</div></div>

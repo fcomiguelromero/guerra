@@ -43,7 +43,9 @@ const texto = (p) => p.locator('#app').innerText();
     await m.fill('#p-nombre', 'Guerra de la Normalidad');
     await m.fill('#p-pregunta', '¿Quién es más normal?');
     await m.fill('#p-campo', 'Compañeros de trabajo');
-    await m.fill('#p-desfile', 'Sábado a las 21:00, en el bar de siempre');
+    await m.fill('#p-desfile', 'En el bar de siempre');
+    await m.fill('#p-desfile-ts', '2030-11-23T21:00');
+    await m.waitForTimeout(100);
     for (let i = 0; i < NOMBRES.length; i++) {
       await pulsa(m, 'Reclutar combatiente');
       await m.fill('#gn-' + i, NOMBRES[i]);
@@ -89,7 +91,30 @@ const texto = (p) => p.locator('#app').innerText();
     const ma = await pagina(navegador, 390, 844, '#t=' + tok['María']);
     let est = await api('estado', { token: tok['María'] });
     const hoy = est.batallas.filter((b) => b.mia && b.of === 1).length;
-    for (let k = 0; k < hoy; k++) { await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(150); }
+    let aposte = false;
+    for (let k = 0; k < hoy; k++) {
+      if (await ma.locator('[data-a="apostar"]').count() && !aposte) {
+        assert.ok(/Batalla del día/i.test(await texto(ma)), 'la batalla del día se anuncia');
+        await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300);
+        assert.strictEqual(await ma.locator('[data-a="apostar"]').first().getAttribute('aria-pressed'), 'true');
+        await ma.waitForLoadState('networkidle');
+        await foto(ma, '02a-batalla-del-dia');
+        aposte = true;
+      }
+      await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(150);
+    }
+    const propia = est.batallas.find((b) => b.delDia && b.of === 1 && !b.mia);
+    assert.ok(aposte || propia, 'o apuesta al votar o la batalla del día es suya');
+    if (propia) {
+      assert.ok(/En esta combates tú/.test(await texto(ma)), 'apuesta en su propia batalla del día');
+      if (!aposte) { await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300); }
+      await foto(ma, '02b-propia', true);
+    }
+    await ma.waitForLoadState('networkidle');
+    assert.ok((await api('estado', { token: tok['María'] })).batallas.some((b) => b.delDia && b.of === 1 && b.apuesta), 'la apuesta llega al cuartel');
+    // Termómetro: aparece al cerrarse la retirada del último voto.
+    await ma.waitForTimeout(17000);
+    assert.ok(/Termómetro: (vas |En \d+ batallas? aún no ha votado nadie más)/i.test(await texto(ma)), 'resumen del termómetro');
     await ma.waitForLoadState('networkidle');
     assert.ok(/Cumplido por hoy/i.test(await texto(ma)) && /ofensiva 2 de 5 se abre/i.test(await texto(ma)), 'cumplido por hoy');
     assert.strictEqual(await ma.locator('[data-a="votar"]').count(), 0);
@@ -135,7 +160,9 @@ const texto = (p) => p.locator('#app').innerText();
     const n1 = (await api('_prueba', {})).correos.length;
     await api('_prueba', { salto: 60000, reloj: true });
     const fin = (await api('_prueba', {})).correos.slice(n1);
-    assert.ok(fin.length === 5 && /alto el fuego/.test(fin[0].asunto) && /Sábado a las 21:00/.test(fin[0].html), 'aviso de alto el fuego');
+    fs.writeFileSync(path.join(SALIDA, 'correo-fin.html'), fin[0] ? fin[0].html : '');
+    assert.ok(fin.length === 5 && /alto el fuego/.test(fin[0].asunto) && /En el bar de siempre/.test(fin[0].html) && /noviembre/.test(fin[0].html), 'aviso de alto el fuego');
+    assert.ok(fin[0].adjuntos[0].texto.includes('DTSTART:20301123T200000Z') && /calendar\.google\.com/.test(fin[0].html), 'calendario en el correo');
     fs.writeFileSync(path.join(SALIDA, 'correo-fin.html'), fin[0].html);
 
     // --- informe con Radio Macuto y ensayo privado del desfile
@@ -153,6 +180,12 @@ const texto = (p) => p.locator('#app').innerText();
     assert.strictEqual((await api('estado', { token: tok['María'] })).guerra.fase, 'terminada', 'el ensayo no mueve la guerra');
     await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle');
     assert.ok(/Alto el fuego/i.test(await texto(ma)), 'los combatientes no ven el ensayo');
+    assert.ok(await ma.getByRole('link', { name: 'Google Calendar' }).count(), 'botón de Google Calendar');
+    const [descarga] = await Promise.all([ma.waitForEvent('download'), ma.locator('[data-a="calendarioIcs"]').click()]);
+    assert.strictEqual(descarga.suggestedFilename(), 'desfile.ics');
+    const icsTexto = fs.readFileSync(await descarga.path(), 'utf8');
+    assert.ok(icsTexto.includes('DTSTART:20301123T200000Z') && icsTexto.includes('BEGIN:VALARM'), 'el .ics de la app');
+    await foto(ma, '07a-alto-el-fuego-calendario', true);
     await pulsa(m, 'Salir');
 
     // --- desfile de verdad hasta el final, y la porra con su ganador

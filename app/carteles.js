@@ -234,7 +234,7 @@ async function cartelPodio(e) {
     texto(x, `Porra: ${enumerar(r.porra.gana.map((id) => G[id].nombre))}, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')}`, W / 2, y, { font: `400 34px ${IN}`, align: 'center', max: W - 2 * M });
     y += 64;
   }
-  const premios = [['rebelde', 'Más rebelde'], ['borrego', 'Más borrego'], ['tardon', 'Más tardón']].filter(([k]) => r.premios[k]).map(([k, t2]) => t2 + ': ' + G[r.premios[k].id].nombre);
+  const premios = [['rebelde', 'Más rebelde'], ['borrego', 'Más borrego'], ['tardon', 'Más tardón'], ['adivino', 'El adivino']].filter(([k]) => r.premios[k]).map(([k, t2]) => t2 + ': ' + G[r.premios[k].id].nombre);
   if (premios.length) { parrafo(x, premios.join(' · '), W / 2, y, { font: `400 26px ${IN}`, align: 'center', color: C.t3, max: W - 2 * M, alto: 36, maxLineas: 2 }); y += 70; }
   if (r.desertores.length) {
     const nombres = enumerar(r.desertores.map((d) => G[d.id].nombre));

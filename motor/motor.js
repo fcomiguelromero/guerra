@@ -12,7 +12,7 @@ var MARGEN = 4000;           // holgura por la latencia de la red
 var DIA = 86400000;
 var DUELO_SEG = 60;
 var HORA_OFENSIVA = 9;     // con una ofensiva al día, la nueva se abre a las 9:00
-var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta'];
+var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta', 'termometro', 'apuestas'];
 var GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
 
 // ---------------------------------------------------------------- utilidades
@@ -73,6 +73,33 @@ function batallasVivas(doc) {
 }
 function puedeVotar(v, b) { return v.vota && b.a !== v.id && b.b !== v.id; }
 function batallasDe(doc, v) { return batallasVivas(doc).filter(function (b) { return puedeVotar(v, b); }); }
+// Batalla del día: una por ofensiva, la misma para todos, elegida al azar pero siempre la misma.
+function batallaDelDia(doc, of) {
+  var lista = (doc.batallas || []).filter(function (b) { return b.of === of; });
+  if (!lista.length) return null;
+  var semilla = String(doc.clave || doc.id) + ':' + of, h = 7;
+  for (var i = 0; i < semilla.length; i++) h = (h * 31 + semilla.charCodeAt(i)) % 1000003;
+  return lista[h % lista.length].id;
+}
+function esDelDia(doc, b) { return !!(doc.extras && doc.extras.apuestas) && batallaDelDia(doc, b.of) === b.id; }
+// Termómetro: ¿va el voto con la mayoría de esa batalla en este momento? Sin cifras.
+function termometro(doc, b, vid) {
+  var vs = doc.votos[b.id] || {}, vota = porId(votantes(doc)), mio = vs[vid] && vs[vid][0], con = 0, contra = 0;
+  if (!mio) return null;
+  Object.keys(vs).forEach(function (k) { if (!vota[k]) return; if (vs[k][0] === mio) con++; else contra++; });
+  return con + contra === 1 ? 'solo' : con > contra ? 'con' : con < contra ? 'contra' : 'empate';
+}
+// El adivino: quien más acierta en las apuestas de la batalla del día. A igualdad, quien menos falló.
+function adivinar(doc, rec) {
+  var gana = {};
+  rec.batallas.forEach(function (b) { gana[b.id] = b.va > b.vb ? b.a : b.vb > b.va ? b.b : null; });
+  var lista = votantes(doc).map(function (v) {
+    var mias = (doc.apuestas || {})[v.id] || {}, n = 0, de = 0;
+    Object.keys(mias).forEach(function (bid) { if (!(bid in gana)) return; de++; if (gana[bid] === mias[bid]) n++; });
+    return { id: v.id, n: n, de: de };
+  }).filter(function (f) { return f.de > 0; }).sort(function (x, y) { return y.n - x.n || x.de - y.de; });
+  return lista;
+}
 function votoDe(doc, b, vid) { var vs = doc.votos[b.id]; return vs && vs[vid] ? vs[vid] : null; }
 function faltan(doc, v) {
   return batallasDe(doc, v).filter(function (b) { return !votoDe(doc, b, v.id); }).length;
@@ -287,9 +314,11 @@ function calcular(doc) {
       .map(function (g) { return { id: g.id, faltaban: g.faltaban || 0 }; }),
     porra: puntuarPorras(doc, cl.tabla),
     premios: doc.extras.condecoraciones ? condecorar(doc, rec) : {},
+    apuestas: doc.extras.apuestas ? adivinar(doc, rec) : [],
     afinidad: afinidades(doc, rec),
     curiosidades: curiosidades(doc, rec)
   };
+  if (res.apuestas.length && res.apuestas[0].n > 0) res.premios.adivino = { id: res.apuestas[0].id, n: res.apuestas[0].n, de: res.apuestas[0].de };
   if (doc.duelo && doc.duelo.cerrado) aplicarDuelo(doc, res);
   return res;
 }
@@ -318,7 +347,7 @@ function pasosDesfile(doc) {
   r.desertores.forEach(function (d) { pasos.push({ t: 'consejo', id: d.id }); });
   var n = r.tabla.length, cabeza = r.empate ? r.empate.length : 1;
   var proclamas = doc.extras.proclamas ? (doc.estrellas || []).slice() : [];
-  var premios = ['rebelde', 'borrego', 'tardon'].filter(function (k) { return r.premios[k]; });
+  var premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter(function (k) { return r.premios[k]; });
   var bajos = [], podio = [];
   for (var pos = n; pos > (r.empate ? cabeza : 2); pos--) (pos > 3 ? bajos : podio).push(pos);
   if (!bajos.length) proclamas.forEach(function (p) { pasos.push({ t: 'proclama', ref: p }); });
@@ -367,6 +396,10 @@ function ordenanzasAuto(doc) {
   }
   if (x.porra) lista.push({ t: 'La porra', x: 'Cuando termines tus votos se abre la porra: ordena a todos los combatientes del primero al último. Se suman los puestos de diferencia con el parte final y gana la suma más baja.' +
     (doc.botin ? ' Botín: ' + doc.botin + '.' : '') });
+  if (x.termometro) lista.push({ t: 'El termómetro', x: 'Cuando pasan los 10 segundos de cortesía de un voto, verás si en esa batalla vas con la mayoría o contra ella. Sin cifras, y es sólo una foto de ese momento: puede cambiar a medida que vota el resto.' });
+  if (x.apuestas) lista.push({ t: doc.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', x: 'En cada ofensiva hay una batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ', la misma para todos. Si quieres, apuesta quién crees que la ganará: no tiene por qué coincidir con tu voto.' +
+    ' La apuesta se hace antes de votar esa batalla, y puedes cambiarla mientras no la votes. Si es uno de tus combates, también puedes apostar.' +
+    ' Quien más acierte se lleva el título de «El adivino'+ '»' + (x.desfile ? ', que se revela en el desfile' : '') + '. A igualdad de aciertos, gana quien menos falló. Nadie sabrá qué apostaste.' });
   if (x.espia) lista.push({ t: 'Tu espía', x: 'Cuando haya votado todo el mundo, puedes mandar al espía a descubrir quién ganó un combate. Sólo uno, y sin ver los puntos.' });
   if (x.desfile) lista.push({ t: 'El desfile de la victoria', x: 'El parte de guerra se revela en el desfile, del último puesto al primero' +
     (x.condecoraciones ? ', con condecoraciones al más rebelde, al más borrego y al más tardón.' : '.') +
@@ -395,6 +428,8 @@ function resumenJuego(doc) {
   if (x.porra) extras.push('una porra para adivinar la clasificación');
   if (x.espia) extras.push('un espía para descubrir un combate antes del desfile');
   if (x.radio) extras.push('Radio Macuto, para lanzar pullas anónimas');
+  if (x.apuestas) extras.push('una apuesta en la batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ' de cada ofensiva');
+  if (x.termometro) extras.push('un termómetro para saber si vas con la mayoría');
   if (extras.length) l.push('Y de propina: ' + enumerar(extras) + '.');
   return l;
 }
@@ -548,6 +583,30 @@ function crearMotor(env) {
     var ab = abiertas(doc, t);
     return doc.ritmo === 'diaria' && doc.fase === 'abierta' && ab < totalOfensivas(doc) ? primeraHora(doc) + ab * DIA : null;
   }
+  function textoDesfile(doc) {
+    var f = doc.desfileFecha ? doc.desfileFecha.charAt(0).toUpperCase() + doc.desfileFecha.slice(1) : '';
+    var info = doc.desfileInfo || '';
+    if (f && info) info = info.charAt(0).toLowerCase() + info.slice(1);
+    return [f, info].filter(Boolean).join(', ');
+  }
+  function fechaIcs(ts) { return new Date(ts).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''); }
+  function eventoDesfile(doc, enlace) {
+    var x = doc.extras || {};
+    return { titulo: (x.desfile ? 'Desfile de la victoria: ' : 'Parte de guerra: ') + doc.nombre, ini: doc.desfileTs, fin: doc.desfileTs + 2 * 3600000,
+      detalle: [doc.desfileInfo || '', '¡Sólo puede quedar uno! ' + enlace].filter(Boolean).join('\n') };
+  }
+  function icsDesfile(doc, enlace) {
+    var ev = eventoDesfile(doc, enlace), limpio = function (s) { return String(s).replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n'); };
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Guerra de la Normalidad//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+      'UID:' + doc.id + '-desfile@guerra-de-la-normalidad', 'DTSTAMP:' + fechaIcs(ahora()), 'DTSTART:' + fechaIcs(ev.ini), 'DTEND:' + fechaIcs(ev.fin),
+      'SUMMARY:' + limpio(ev.titulo), 'DESCRIPTION:' + limpio(ev.detalle),
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + limpio(ev.titulo), 'TRIGGER:-PT1H', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
+  }
+  function enlaceGoogleCalendar(doc, enlace) {
+    var ev = eventoDesfile(doc, enlace);
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(ev.titulo) +
+      '&dates=' + fechaIcs(ev.ini) + '/' + fechaIcs(ev.fin) + '&details=' + encodeURIComponent(ev.detalle);
+  }
   function pieFirma(doc) {
     return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
   }
@@ -581,11 +640,13 @@ function crearMotor(env) {
           para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': alto el fuego',
           html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la guerra ha terminado.</p>' +
             '<p style="margin:0 0 14px;color:#cdc8e6">Ya no quedan batallas por librar. ' + (x.desfile ? 'El parte de guerra se revelará en el desfile de la victoria.' : 'El alto mando publicará el parte de guerra.') + '</p>' +
-            (doc.desfileInfo ? '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">' + (x.desfile ? 'El desfile' : 'El parte') + '</p><p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + esc(doc.desfileInfo) + '</p>' : '') +
+            (textoDesfile(doc) ? '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">' + (x.desfile ? 'El desfile' : 'El parte') + '</p><p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + esc(textoDesfile(doc)) + '</p>' : '') +
             (x.espia ? '<p style="margin:0 0 14px;color:#cdc8e6">Mientras tanto, puedes mandar a tu espía a descubrir quién ganó un combate. Sólo uno.</p>' : '') +
+            (doc.desfileTs ? '<p style="margin:0 0 18px"><a href="' + esc(enlaceGoogleCalendar(doc, enlacePersonal(g))) + '" style="color:#5ef0d0;font-weight:bold;text-decoration:underline">Añadir a Google Calendar</a><br><span style="font-size:13px;color:#b3aecf">Para otro calendario, abre el archivo desfile.ics adjunto.</span></p>' : '') +
             botonCorreo(enlacePersonal(g), x.espia ? 'Mandar al espía' : 'Entrar') + pieFirma(doc),
             '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Alto el fuego' }),
-          texto: g.nombre + ', la guerra ha terminado. ' + (doc.desfileInfo || '') + ' ' + enlacePersonal(g)
+          texto: g.nombre + ', la guerra ha terminado. ' + textoDesfile(doc) + ' ' + enlacePersonal(g),
+          adjuntos: doc.desfileTs ? [{ nombre: 'desfile.ics', tipo: 'text/calendar', texto: icsDesfile(doc, enlacePersonal(g)) }] : []
         });
         enviados++;
       } catch (e) { g.correoError = String(e && e.message || e).slice(0, 200); }
@@ -695,7 +756,7 @@ function crearMotor(env) {
       id: doc.id, nombre: doc.nombre, campo: doc.campo || '', ritmo: doc.ritmo || 'golpe', pregunta: doc.pregunta, premio: doc.premio || '', botin: doc.botin || '',
       fase: doc.fase, modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras,
       ofensivas: bat.length ? Math.max.apply(null, bat.map(function (b) { return b.of; })) : 0,
-      ordenanzas: doc.ordenanzas || ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
+      ordenanzas: doc.ordenanzas || ordenanzasAuto(doc), desfileInfo: textoDesfile(doc), desfileTs: doc.desfileTs || null,
       declarada: doc.declarada || null, terminada: doc.terminada || null, publicada: doc.publicada || null,
       alto: nombreMando(doc), diana: doc.diana && doc.diana.activa ? doc.diana.cadaDias : 0
     };
@@ -704,7 +765,7 @@ function crearMotor(env) {
     var r = doc.resultado;
     return {
       tabla: r.tabla, batallas: r.batallas, desertores: r.desertores, indultados: r.indultados,
-      porra: r.porra, premios: r.premios, curiosidades: r.curiosidades, empate: r.empate, duelo: r.duelo || null,
+      porra: r.porra, premios: r.premios, curiosidades: r.curiosidades, empate: r.empate, duelo: r.duelo || null, apuestas: r.apuestas || [],
       proclamas: (doc.estrellas || []).map(function (ref) { return proclamaDe(doc, ref); }).filter(Boolean)
     };
   }
@@ -792,7 +853,11 @@ function crearMotor(env) {
       res.progreso = pr;
       res.batallas = batallasVivas(doc).map(function (b) {
         var fila = { id: b.id, of: b.of, a: b.a, b: b.b };
-        if (yo && puedeVotar(yo, b)) { var v = votoDe(doc, b, yo.id); fila.mia = true; fila.voto = v ? v[0] : null; fila.ts = v ? v[1] : null; }
+        if (yo && puedeVotar(yo, b)) {
+          var v = votoDe(doc, b, yo.id); fila.mia = true; fila.voto = v ? v[0] : null; fila.ts = v ? v[1] : null;
+          if (v && doc.extras.termometro && doc.fase === 'abierta' && t - v[1] > GRACIA + MARGEN) fila.termo = termometro(doc, b, yo.id);
+        }
+        if (esDelDia(doc, b)) { fila.delDia = true; if (yo && doc.apuestas && doc.apuestas[yo.id] && doc.apuestas[yo.id][b.id]) fila.apuesta = doc.apuestas[yo.id][b.id]; }
         return fila;
       });
       if (doc.extras.porra) {
@@ -873,7 +938,7 @@ function crearMotor(env) {
         id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe',
         pitch: doc.pitch || '', presenta: doc.presenta ? doc.id + '.' + doc.presenta : null,
         modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras, diana: doc.diana, correo: doc.correo,
-        ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '',
+        ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '', desfileTs: doc.desfileTs || null, desfileFecha: doc.desfileFecha || '',
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
         gente: doc.gente.map(function (g) {
           return { id: g.id, nombre: g.nombre, correo: g.correo || '', frase: g.frase || '', foto: g.foto || null,
@@ -915,7 +980,7 @@ function crearMotor(env) {
     return {
       nombre: doc.nombre, campo: doc.campo || '', pregunta: doc.pregunta, premio: doc.premio || '', botin: doc.botin || '',
       modo: doc.modo, ritmo: doc.ritmo || 'golpe', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
-      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio },
+      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas },
       firma: nombreMando(doc), pitch: doc.pitch || '', enMarcha: ['borrador', 'llamamiento'].indexOf(doc.fase) < 0
     };
   });
@@ -1020,6 +1085,7 @@ function crearMotor(env) {
     if (p.campo != null) doc.campo = txt(p.campo, 60);
     if (p.botin != null) doc.botin = txt(p.botin, 160);
     if (p.desfileInfo != null) doc.desfileInfo = txt(p.desfileInfo, 200);
+    if (p.desfileTs !== undefined) { doc.desfileTs = Number(p.desfileTs) || null; doc.desfileFecha = doc.desfileTs ? txt(p.desfileFecha, 80) : ''; }
     if (p.ordenanzas !== undefined) {
       doc.ordenanzas = Array.isArray(p.ordenanzas) && p.ordenanzas.length
         ? p.ordenanzas.slice(0, 20).map(function (o) { return { t: txt(o.t, 80), x: parrafo(o.x, 1200), puntos: !!o.puntos }; }) : null;
@@ -1332,6 +1398,22 @@ function crearMotor(env) {
     if (doc.extras.parte && !doc.parte) { var pr = progreso(doc); if (pr.emitidos * 2 >= pr.total) doc.parte = t; }
     anotar(doc, yo.nombre, 'voto', 'batalla ' + b.id);
     return { ts: t, faltan: f, gracia: GRACIA };
+  });
+
+  definir('apostar', { escribe: true, quien: 'token' }, function (ctx, p) {
+    var doc = ctx.doc, yo = ctx.yo;
+    exigir(doc.extras.apuestas, 'apuesta', 'En esta guerra no hay apuestas.');
+    exigir(doc.fase === 'abierta', 'fase', 'Las apuestas ya están cerradas.');
+    exigir(yo.vota && yo.estado === 'activo', 'voto', 'No votas en esta guerra.');
+    var b = batallasVivas(doc).filter(function (x) { return x.id === Number(p.batalla); })[0];
+    exigir(b && esDelDia(doc, b), 'noexiste', 'Sólo se apuesta en la batalla del día.');
+    exigir(b.of <= abiertas(doc, ctx.ahora), 'cerrada', 'Esa ofensiva aún no se ha abierto.');
+    exigir(!votoDe(doc, b, yo.id), 'votada', 'Ya has votado esa batalla: la apuesta se hace antes de votarla.');
+    exigir(p.elegido === b.a || p.elegido === b.b, 'apuesta', 'Hay que apostar por uno de los dos.');
+    doc.apuestas = doc.apuestas || {};
+    (doc.apuestas[yo.id] = doc.apuestas[yo.id] || {})[b.id] = p.elegido;
+    anotar(doc, yo.nombre, 'apuesta', 'batalla ' + b.id);
+    return { batalla: b.id, elegido: p.elegido };
   });
 
   definir('retirar', { escribe: true, quien: 'token' }, function (ctx, p) {
@@ -1717,7 +1799,11 @@ function gas(cfg) {
       c.waitLock(25000);
       try { return fn(); } finally { c.releaseLock(); }
     },
-    correo: function (m) { MailApp.sendEmail({ to: m.para, subject: m.asunto, htmlBody: m.html, body: m.texto, name: m.nombre }); },
+    correo: function (m) {
+      var o = { to: m.para, subject: m.asunto, htmlBody: m.html, body: m.texto, name: m.nombre };
+      if (m.adjuntos && m.adjuntos.length) o.attachments = m.adjuntos.map(function (a) { return Utilities.newBlob(a.texto, a.tipo, a.nombre); });
+      MailApp.sendEmail(o);
+    },
     ajuste: function (k) { return props.getProperty(k); }
   };
   var motor = crearMotor(env);

@@ -203,6 +203,95 @@ prueba('cara a cara: suma las batallas de dos combatientes en todas las edicione
   assert.deepStrictEqual(w.do('cronicas', { token: g2.tok['María'] }).series[0].caras, s.caras);
 });
 
+prueba('termómetro: sale al cerrarse la retirada y dice si vas con la mayoría, sin cifras', () => {
+  const w = mundo(29);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5) });
+  const g = declarar(w, id);
+  const b = w.do('estado', { token: g.tok['María'] }).batallas.find((x) => x.mia && x.a !== g.id['Andrés'] && x.b !== g.id['Andrés']);
+  w.do('votar', { token: g.tok['María'], batalla: b.id, elegido: b.a });
+  const fila = () => w.do('estado', { token: g.tok['María'] }).batallas.find((x) => x.id === b.id);
+  assert.strictEqual(fila().termo, undefined, 'durante la retirada no hay termómetro');
+  w.pasa(15000);
+  assert.strictEqual(fila().termo, 'solo');
+  w.do('votar', { token: g.tok['Andrés'], batalla: b.id, elegido: b.b });
+  assert.strictEqual(fila().termo, 'empate');
+  const otros = NOMBRES.slice(2, 5).filter((n) => g.id[n] !== b.a && g.id[n] !== b.b);
+  w.do('votar', { token: g.tok[otros[0]], batalla: b.id, elegido: b.b });
+  assert.strictEqual(fila().termo, 'contra');
+  assert.ok(!JSON.stringify(fila()).match(/"va"|"vb"/), 'sin cifras');
+  const andres = w.do('estado', { token: g.tok['Andrés'] }).batallas.find((x) => x.id === b.id);
+  assert.strictEqual(andres.termo, undefined, 'el de Andrés aún está en su retirada');
+  w.pasa(15000);
+  assert.strictEqual(w.do('estado', { token: g.tok['Andrés'] }).batallas.find((x) => x.id === b.id).termo, 'con');
+});
+
+prueba('batalla del día: apuesta antes de votar, privada, y el adivino sale en el desfile', () => {
+  const w = mundo(31);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { ritmo: 'diaria' } });
+  const g = declarar(w, id);
+  let est = w.do('estado', { token: g.tok['María'] });
+  const delDia = est.batallas.filter((b) => b.delDia);
+  assert.strictEqual(delDia.length, est.guerra.ofensivas, 'una por ofensiva');
+  assert.ok(est.guerra.ordenanzas.some((r) => r.t === 'La batalla del día') && est.guerra.ordenanzas.some((r) => r.t === 'El termómetro'));
+  const hoy = delDia.find((b) => b.of === 1), manana = delDia.find((b) => b.of === 2);
+  w.falla('cerrada', () => w.do('apostar', { token: g.tok['María'], batalla: manana.id, elegido: manana.a }));
+  const otra = est.batallas.find((b) => b.of === 1 && !b.delDia);
+  w.falla('noexiste', () => w.do('apostar', { token: g.tok['María'], batalla: otra.id, elegido: otra.a }));
+  // Todos apuestan por el mismo de hoy, también los que combaten en ella; María cambia de idea antes de votar.
+  NOMBRES.slice(0, 5).forEach((n) => w.do('apostar', { token: g.tok[n], batalla: hoy.id, elegido: hoy.b }));
+  w.do('apostar', { token: g.tok['María'], batalla: hoy.id, elegido: hoy.a });
+  est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.batallas.find((b) => b.id === hoy.id).apuesta, hoy.a);
+  assert.strictEqual(w.do('estado', { token: g.tok['Andrés'] }).batallas.find((b) => b.id === hoy.id).apuesta, hoy.b, 'cada uno ve sólo la suya');
+  assert.ok(!JSON.stringify(w.do('estado', { token: g.tok['Andrés'] })).includes(g.id['María'] + '":{'), 'nadie ve las apuestas de los demás');
+  const votante = NOMBRES.slice(0, 5).find((n) => g.id[n] !== hoy.a && g.id[n] !== hoy.b && n !== 'María');
+  w.do('votar', { token: g.tok[votante], batalla: hoy.id, elegido: hoy.b });
+  w.falla('votada', () => w.do('apostar', { token: g.tok[votante], batalla: hoy.id, elegido: hoy.a }));
+  // Se juega la guerra entera: todos votan siempre al de la izquierda del reparto.
+  for (let d = 0; d < 6; d++) { w.pasa(24 * 3600000); w.motor.reloj(); }
+  NOMBRES.slice(0, 5).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  w.do('estado', { token: g.tok['María'] });
+  const inf = w.mando('informe', { guerra: id });
+  const r = inf.resultado, gana = r.batallas.find((b) => b.id === hoy.id);
+  const ganador = gana.va > gana.vb ? gana.a : gana.vb > gana.va ? gana.b : null;
+  assert.ok(r.apuestas.length === 5 && r.apuestas.every((a) => a.de === 1));
+  assert.strictEqual(r.apuestas.find((a) => a.id === g.id['María']).n, ganador === hoy.a ? 1 : 0);
+  assert.ok(ganador, "la batalla del día tiene ganador");
+  if (ganador) {
+    assert.ok(r.premios.adivino && r.premios.adivino.n === 1);
+    w.mando('desfile', { guerra: id, orden: 'empezar' });
+    const pasos = w.doc(id).desfile.pasos.map((p) => p.t + (p.cual || ''));
+    assert.ok(pasos.includes('condecoracionadivino'), 'el adivino se revela en el desfile');
+  }
+});
+
+prueba('calendario: fecha del desfile en la vista y archivo .ics en el correo de alto el fuego', () => {
+  const w = mundo(37);
+  const ts = Date.UTC(2026, 10, 21, 20, 0, 0);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { desfileInfo: 'En el bar de siempre', desfileTs: ts, desfileFecha: 'sábado, 21 de noviembre a las 21:00' } });
+  assert.strictEqual(w.mando('plan', { guerra: id }).plan.desfileTs, ts);
+  const g = declarar(w, id);
+  const est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.desfileTs, ts);
+  assert.strictEqual(est.guerra.desfileInfo, 'Sábado, 21 de noviembre a las 21:00, en el bar de siempre');
+  NOMBRES.slice(0, 4).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  const n0 = w.correos.length;
+  w.motor.reloj();
+  const fin = w.correos.slice(n0).filter((c) => /alto el fuego/.test(c.asunto));
+  assert.strictEqual(fin.length, 4);
+  const ics = fin[0].adjuntos[0];
+  assert.strictEqual(ics.nombre, 'desfile.ics');
+  assert.ok(fin[0].html.includes('Sábado, 21 de noviembre a las 21:00, en el bar de siempre'), 'fecha y lugar en el correo');
+  assert.ok(ics.texto.includes('DTSTART:20261121T200000Z') && ics.texto.includes('DTEND:20261121T220000Z') && ics.texto.includes('SUMMARY:Desfile de la victoria: '));
+  assert.ok(ics.texto.includes('#t=') && /\r\n/.test(ics.texto), 'lleva su enlace personal y saltos de línea de calendario');
+  assert.ok(fin[0].html.includes('calendar.google.com/calendar/render?action=TEMPLATE') && fin[0].html.includes('20261121T200000Z%2F') === false);
+  // Sin fecha, ni adjunto ni enlace.
+  w.mando('guardarPlan', { guerra: id, plan: { desfileTs: null } });
+  assert.strictEqual(w.mando('plan', { guerra: id }).plan.desfileTs, null);
+});
+
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
   const w = mundo(17);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });

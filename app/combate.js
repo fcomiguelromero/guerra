@@ -1,5 +1,6 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
 import { botonCartel } from './carteles.js';
+import { botonesCalendario } from './calendario.js';
 import { S, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
 
@@ -7,6 +8,49 @@ const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
 const yo = () => S.est.yo || {};
 const mias = () => S.est.batallas.filter((b) => b.mia);
+// ---- termómetro y batalla del día
+const TERMO = { con: ['teal', 'Vas con la mayoría'], contra: ['rosa', 'Vas contra la mayoría'], empate: ['', 'De momento, empate'], solo: ['', 'Eres el primero en votarla'] };
+function lineaTermo(b) {
+  if (!b.termo) return S.est.guerra.extras.termometro && b.voto ? '<span class="peq t2">El termómetro sale cuando pasen los 10 segundos de cortesía.</span>' : '';
+  const [color, texto] = TERMO[b.termo];
+  return `<span class="fila termo ${color}">${ico('termo', 16)}<strong>Termómetro:</strong> ${texto}.</span>`;
+}
+function resumenTermo() {
+  const cuenta = (t) => mias().filter((b) => b.termo === t).length;
+  const con = cuenta('con'), contra = cuenta('contra'), empate = cuenta('empate'), solo = cuenta('solo');
+  if (!S.est.guerra.extras.termometro || con + contra + empate + solo === 0) return '';
+  const partes = [con ? `con la mayoría en <strong class="teal">${con}</strong>` : '', contra ? `contra ella en <strong class="rosa">${contra}</strong>` : '',
+    empate ? `empatado en <strong>${empate}</strong>` : ''].filter(Boolean);
+  return `<p class="med termo-resumen">${ico('termo', 16)} <strong>Termómetro:</strong> ${partes.length ? 'vas ' + enumerar(partes) + '.' : ''}${solo ? ` En ${plural(solo, 'batalla', 'batallas')} aún no ha votado nadie más.` : ''}</p>`;
+}
+const nombreDelDia = () => (S.est.guerra.ritmo === 'diaria' ? 'Batalla del día' : 'Batalla estrella');
+function cajaApuesta(b, nota = '') {
+  const G = gente(), a = G[b.a], c = G[b.b];
+  if (b.voto) return b.apuesta ? `<span class="peq oro">${nombreDelDia()}: apostaste por ${esc(nombreDe(G[b.apuesta]))}.</span>` : '';
+  const boton = (id, lado) => `<button class="btn chico ${b.apuesta === id ? 'oro' : 'linea'} crece" aria-pressed="${b.apuesta === id}" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[id]))}</button>`;
+  return `<div class="caja oro" style="gap:8px;padding:10px 12px"><div class="fila entre"><strong class="bc oro" style="font-size:18px;text-transform:uppercase">${nombreDelDia()}</strong><span class="peq t2">Apuesta opcional</span></div>
+    <span class="med t3">${nota}${b.apuesta ? 'Puedes cambiarla hasta que votes esta batalla.' : '¿Quién crees que ganará? No tiene por qué coincidir con tu voto.'}</span>
+    <div class="fila" style="gap:8px">${boton(a.id, 'a')}${boton(c.id, 'b')}</div></div>`;
+}
+// Batallas del día en las que combato yo: no las voto, pero puedo apostar.
+function apuestasPropias() {
+  const e = S.est, ab = e.guerra.abiertas || e.guerra.ofensivas, id = yo().id;
+  if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return '';
+  return e.batallas.filter((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id)).map((b) => {
+    const G = gente(), rival = G[b.a === id ? b.b : b.a];
+    return cajaApuesta(b, `En esta combates tú, contra ${esc(rival.nombre)}. `);
+  }).join('');
+}
+function avisoTermo(id) {
+  setTimeout(async () => {
+    try {
+      await refrescar(true);
+      const b = S.est.batallas.find((x) => x.id === id);
+      if (b && b.termo) { const G = gente(); aviso(`Termómetro de ${G[b.a].nombre} contra ${G[b.b].nombre}: ${TERMO[b.termo][1].toLowerCase()}.`, true); }
+      pintar();
+    } catch (e) { /* ya saldrá en el siguiente refresco */ }
+  }, GRACIA + 5500);
+}
 // Con una ofensiva al día, sólo se pueden votar las batallas de las ofensivas ya abiertas.
 const votables = () => { const ab = S.est.guerra.abiertas || S.est.guerra.ofensivas; return mias().filter((b) => b.of <= ab); };
 function cuando(ts) {
@@ -106,9 +150,9 @@ function pantallaAbierta() {
           <div class="enorme teal" style="font-size:40px">¡Cumplido por hoy!</div>
           <p class="t3">Has librado todas las batallas abiertas: llevas ${hechas} de ${m.length}.</p>
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">La ofensiva ${ab + 1} de ${e.guerra.ofensivas} se abre ${e.guerra.proxima ? cuando(e.guerra.proxima) : 'mañana'}</p>
-          <p class="med t2">Te avisaremos por correo.</p>
+          <p class="med t2">Te avisaremos por correo.</p>${resumenTermo()}
           <button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
-        </div>${barraRetirada()}
+        </div>${apuestasPropias()}${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (hechas === m.length && !S.ui.repaso) {
@@ -119,12 +163,12 @@ function pantallaAbierta() {
           <div class="enorme teal" style="font-size:40px">¡Misión cumplida!</div>
           <p class="t3">Has librado tus ${m.length} batallas. ${faltan.length ? 'La guerra sigue en pausa hasta que voten los rezagados.' : 'Ya ha votado todo el mundo: alto el fuego inminente.'}</p>
           ${e.porra ? `<button class="btn ancho" data-a="ir" data-v="/porra">${e.porra.mia ? 'Retocar mi porra' : 'Hacer la porra'}</button>` : ''}
-          <button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
-        </div>${barraRetirada()}
+          ${resumenTermo()}<button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
+        </div>${apuestasPropias()}${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   const i = posicion(), b = v[i], a = G[b.a], c = G[b.b];
-  const votada = b.voto ? `<div class="estado-voto" style="justify-content:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span></div>` : `
+  const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}${b.delDia ? cajaApuesta(b) : ''}</div>` : `${b.delDia ? cajaApuesta(b) : ''}
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}
       <div class="fila" style="gap:10px"><button class="btn crece" data-a="votar" data-v="a">¡Por ${esc(a.nombre)}!</button><button class="btn rosa crece" data-a="votar" data-v="b">¡Por ${esc(c.nombre)}!</button></div>`;
   return marco(`${tickerRadio()}
@@ -132,7 +176,7 @@ function pantallaAbierta() {
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}
     <main class="col" style="flex:1;justify-content:center;gap:10px">
       <div class="duelo">${carta(a, { clase: b.voto === a.id ? '' : b.voto ? 'gris' : '' })}${carta(c, { clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' : '') })}<div class="vs" aria-hidden="true">VS</div></div>
-      ${votada}${barraRetirada()}
+      ${votada}${barraRetirada()}${apuestasPropias()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
 }
@@ -156,7 +200,7 @@ accion('votar', (lado) => {
   S.ui.cursor = sig < 0 ? null : sig;
   pintar(); cuentaAtras();
   encolar(async () => {
-    try { await llamar('votar', { batalla: b.id, elegido, proclama }, 2); } catch (err) {
+    try { await llamar('votar', { batalla: b.id, elegido, proclama }, 2); if (S.est.guerra.extras.termometro) avisoTermo(b.id); } catch (err) {
       b.voto = null;
       if (S.ui.retirada && S.ui.retirada.batalla === b.id) S.ui.retirada = null;
       S.ui.cursor = votables().indexOf(b);
@@ -164,6 +208,17 @@ accion('votar', (lado) => {
       if (err.codigo !== 'red') await refrescar(true).catch(() => {});
       pintar();
     }
+  });
+});
+accion('apostar', (v) => {
+  const [id, lado] = v.split(':'), b = S.est.batallas.find((x) => x.id === Number(id));
+  if (!b || b.voto) return;
+  const antes = b.apuesta, elegido = b[lado];
+  if (antes === elegido) return;
+  b.apuesta = elegido; pintar();
+  encolar(async () => {
+    try { await llamar('apostar', { batalla: b.id, elegido }, 2); }
+    catch (err) { b.apuesta = antes; aviso(err.codigo === 'red' ? 'Tu apuesta no ha llegado al cuartel general. Vuelve a intentarlo.' : err.message); pintar(); }
   });
 });
 accion('retirar', () => {
@@ -211,7 +266,7 @@ function pantallaTerminada() {
     <p class="t3">Ya ha votado todo el mundo. ${puedeEspiar ? 'Antes del desfile puedes mandar al espía a descubrir quién ganó un combate: sólo uno, y sin ver los puntos.' : e.guerra.extras.desfile ? 'El parte de guerra se revelará en el desfile.' : 'El alto mando publicará el parte de guerra.'}</p>
     ${porra}${espia}
     <section class="caja"><h2 class="h2">${e.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med teal">Todos han votado</p>
-      <p class="med t3">${esc(e.guerra.desfileInfo || (e.guerra.extras.desfile ? 'El alto mando anunciará el día y la hora.' : 'El alto mando lo publicará en breve.'))}</p></section>
+      <p class="med t3">${esc(e.guerra.desfileInfo || (e.guerra.extras.desfile ? 'El alto mando anunciará el día y la hora.' : 'El alto mando lo publicará en breve.'))}</p>${botonesCalendario(e.guerra)}</section>
     ${bajas()}`, { lateral: lateral() });
 }
 accion('espiar', async () => {
@@ -227,11 +282,12 @@ accion('espiar', async () => {
 
 const textoPuntos = (f) => `<span class="teal">${plural(f.pts, 'punto', 'puntos')}</span>`;
 const textoBatallas = (f) => `${f.g} de ${f.g + f.e + f.p} batallas`;
-const TITULOS = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón' };
-const EXPLICA = { rebelde: 'Quien más veces votó contra la mayoría', borrego: 'Quien más veces votó lo mismo que la mayoría', tardon: 'Quien más tardó en terminar de votar' };
+const TITULOS = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
+const EXPLICA = { rebelde: 'Quien más veces votó contra la mayoría', borrego: 'Quien más veces votó lo mismo que la mayoría', tardon: 'Quien más tardó en terminar de votar', adivino: 'Quien más acertó en las apuestas' };
 function detallePremio(p) {
   if (p.cual === 'rebelde') return `Contra la mayoría en ${p.n} de ${p.de}`;
   if (p.cual === 'borrego') return `Con la mayoría en ${p.n} de ${p.de}`;
+  if (p.cual === 'adivino') return `Acertó ${p.n} de ${plural(p.de, 'apuesta', 'apuestas')}`;
   return p.motivo === 'indulto' ? `Indulto con ${plural(p.n, 'voto', 'votos')} sin emitir` : `La última papeleta, a los ${duracion(p.n).replace(/^1 /, 'un ')}`;
 }
 function listaPremios(lista) {
@@ -374,7 +430,7 @@ function pantallaPublicada() {
   if (duelo && e.duelo.cierra) setTimeout(latidoDuelo, 0);
   const mia = e.mia && e.mia.afinidad;
   const gana = r.porra.gana.map((id) => nombreDe(G[id]));
-  const premios = ['rebelde', 'borrego', 'tardon'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
+  const premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter((k) => r.premios[k]).map((k) => Object.assign({ cual: k }, r.premios[k]));
   return marco(`${cabecera(duelo ? 'Duelo final' : 'Parte de guerra')}
     ${duelo ? `<p class="med t3">El resto del parte de guerra ya es oficial: sólo falta decidir quién se lleva la guerra.</p>${bloqueDuelo(e.duelo, false)}`
       : `<div class="cols-pc">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}
@@ -470,6 +526,7 @@ registrar('/ordenanzas', () => {
   const o = S.est.guerra.ordenanzas;
   return marco(`${cabecera('Ordenanzas')}
     <p class="t3">De todos es de sobra conocido el sistema, pero lo repasaremos para los nuevos reclutas.</p>
+    ${S.est.guerra.desfileTs ? `<section class="caja"><h2 class="h2">${S.est.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med t3">${esc(S.est.guerra.desfileInfo)}</p>${botonesCalendario(S.est.guerra)}</section>` : ''}
     <ol class="col g12">${o.map((r, k) => `<li class="caja"><div class="fila" style="gap:10px"><b class="bc teal" style="font-size:26px;font-weight:800">${k + 1}</b><h2 class="h2">${esc(r.t)}</h2></div>
       ${r.puntos ? '<div class="puntos310"><div><b>3</b>Ganar</div><div><b>1</b>Empatar</div><div><b>0</b>Perder</div></div>' : ''}<p class="med t3" style="white-space:pre-line">${esc(r.x)}</p></li>`).join('')}</ol>
     <p class="bc centro" style="font-weight:800;font-size:22px;color:#fff">¡Sólo puede quedar uno!</p>`, { fondo: 'a' });
