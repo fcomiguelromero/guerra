@@ -77,7 +77,8 @@ registrar('/presentacion', () => {
       <span class="chapa">Se avecina una guerra</span>
       ${d.campo ? `<div class="sobre">${esc(d.campo)}</div>` : ''}
       <h1 class="enorme">${esc(nombre)}</h1>
-      ${d.pregunta ? `<p class="bc oro" style="font-weight:800;font-size:34px;line-height:1.05">${esc(d.pregunta)}</p>` : ''}
+      ${(d.preguntas || [d.pregunta]).filter(Boolean).map((q) => `<p class="bc oro" style="font-weight:800;font-size:${(d.preguntas || []).length > 1 ? 26 : 34}px;line-height:1.05">${esc(q)}</p>`).join('')}
+      ${(d.preguntas || []).length > 1 ? `<p class="med t2">Cada ofensiva, una pregunta. Y cada pregunta, su campeón.</p>` : ''}
       <p class="t3">${cosas ? 'Un torneo para resolverlo de una vez por todas, a votos y desde el móvil.' : 'Un torneo de todos contra todos para resolverlo de una vez, a votos y desde el móvil. Es un juego: aquí se viene a reír.'}</p>
     </header>
     ${demo}

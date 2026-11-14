@@ -1,7 +1,7 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile } from './combate.js';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
 import { botonCartel } from './carteles.js';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
@@ -202,6 +202,8 @@ registrar('/plan', () => {
     <section class="caja"><h2 class="h2">La guerra</h2>
       <label class="campo"><span>Nombre</span><input id="p-nombre" maxlength="80" data-m="plan.nombre" value="${esc(p.nombre)}" placeholder="Guerra de la Normalidad" ${previa ? '' : 'disabled'}></label>
       <label class="campo"><span>La pregunta</span><input id="p-pregunta" maxlength="160" data-m="plan.pregunta" value="${esc(p.pregunta)}" placeholder="¿Quién es más normal?" ${previa ? '' : 'disabled'}></label>
+      <label class="campo"><span>Otras preguntas (opcional, una por línea, hasta 4)</span><textarea id="p-otras" rows="3" maxlength="700" data-m="plan.otrasTexto" placeholder="¿Quién sobreviviría a un apocalipsis zombi?" ${previa ? '' : 'disabled'}>${esc(p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n'))}</textarea></label>
+      <p class="peq t2" style="margin-top:-6px">Con varias preguntas, cada ofensiva usa una, por turnos${nc >= 3 ? `: con ${nc} combatientes hay ${nc % 2 ? nc : nc - 1} ofensivas` : ''}. Cada pregunta tiene su campeón, que se revela en el desfile, y el campeón de la guerra suma todas las batallas.</p>
       <label class="campo"><span>Campo de batalla</span><input id="p-campo" maxlength="60" data-m="plan.campo" value="${esc(p.campo || '')}" placeholder="Familia, compañeros de trabajo, amigos…"></label>
       <p class="peq t2" style="margin-top:-6px">El grupo que combate. Distingue guerras con el mismo nombre: cada campo de batalla lleva su propio escalafón.</p>
       <label class="campo"><span>Premio</span><input id="p-premio" maxlength="160" data-m="plan.premio" value="${esc(p.premio)}" placeholder="Una cena pagada por los demás"></label>
@@ -292,7 +294,8 @@ accion('foto', async (i, el) => {
 async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
-    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '', desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, puntuacion: p.puntuacion,
+    nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '',
+    otras: (p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n')).split('\n').map((q) => q.trim()).filter(Boolean).slice(0, 4), desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,
@@ -497,6 +500,7 @@ registrar('/informe', () => {
       ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
       ${(r.apuestas || []).length ? `<section class="caja"><h2 class="h2">Apuestas</h2><p class="peq t2">Aciertos en la batalla ${inf.guerra.ritmo === 'diaria' ? 'del día' : 'estrella'} de cada ofensiva. Sólo los ves tú.</p>
         ${r.apuestas.map((a) => `<div class="fila entre"><span>${nom(a.id)}</span><span class="med"><strong class="teal">${a.n}</strong> de ${a.de}</span></div>`).join('')}</section>` : ''}
+      ${campeonesPregunta(r, G)}
       ${curios.length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${curios.map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
       ${r.desertores.length || r.indultados.length ? `<section class="caja"><h2 class="h2">Bajas</h2>
         ${r.desertores.map((x) => `<p class="med"><strong>${nom(x.id)}:</strong> expulsado con deshonor, con ${plural(x.faltaban, 'batalla', 'batallas')} sin votar. ${x.sentencia ? '<em>«' + esc(x.sentencia) + '»</em>' : ''}</p>`).join('')}
@@ -574,7 +578,7 @@ function sonar(siguiente) {
   try {
     if (siguiente.t === 'campeon') corneta(redoble(1.6));
     else if (siguiente.t === 'finalistas') redoble(0.9);
-    else if (siguiente.t === 'puesto' || siguiente.t === 'condecoracion') redoble();
+    else if (siguiente.t === 'puesto' || siguiente.t === 'condecoracion' || siguiente.t === 'pregunta') redoble();
   } catch (e) { /* sin sonido no se para el desfile */ }
 }
 accion('probarRedoble', () => { try { redoble(); } catch (e) { aviso('Este móvil no deja sonar al navegador.'); } });
@@ -585,6 +589,7 @@ function resumenPaso(a, G) {
   if (a.t === 'puesto') return [ordinal(a.pos) + ' puesto', G[a.fila.id].nombre, plural(a.fila.pts, 'punto', 'puntos')];
   if (a.t === 'proclama') return ['Proclama anónima', a.n + ' de ' + a.de, ''];
   if (a.t === 'condecoracion') return [TITULOS[a.cual], G[a.id].nombre, ''];
+  if (a.t === 'pregunta') return ['Pregunta ' + a.k + ' de ' + a.de, G[a.id].nombre, plural(a.pts, 'punto', 'puntos')];
   if (a.t === 'duelo') return ['Duelo final', enumerar(a.duelo.entre.map((id) => G[id].nombre)), `${a.duelo.votaron} de ${a.duelo.deben} votos`];
   if (a.t === 'finalistas') return ['La gran final', a.entre.map((id) => G[id].nombre).join(' o '), ''];
   return ['Campeón', G[a.fila.id].nombre, plural(a.fila.pts, 'punto', 'puntos')];

@@ -129,6 +129,8 @@ export function duracion(ms) {
   if (h < 36) return plural(Math.round(h), 'hora', 'horas');
   return plural(Math.round(h / 24), 'día', 'días');
 }
+// «tras un minuto», «tras una hora», «tras 3 días».
+export const tras = (ms) => 'tras ' + duracion(ms).replace(/^1 (minuto|hora|día)$/, (m, u) => (u === 'hora' ? 'una ' : 'un ') + u);
 export function poner(obj, ruta, valor) {
   const partes = ruta.split('.');
   let o = obj;

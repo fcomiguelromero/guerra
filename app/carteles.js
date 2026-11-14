@@ -367,3 +367,5 @@ export function botonCartel(tipo, texto, clase = 'btn linea medio') {
   return `<button class="${clase}" data-a="cartel" data-v="${tipo}">${texto}</button>`;
 }
 export { cartelGuerra, cartelParte, cartelPodio, diploma, fuentes };
+// Herramientas de dibujo, para el álbum de la guerra.
+export const dibujo = { W, M, C, BC, IN, may, imagen, fuentes, caja, holo, texto, lineas, parrafo, retrato, cartita, sello };

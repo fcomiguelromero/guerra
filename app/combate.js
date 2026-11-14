@@ -1,7 +1,8 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
 import { botonCartel } from './carteles.js';
 import { botonesCalendario } from './calendario.js';
-import { S, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
+import { botonAlbum } from './album.js';
+import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
 
 const GRACIA = 10000;
@@ -23,12 +24,15 @@ function resumenTermo() {
     empate ? `empatado en <strong>${empate}</strong>` : ''].filter(Boolean);
   return `<p class="med termo-resumen">${ico('termo', 16)} <strong>Termómetro:</strong> ${partes.length ? 'vas ' + enumerar(partes) + '.' : ''}${solo ? ` En ${plural(solo, 'batalla', 'batallas')} aún no ha votado nadie más.` : ''}</p>`;
 }
+// Con varias preguntas, cada ofensiva tiene la suya, por turnos.
+const preguntaDe = (of) => { const l = S.est.guerra.preguntas || [S.est.guerra.pregunta]; return l.length ? l[(of - 1) % l.length] : S.est.guerra.pregunta; };
 const nombreDelDia = () => (S.est.guerra.ritmo === 'diaria' ? 'Batalla del día' : 'Batalla estrella');
 function cajaApuesta(b, nota = '') {
   const G = gente(), a = G[b.a], c = G[b.b];
   if (b.voto) return b.apuesta ? `<span class="peq oro">${nombreDelDia()}: apostaste por ${esc(nombreDe(G[b.apuesta]))}.</span>` : '';
   const boton = (id, lado) => `<button class="btn chico ${b.apuesta === id ? 'oro' : 'linea'} crece" aria-pressed="${b.apuesta === id}" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[id]))}</button>`;
   return `<div class="caja oro" style="gap:8px;padding:10px 12px"><div class="fila entre"><strong class="bc oro" style="font-size:18px;text-transform:uppercase">${nombreDelDia()}</strong><span class="peq t2">Apuesta opcional</span></div>
+    ${b.motivo ? `<span class="med" style="color:#fff">${esc(b.motivo)}</span>` : ''}
     <span class="med t3">${nota}${b.apuesta ? 'Puedes cambiarla hasta que votes esta batalla.' : '¿Quién crees que ganará? No tiene por qué coincidir con tu voto.'}</span>
     <div class="fila" style="gap:8px">${boton(a.id, 'a')}${boton(c.id, 'b')}</div></div>`;
 }
@@ -172,7 +176,7 @@ function pantallaAbierta() {
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}
       <div class="fila" style="gap:10px"><button class="btn crece" data-a="votar" data-v="a">¡Por ${esc(a.nombre)}!</button><button class="btn rosa crece" data-a="votar" data-v="b">¡Por ${esc(c.nombre)}!</button></div>`;
   return marco(`${tickerRadio()}
-    <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(e.guerra.pregunta)}</h1></header>
+    <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}
     <main class="col" style="flex:1;justify-content:center;gap:10px">
       <div class="duelo">${carta(a, { clase: b.voto === a.id ? '' : b.voto ? 'gris' : '' })}${carta(c, { clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' : '') })}<div class="vs" aria-hidden="true">VS</div></div>
@@ -288,8 +292,15 @@ function detallePremio(p) {
   if (p.cual === 'rebelde') return `Contra la mayoría en ${p.n} de ${p.de}`;
   if (p.cual === 'borrego') return `Con la mayoría en ${p.n} de ${p.de}`;
   if (p.cual === 'adivino') return `Acertó ${p.n} de ${plural(p.de, 'apuesta', 'apuestas')}`;
-  return p.motivo === 'indulto' ? `Indulto con ${plural(p.n, 'voto', 'votos')} sin emitir` : `La última papeleta, a los ${duracion(p.n).replace(/^1 /, 'un ')}`;
+  return p.motivo === 'indulto' ? `Indulto con ${plural(p.n, 'voto', 'votos')} sin emitir` : `La última papeleta, ${tras(p.n)}`;
 }
+// Campeones de cada pregunta, cuando la guerra tiene varias.
+function campeonesPregunta(r, G) {
+  if (!(r.preguntas || []).length) return '';
+  return `<section class="col"><h2 class="h2">Campeones por pregunta</h2><ul class="col g12">${r.preguntas.map((q) => `<li class="caja" style="flex-direction:row;gap:12px;align-items:center">${avatar(G[q.id], 'grande oro')}
+    <span class="col g4"><span class="peq t2">Pregunta ${q.k}: ${esc(q.texto)}</span><strong style="font-size:17px">${esc(nombreDe(G[q.id]))}</strong><span class="med t2">${plural(q.pts, 'punto', 'puntos')} en ${plural(q.batallas, 'batalla', 'batallas')}</span></span></li>`).join('')}</ul></section>`;
+}
+export { campeonesPregunta };
 function listaPremios(lista) {
   const G = gente();
   return `<ul class="col g12">${lista.map((p) => `<li class="caja oro" style="flex-direction:row;align-items:center;gap:12px">${avatar(G[p.id], 'grande')}
@@ -347,7 +358,7 @@ accion('votarDuelo', async (id) => { await llamar('votarDuelo', { elegido: id },
 
 function etiquetaSiguiente(s) {
   if (!s) return 'Terminar el desfile';
-  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón' }[s.t] || ordinal(s.pos) + ' puesto');
+  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas, pantallaDesfile };
 
@@ -372,6 +383,12 @@ function pantallaDesfile(vista, ensayo) {
       <p class="med t2 centro">Alguien tomó partido por ${esc(G[a.elegido].nombre)}</p>`;
   } else if (a.t === 'condecoracion') {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Condecoraciones</h2><span class="med t2">Calculadas con vuestros votos</span></div>${listaPremios(d.premios)}`;
+  } else if (a.t === 'pregunta') {
+    const q = G[a.id];
+    centro = `<div class="col g4 centro"><span class="peq oro" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">Pregunta ${a.k} de ${a.de}</span>
+        <h2 class="enorme" style="font-size:32px;line-height:1.05">${esc(a.texto)}</h2></div>
+      ${carta(q, { clase: 'sola', sello: 'Campeón', selloClase: 'oro' })}
+      <p class="med t3 centro">${plural(a.pts, 'punto', 'puntos')} en sus ${plural(a.batallas, 'batalla', 'batallas')} de esta pregunta: ${a.g} ${a.g === 1 ? 'ganada' : 'ganadas'}, ${a.e} ${a.e === 1 ? 'empatada' : 'empatadas'} y ${a.p} ${a.p === 1 ? 'perdida' : 'perdidas'}.</p>`;
   } else if (a.t === 'duelo') {
     centro = bloqueDuelo(ensayo ? Object.assign({}, a.duelo, { puedo: false, mio: null, cierra: null }) : a.duelo, true);
   } else if (a.t === 'finalistas') {
@@ -420,7 +437,7 @@ function listaCuriosidades(r, G) {
     c.renida && bat[c.renida.batalla] ? `<strong>La más reñida:</strong> ${marcador(c.renida.batalla)}${c.renida.otras ? `, y otras ${c.renida.otras} con el mismo margen` : ''}.` : '',
     c.paliza && bat[c.paliza.batalla] ? `<strong>Mayor paliza:</strong> ${marcador(c.paliza.batalla)}, ofensiva ${bat[c.paliza.batalla].of}.` : '',
     c.primero ? `<strong>Votó antes que nadie:</strong> ${nom(c.primero.id)}, que terminó en ${duracion(c.primero.ms)}.` : '',
-    c.ultimo ? `<strong>Última papeleta:</strong> ${nom(c.ultimo.id)}, a los ${duracion(c.ultimo.ms)}.` : '',
+    c.ultimo ? `<strong>Última papeleta:</strong> ${nom(c.ultimo.id)}, ${tras(c.ultimo.ms)}.` : '',
     c.espiada && bat[c.espiada.batalla] ? `<strong>La batalla más espiada:</strong> ${marcador(c.espiada.batalla)} (${plural(c.espiada.n, 'espía', 'espías')}).` : ''
   ].filter(Boolean);
 }
@@ -436,12 +453,13 @@ function pantallaPublicada() {
       : `<div class="cols-pc">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}
         <div class="col g12"><div class="enorme oro">1.er puesto</div>${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
         ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</span></div>` : ''}
-        <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}</div></div></div>`}
+        <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}${botonAlbum()}</div></div></div>`}
     <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}</section>
     ${mia ? `<section class="caja"><h2 class="h2">Tu guerra</h2>
       <div class="fila g12">${avatar(G[mia.companero.id], 'grande')}<span class="col g4"><strong>Compañero de trinchera: ${esc(G[mia.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${mia.companero.n} de ${mia.companero.de} batallas</span></span></div>
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>Enemigo íntimo: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
     ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
+    ${campeonesPregunta(r, G)}
     ${listaCuriosidades(r, G).length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${listaCuriosidades(r, G).map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
     ${r.proclamas.length ? `<section class="caja"><h2 class="h2">Proclamas anónimas</h2>${r.proclamas.map((p) => `<p class="med"><span class="t2">${esc(G[p.a].nombre)} contra ${esc(G[p.b].nombre)} · a ${esc(G[p.elegido].nombre)}</span><br><em>«${esc(p.texto)}»</em></p>`).join('')}</section>` : ''}`,
     { fondo: 'a', ancha: true });

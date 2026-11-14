@@ -292,6 +292,57 @@ prueba('calendario: fecha del desfile en la vista y archivo .ics en el correo de
   assert.strictEqual(w.mando('plan', { guerra: id }).plan.desfileTs, null);
 });
 
+prueba('varias preguntas: se turnan por ofensiva y cada una tiene su campeón', () => {
+  const w = mundo(41);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { otras: ['¿Quién sobreviviría a un apocalipsis zombi?', '¿Quién llega tarde siempre?'] } });
+  assert.deepStrictEqual(w.mando('plan', { guerra: id }).plan.otras.length, 2);
+  const g = declarar(w, id);
+  const est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.preguntas.length, 3);
+  assert.ok(est.guerra.ordenanzas.some((r) => r.t === 'Varias preguntas' && r.x.includes('apocalipsis zombi')));
+  assert.ok(w.correos[0].html.includes('apocalipsis zombi'), 'la orden de movilización lleva todas las preguntas');
+  NOMBRES.slice(0, 5).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  w.do('estado', { token: g.tok['María'] });
+  const r = w.mando('informe', { guerra: id }).resultado;
+  assert.strictEqual(r.preguntas.length, 3);
+  assert.strictEqual(r.preguntas.reduce((t, q) => t + q.batallas, 0), r.batallas.length, 'cada batalla cuenta en una sola pregunta');
+  const ofs = Math.max(...r.batallas.map((b) => b.of));
+  r.preguntas.forEach((q) => assert.strictEqual(q.batallas, r.batallas.filter((b) => (b.of - 1) % 3 === q.k - 1).length));
+  w.mando('desfile', { guerra: id, orden: 'empezar' });
+  const pasos = w.doc(id).desfile.pasos.map((p) => p.t);
+  const iPreg = pasos.indexOf('pregunta'), iFinal = pasos.indexOf(r.empate ? 'duelo' : 'finalistas');
+  assert.ok(iPreg > 0 && pasos.filter((t) => t === 'pregunta').length === 3 && iPreg < iFinal, 'campeones por pregunta antes de la gran final');
+  while (w.doc(id).desfile.pasos[w.doc(id).desfile.paso].t !== 'pregunta') w.mando('desfile', { guerra: id, orden: 'siguiente' });
+  const vista = w.do('estado', { token: g.tok['María'] }).desfile;
+  assert.strictEqual(vista.actual.texto, est.guerra.preguntas[0]);
+  assert.ok(vista.actual.id && vista.actual.de === 3);
+  const { id: id2 } = w.mando('contraofensiva', { guerra: id });
+  assert.strictEqual(w.mando('plan', { guerra: id2 }).plan.otras.length, 2, 'la contraofensiva hereda las preguntas');
+  assert.ok(ofs >= 3);
+});
+
+prueba('plato fuerte: en la segunda edición la batalla del día tiene su motivo', () => {
+  const w = mundo(43);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { extras: { desfile: false } } });
+  const g1 = declarar(w, id);
+  assert.strictEqual(w.doc(id).platos, null, 'primera edición: al azar');
+  NOMBRES.slice(0, 5).forEach((n) => votarTodo(w, g1, n));
+  w.pasa(60000);
+  w.do('estado', { token: g1.tok['María'] });
+  w.mando('publicar', { guerra: id });
+  const { id: id2 } = w.mando('contraofensiva', { guerra: id });
+  const g2 = declarar(w, id2);
+  const platos = w.doc(id2).platos;
+  const total = Math.max(...w.doc(id2).batallas.map((b) => b.of));
+  assert.strictEqual(Object.keys(platos).length, total, 'un plato fuerte por ofensiva');
+  const est = w.do('estado', { token: g2.tok['María'] });
+  const delDia = est.batallas.filter((b) => b.delDia);
+  assert.strictEqual(delDia.length, total);
+  assert.ok(delDia.every((b) => /^(Revancha|La gran rivalidad|Duelo en el escalafón)/.test(b.motivo)), delDia.map((b) => b.motivo).join(' / '));
+  delDia.forEach((b) => assert.strictEqual(b.id, platos[b.of].id));
+});
+
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
   const w = mundo(17);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
