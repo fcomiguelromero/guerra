@@ -1,5 +1,5 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
-import { S, llamar, refrescar, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
+import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
 import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
 import { botonCartel } from './carteles.js';
@@ -105,6 +105,12 @@ function filaGente(g, i, cosa) {
 }
 // Frases propias del narrador del desfile: se guardan para todas las guerras del alto mando.
 const GRUPOS_FRASE = [['campeon', 'Campeón'], ['segundo', '2.º puesto'], ['tercero', '3.er puesto'], ['ultimo', 'Último puesto'], ['mitad', 'Mitad de tabla']];
+// Cuántas rondas y exentos tendrá un torneo con nc contendientes.
+function textoTorneo(nc) {
+  let R = 1; while (2 ** R < nc) R++;
+  const libres = 2 ** R - nc, cruces = nc - 1 + (nc >= 4 ? 1 : 0);
+  return `Con ${nc} contendientes habrá ${R} rondas y ${cruces} cruces${nc >= 4 ? ', 3.er puesto incluido' : ''}${libres ? `; ${libres} ${libres === 1 ? 'pasa' : 'pasan'} la primera ronda sin combatir, por sorteo` : ''}.`;
+}
 function seccionNarrador() {
   const p = S.ui.plan, rep = S.ui.repertorio;
   if (rep === undefined) {
@@ -256,18 +262,21 @@ registrar('/plan', () => {
     <section class="caja"><div class="fila entre"><h2 class="h2">Combatientes</h2><span class="med t2">${votan.length}</span></div>
       ${votan.map((i) => filaGente(p.gente[i], i, false)).join('')}
       ${previa ? `<button class="btn linea medio" data-a="masGente" data-v="persona">${ico('mas')}Reclutar combatiente</button>` : ''}
-      <p class="peq t2">${nc >= 3 ? `Con ${nc} contendientes habrá ${nb} batallas en ${nc % 2 ? nc : nc - 1} ofensivas.` : 'Hacen falta al menos 3 contendientes.'} Marca «Soy yo» en tu propia carta.</p></section>
+      <p class="peq t2">${nc >= 3 ? (p.formato === 'torneo' ? textoTorneo(nc) : `Con ${nc} contendientes habrá ${nb} batallas en ${nc % 2 ? nc : nc - 1} ofensivas.`) : 'Hacen falta al menos 3 contendientes.'} Marca «Soy yo» en tu propia carta.</p></section>
     <section class="caja"><h2 class="h2">La orden de movilización</h2><p class="med t2">Tu frase de apertura y tu remate; el enlace personal de cada uno va en medio.</p>
       <label class="campo"><span>Asunto</span><input id="p-asunto" maxlength="150" data-m="plan.correo.asunto" value="${esc(p.correo.asunto)}" placeholder="¡Comienza la ${esc(p.nombre || 'guerra')}!"></label>
       <label class="campo"><span>Apertura</span><textarea id="p-apertura" maxlength="1500" data-m="plan.correo.apertura">${esc(p.correo.apertura)}</textarea></label>
       <label class="campo"><span>Remate</span><textarea id="p-remate" maxlength="1500" data-m="plan.correo.remate">${esc(p.correo.remate)}</textarea></label>
       <button class="btn linea medio" data-a="previa" data-v="orden">Ver cómo queda el correo</button></section>
-    ${previa ? `<section class="caja"><h2 class="h2">Puntuación</h2>
+    ${previa ? `<section class="caja"><h2 class="h2">Formato</h2>
+      <div class="opciones"><button aria-pressed="${p.formato !== 'torneo'}" data-a="opcion" data-v="plan.formato=liga">Liga: todos contra todos</button><button aria-pressed="${p.formato === 'torneo'}" data-a="opcion" data-v="plan.formato=torneo">Torneo por eliminatorias</button></div>
+      <p class="med t2">${p.formato === 'torneo' ? `Cruces de uno contra uno: sólo pasa uno, ronda a ronda, hasta la final. Cada ronda se abre cuando se cierra la anterior, y al cerrarse se publica quién pasa, sin votos. ${nc >= 3 ? textoTorneo(nc) : ''} Va bien con grupos grandes, donde la liga se hace eterna.` : `Cada contendiente se enfrenta a todos los demás y gana quien más puntos suma.`}</p></section>
+    ${p.formato === 'torneo' ? '' : `<section class="caja"><h2 class="h2">Puntuación</h2>
       <div class="opciones"><button aria-pressed="${p.puntuacion !== 'votos'}" data-a="opcion" data-v="plan.puntuacion=liga">Liga: 3, 1, 0</button><button aria-pressed="${p.puntuacion === 'votos'}" data-a="opcion" data-v="plan.puntuacion=votos">Por votos</button></div>
       <p class="med t2">${p.puntuacion === 'votos' ? 'Cada voto recibido vale 3 puntos, como en el cambio de 2012.' : 'Ganar un combate, 3 puntos; empatarlo, 1; perderlo, 0. Desempata la diferencia de votos.'}</p></section>
     <section class="caja"><h2 class="h2">Ritmo de la guerra</h2>
       <div class="opciones"><button aria-pressed="${p.ritmo !== 'diaria'}" data-a="opcion" data-v="plan.ritmo=golpe">Todas de golpe</button><button aria-pressed="${p.ritmo === 'diaria'}" data-a="opcion" data-v="plan.ritmo=diaria">Una ofensiva al día</button></div>
-      <p class="med t2">${p.ritmo === 'diaria' ? `La primera ofensiva se abre al declarar la guerra y, después, una nueva cada mañana a las 9:00${nc >= 3 ? `: la guerra durará al menos ${nc % 2 ? nc : nc - 1} días` : ''}. Cada día sale un correo avisando de las batallas nuevas a quien tenga algo por votar. Las ofensivas abiertas no caducan: el que se retrase puede ponerse al día cuando quiera.` : 'Todas las ofensivas se abren a la vez y cada uno vota a su ritmo.'}</p></section>
+      <p class="med t2">${p.ritmo === 'diaria' ? `La primera ofensiva se abre al declarar la guerra y, después, una nueva cada mañana a las 9:00${nc >= 3 ? `: la guerra durará al menos ${nc % 2 ? nc : nc - 1} días` : ''}. Cada día sale un correo avisando de las batallas nuevas a quien tenga algo por votar. Las ofensivas abiertas no caducan: el que se retrase puede ponerse al día cuando quiera.` : 'Todas las ofensivas se abren a la vez y cada uno vota a su ritmo.'}</p></section>`}
     <section class="caja"><h2 class="h2">Extras</h2>${EXTRAS.map(([k, t, n]) => interruptor('plan.extras.' + k, p.extras[k], t, n)).join('')}</section>` : ''}
     ${seccionNarrador()}
     ${seccionPresentacion()}
@@ -330,7 +339,7 @@ async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
     nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '',
-    otras: (p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n')).split('\n').map((q) => q.trim()).filter(Boolean).slice(0, 4), desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, puntuacion: p.puntuacion,
+    otras: (p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n')).split('\n').map((q) => q.trim()).filter(Boolean).slice(0, 4), desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, formato: p.formato || 'liga', puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,
@@ -415,7 +424,7 @@ registrar('/cuartel', () => {
   const e = S.est;
   if (!e || !e.mando) return marco(cargando('Abriendo el cuartel general'), { fondo: 'a' });
   if (e.guerra.fase === 'desfile') return mandoDesfile();
-  const G = porId(e.gente), m = e.mando, pr = e.progreso, fase = e.guerra.fase, abierta = fase === 'abierta';
+  const G = porId(e.gente), m = e.mando, pr = e.progreso || { emitidos: 0, total: 0, rezagados: [] }, fase = e.guerra.fase, abierta = fase === 'abierta';
   const pct = (a, b) => (b ? Math.round(100 * a / b) : 0);
   const general = enlaceApp() + '#g=' + m.general;
   const errores = m.correos.filter((c) => c.error || !c.correo);
@@ -430,6 +439,9 @@ registrar('/cuartel', () => {
       ${m.pullas.map((p) => `<div class="col" style="padding-top:8px;border-top:1px solid #2a2648"><p style="font-style:italic">«${esc(p.texto)}»</p>
         <div class="fila entre"><span class="peq t2">De ${esc(G[p.de].nombre)} · ${hace(p.ts).toLowerCase()}</span></div>
         <div class="fila" style="flex-wrap:wrap;justify-content:flex-end"><button class="btn chico linea" data-a="moderar" data-v="${p.id}:0">Censurar</button><button class="btn chico linea" data-a="moderar" data-v="${p.id}:1">Emitir</button><button class="btn chico rosa" data-a="moderar" data-v="${p.id}:2">Emitir y avisar</button></div></div>`).join('')}</section>` : ''}
+    ${abierta && e.guerra.cuadro ? `<section class="caja teal"><div class="fila entre"><h2 class="h2">${nombreRonda(e.guerra.cuadro.actual, e.guerra.cuadro.R)}</h2><span class="peq t2">Ronda ${e.guerra.cuadro.actual} de ${e.guerra.cuadro.R}</span></div>
+      <p class="med t2">La ronda se cierra sola cuando vota todo el mundo. Si alguien se retrasa, puedes cerrarla ya: los votos que falten no cuentan.</p>
+      <div class="fila" style="flex-wrap:wrap"><button class="btn linea medio crece" data-a="ir" data-v="/cuadro">Ver el cuadro</button><button class="btn medio crece ${S.ui.confirmaRonda ? 'peligro' : 'linea'}" data-a="cerrarRonda">${S.ui.confirmaRonda ? 'Confirmar: cerrar la ronda' : 'Cerrar la ronda ya'}</button></div></section>` : ''}
     ${abierta ? `<section class="caja"><div class="fila entre"><h2 class="h2">Rezagados</h2><span class="peq t2">${plural(pr.rezagados.length, 'persona', 'personas')}</span></div>
       ${pr.rezagados.length ? `<ul class="col g12">${pr.rezagados.map((r) => `<li class="col g4"><div class="fila">${avatar(G[r.id])}<strong class="crece">${esc(G[r.id].nombre)}</strong><span class="med t2">${plural(r.faltan, 'batalla', 'batallas')}</span></div>
         <div class="medidor"><i style="width:${pct(r.de - r.faltan, r.de)}%"></i></div></li>`).join('')}</ul>
@@ -445,13 +457,21 @@ registrar('/cuartel', () => {
         <span class="fila">${abierta && c.correo ? `<button class="btn chico linea" data-a="reenviar" data-v="${c.id}">Reenviar orden</button>` : ''}<button class="btn chico linea" data-a="liberar" data-v="${c.id}">Enlace nuevo</button></span></li>`).join('')}</ul>
         <p class="peq t2">«Enlace nuevo» invalida el enlace anterior de esa carta: úsalo si alguien entró con la carta de otro.</p></details></section>
     <div class="col">
-      ${abierta && pr.rezagados.length ? '<button class="btn peligro" data-a="ir" data-v="/armisticio">Firmar el armisticio</button>' : ''}
+      ${abierta && pr.rezagados.length && e.guerra.formato !== 'torneo' ? '<button class="btn peligro" data-a="ir" data-v="/armisticio">Firmar el armisticio</button>' : ''}
       <button class="btn ${abierta ? 'linea' : ''}" data-a="ir" data-v="/informe" ${abierta ? 'disabled' : ''}>Informe clasificado${e.guerra.extras.desfile ? ' y desfile' : ''}</button>
       ${abierta ? '<p class="peq t2 centro">El informe clasificado y el desfile se abren cuando acabe la guerra. Hasta entonces nadie ve los votos, tú tampoco.</p>' : ''}
       <button class="btn linea medio" data-a="ir" data-v="/plan">Ajustes de la guerra</button>
       ${fase === 'publicada' ? '<button class="btn linea medio" data-a="contraofensiva">Contraofensiva: otra guerra con la misma gente</button>' : ''}
       <button class="btn chico peligro" style="align-self:center;margin-top:8px" data-a="borrarGuerra">Borrar esta guerra</button>
     </div>`, { fondo: 'a' });
+});
+accion('cerrarRonda', async () => {
+  if (!S.ui.confirmaRonda) { S.ui.confirmaRonda = true; aviso('Pulsa otra vez para confirmar: los votos que falten no contarán.'); pintar(); return; }
+  S.ui.confirmaRonda = false;
+  const r = await llamar('cerrarRonda', {});
+  await refrescar(true);
+  aviso(r.fase === 'terminada' ? 'Torneo terminado: ya puedes preparar el desfile.' : 'Ronda cerrada: ya se sabe quién pasa.', true);
+  pintar();
 });
 accion('moderar', async (v) => {
   const [id, si] = v.split(':');

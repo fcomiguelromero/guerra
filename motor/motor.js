@@ -73,6 +73,57 @@ function batallasVivas(doc) {
 }
 function puedeVotar(v, b) { return v.vota && b.a !== v.id && b.b !== v.id; }
 function batallasDe(doc, v) { return batallasVivas(doc).filter(function (b) { return puedeVotar(v, b); }); }
+// ------------------------------------------------------------ torneo por eliminatorias
+// Cuadro de 2^R plazas: si no hay combatientes para llenarlo, algunos pasan la primera ronda sin combatir (por sorteo).
+// Cada ronda es una «ofensiva»: sus batallas se crean cuando se cierra la anterior. Si hay dos semifinales de verdad,
+// en la última ronda se juega también el 3.er puesto.
+function esTorneo(doc) { return doc.formato === 'torneo'; }
+function nombreRonda(r, total) {
+  var faltan = total - r;
+  return faltan === 0 ? 'Final' : faltan === 1 ? 'Semifinales' : faltan === 2 ? 'Cuartos de final' : faltan === 3 ? 'Octavos de final' : 'Ronda ' + r;
+}
+function rondasDe(n) { var r = 1; while (Math.pow(2, r) < n) r++; return r; }
+function montarCuadro(ids, azar) {
+  var n = ids.length, R = rondasDe(n), S = Math.pow(2, R), libres = S - n, eq = barajar(ids, azar), pares = [];
+  for (var k = 0; k < libres; k++) pares.push([eq[k], null]);
+  for (var j = libres; j < n; j += 2) pares.push([eq[j], eq[j + 1]]);
+  pares = barajar(pares, azar);
+  return { R: R, actual: 1, rondas: [pares.map(function (p) { return { a: p[0], b: p[1], bid: null, pasa: p[1] ? null : p[0] }; })], tercero: null };
+}
+// Quién pasa un cruce: más votos; si empatan, el mejor del escalafón; si no, el orden del sorteo.
+function ganaCruce(doc, a, b, va, vb) {
+  if (va !== vb) return va > vb ? a : b;
+  var ra = (doc.rangos || {})[a], rb = (doc.rangos || {})[b];
+  if (ra && rb && ra !== rb) return ra < rb ? a : b;
+  if (ra && !rb) return a;
+  if (rb && !ra) return b;
+  var orden = doc.orden || [];
+  return orden.indexOf(a) <= orden.indexOf(b) ? a : b;
+}
+// Clasificación del torneo: final, 3.er puesto y, por debajo, por la ronda en que cayó cada uno.
+// Entre los que cayeron en la misma ronda, mejor quien cayó por menos votos y, luego, quien más votos sumó.
+function clasificarTorneo(doc, rec) {
+  var c = doc.cuadro, filas = rec.filas, porB = porId(rec.batallas), orden = doc.orden || [];
+  var caida = {}, margen = {};
+  c.rondas.forEach(function (nodos, i) {
+    nodos.forEach(function (nd) {
+      if (!nd.b || !nd.pasa) return;
+      var pierde = nd.pasa === nd.a ? nd.b : nd.a, bt = porB[nd.bid];
+      caida[pierde] = i + 1;
+      margen[pierde] = bt ? (pierde === bt.a ? bt.va - bt.vb : bt.vb - bt.va) : 0;
+    });
+  });
+  var final = c.rondas[c.R - 1] && c.rondas[c.R - 1][0], ter = c.tercero;
+  var arriba = [];
+  if (final && final.pasa) { arriba.push(final.pasa); arriba.push(final.pasa === final.a ? final.b : final.a); }
+  if (ter && ter.pasa) { arriba.push(ter.pasa); arriba.push(ter.pasa === ter.a ? ter.b : ter.a); }
+  var resto = Object.keys(filas).filter(function (id) { return arriba.indexOf(id) < 0; }).sort(function (x, y) {
+    return (caida[y] || 0) - (caida[x] || 0) || (margen[y] || 0) - (margen[x] || 0) || filas[y].vf - filas[x].vf || orden.indexOf(x) - orden.indexOf(y);
+  });
+  var tabla = arriba.concat(resto).map(function (id, i) { var f = filas[id]; f.pos = i + 1; f.ronda = caida[id] || c.R; return f; });
+  return { tabla: tabla, empate: null };
+}
+
 // Varias preguntas: la principal y hasta cuatro más, que se turnan por ofensiva.
 function preguntas(doc) { return [doc.pregunta || ''].concat(doc.otras || []).filter(Boolean); }
 function preguntaDe(doc, of) { var l = preguntas(doc); return l.length ? l[(of - 1) % l.length] : ''; }
@@ -125,8 +176,10 @@ function adivinar(doc, rec) {
   return lista;
 }
 function votoDe(doc, b, vid) { var vs = doc.votos[b.id]; return vs && vs[vid] ? vs[vid] : null; }
+// En un torneo, las rondas ya cerradas no se deben: sus votos pendientes se perdieron.
+function cerradaYa(doc, b) { return doc.formato === 'torneo' && doc.cuadro && b.of < doc.cuadro.actual; }
 function faltan(doc, v) {
-  return batallasDe(doc, v).filter(function (b) { return !votoDe(doc, b, v.id); }).length;
+  return batallasDe(doc, v).filter(function (b) { return !votoDe(doc, b, v.id) && !cerradaYa(doc, b); }).length;
 }
 // Con «limite» (ofensivas ya abiertas), sólo es rezagado quien debe batallas que ya puede votar.
 function progreso(doc, limite) {
@@ -135,7 +188,7 @@ function progreso(doc, limite) {
     var suyas = batallasDe(doc, v), f = faltan(doc, v);
     total += suyas.length; emitidos += suyas.length - f;
     var abiertas = limite ? suyas.filter(function (b) { return b.of <= limite; }) : suyas;
-    var debe = abiertas.filter(function (b) { return !votoDe(doc, b, v.id); }).length;
+    var debe = abiertas.filter(function (b) { return !votoDe(doc, b, v.id) && !cerradaYa(doc, b); }).length;
     if (debe > 0 && v.estado === 'activo') rezagados.push({ id: v.id, faltan: debe, de: abiertas.length });
   });
   rezagados.sort(function (x, y) { return y.faltan - x.faltan; });
@@ -327,7 +380,7 @@ function curiosidades(doc, rec) {
 }
 
 function calcular(doc) {
-  var rec = recuento(doc), cl = clasificar(doc, rec);
+  var rec = recuento(doc), cl = esTorneo(doc) && doc.cuadro ? clasificarTorneo(doc, rec) : clasificar(doc, rec);
   var res = {
     tabla: cl.tabla,
     empate: cl.empate,
@@ -504,9 +557,17 @@ function ordenanzasAuto(doc) {
     lista.push({ t: 'Varias preguntas', x: 'Esta guerra tiene ' + lp.length + ' preguntas, que se turnan por ofensiva: ' + lp.map(function (q, i) { return (i + 1) + ') «' + q + '»'; }).join('; ') + '.' +
       ' Cada pregunta tiene su campeón, el que más puntos saca en sus ofensivas' + (x.desfile ? ', y se revela en el desfile' : '') + '. El campeón de la guerra suma todas las batallas.' });
   }
+  if (esTorneo(doc)) {
+    var nComb = doc.gente.filter(function (g) { return g.combate; }).length, R = rondasDe(Math.max(nComb, 2)), libres = Math.pow(2, R) - nComb;
+    lista.push({ t: 'Torneo por eliminatorias', x: 'Esta guerra es un torneo: cada cruce enfrenta a dos ' + (cosas ? 'contendientes' : 'combatientes') + ' y sólo pasa uno. ' +
+      (nComb >= 3 ? 'Con ' + nComb + ' habrá ' + plural(R, 'ronda', 'rondas') + (libres ? ', y ' + plural(libres, 'contendiente', 'contendientes').replace('contendiente', cosas ? 'contendiente' : 'combatiente') + ' pasa' + (libres > 1 ? 'n' : '') + ' la primera ronda sin combatir, por sorteo' : '') + '. ' : '') +
+      'Una ronda se cierra cuando vota todo el mundo (o cuando lo decide el alto mando, y entonces los votos que falten no cuentan). Al cerrarse, se publica quién pasa, sin cifras: los votos de cada cruce se conocen en ' + (x.desfile ? 'el desfile.' : 'el parte final.') +
+      ' Si un cruce acaba empatado a votos, pasa quien vaya mejor en el escalafón de esta guerra; si no hay historia, decide el sorteo del cuadro. Los perdedores de las semifinales se juegan el 3.er puesto.' });
+  }
   var cola = doc.diana && doc.diana.activa ? ' Al que se duerma le tocarán diana' + (x.parte ? ', y a mitad de contienda saldrá un parte de guerra con los rezagados.' : '.')
     : (x.parte ? ' A mitad de contienda saldrá un parte de guerra con los rezagados.' : '');
-  if (doc.ritmo === 'diaria') {
+  if (esTorneo(doc)) { /* las rondas ya están explicadas */ }
+  else if (doc.ritmo === 'diaria') {
     lista.push({ t: 'Una ofensiva al día', x: (nc ? 'Las ' + nc + ' ofensivas' : 'Las ofensivas') + ' se abren de una en una: la primera, al declararse la guerra; después, una nueva cada mañana a las ' + HORA_OFENSIVA + ':00. Cada día te llegará un correo avisando de que hay batallas nuevas.' +
       ' Las batallas de una ofensiva abierta no caducan: puedes votarlas ese día o cualquier otro, pero no puedes adelantarte a las ofensivas que aún no se han abierto.' +
       (nc ? ' La guerra dura, como mínimo, ' + nc + ' días,' : ' La guerra') + ' y no termina hasta que vota todo el mundo: todos ven quién va con retraso.' + cola });
@@ -518,7 +579,8 @@ function ordenanzasAuto(doc) {
     (x.desfile ? 'revelan en el desfile.' : 'publican cuando acabe la guerra.') +
     (x.proclamas ? ' No hace falta dar razones, pero si quieres puedes dejar una proclama: se leerá ' + (x.desfile ? 'en el desfile' : 'al final') + ' sin tu nombre.' : '') +
     ' Una vez votas no hay vuelta atrás, salvo 10 segundos de cortesía por si te equivocas de botón.' });
-  if (doc.puntuacion === 'votos') {
+  if (esTorneo(doc)) { /* en un torneo no hay puntos: pasa quien más votos saca */ }
+  else if (doc.puntuacion === 'votos') {
     lista.push({ t: 'Los puntos', x: 'Cada voto que recibes vale 3 puntos, ganes o pierdas la batalla. Si dos combatientes terminan con los mismos puntos, desempata el enfrentamiento directo.' +
       ' Pero si el empate a puntos es por el primer puesto, no hay cuentas que valgan: se libra un duelo final' + (x.desfile ? ' en directo durante el desfile.' : '.') });
   } else {
@@ -537,7 +599,8 @@ function ordenanzasAuto(doc) {
     (x.condecoraciones ? ', con condecoraciones al más rebelde, al más borrego y al más tardón.' : '.') +
     (doc.premio ? ' Premio: ' + doc.premio + ', y la cruz al mérito para el campeón.' : ' El campeón se lleva la cruz al mérito.') +
     ' Después, cada uno descubrirá su compañero de trinchera y su enemigo íntimo de voto.' });
-  lista.push({ t: 'Desertores e indultos', x: 'Si alguien no vota, el alto mando puede firmar el armisticio. Al desertor se le expulsa con deshonor: desaparecen sus combates y sus votos, como si nunca hubiera combatido, y queda en las crónicas como desertor' +
+  if (esTorneo(doc)) lista.push({ t: 'Rezagados', x: 'Si alguien no vota, la ronda no avanza. El alto mando puede cerrarla sin esperar: los votos que falten no cuentan, y al que se duerma ' + (doc.diana && doc.diana.activa ? 'le tocarán diana.' : 'se le verá en la lista de rezagados.') });
+  else lista.push({ t: 'Desertores e indultos', x: 'Si alguien no vota, el alto mando puede firmar el armisticio. Al desertor se le expulsa con deshonor: desaparecen sus combates y sus votos, como si nunca hubiera combatido, y queda en las crónicas como desertor' +
     (x.desfile ? ': el consejo de guerra leerá su sentencia en el desfile.' : '.') +
     ' A quien le falten pocos votos se le puede indultar: sigue en la guerra y sólo se pierden sus votos pendientes.' });
   lista.push({ t: 'Grados', x: 'Cada guerra que terminas te asciende un grado: soldado, cabo, sargento, alférez, teniente, capitán, comandante, coronel y, por fin, general. Tu grado luce en tu carta y en el escalafón. Desertar no asciende.' });
@@ -553,8 +616,9 @@ function resumenJuego(doc) {
     ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana según la pregunta. Hay que mojarse: no vale el empate.'
     : 'Todos contra todos: cada batalla enfrenta a dos combatientes y el resto elige a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.');
   if (preguntas(doc).length > 1) l.push('Hay ' + preguntas(doc).length + ' preguntas, que se turnan por ofensiva: «' + preguntas(doc).join('», «') + '». Cada una tiene su campeón, y el de la guerra suma todo.');
-  l.push((nc >= 3 ? 'Con ' + nc + (cosas ? ' contendientes' : ' combatientes') + ' habrá ' + nb + ' batallas. ' : '') +
-    (doc.ritmo === 'diaria' ? 'Cada día se abre una ofensiva nueva, a las ' + HORA_OFENSIVA + ':00, y te avisamos por correo. Votas desde el móvil cuando quieras.' : 'Se abren todas de golpe y votas a tu ritmo, desde el móvil.') + ' La guerra no termina hasta que vota todo el mundo.');
+  if (esTorneo(doc)) l.push('Es un torneo por eliminatorias: en cada cruce sólo pasa uno, ronda a ronda, hasta la final. Al cerrarse cada ronda se sabe quién pasa; los votos, al final.');
+  l.push((nc >= 3 ? 'Con ' + nc + (cosas ? ' contendientes' : ' combatientes') + ' habrá ' + (esTorneo(doc) ? plural(nc - 1 + (nc >= 4 ? 1 : 0), 'cruce', 'cruces') : nb + ' batallas') + '. ' : '') +
+    (esTorneo(doc) ? 'Cada ronda se abre cuando se cierra la anterior, y te avisamos por correo. Votas desde el móvil cuando quieras.' : doc.ritmo === 'diaria' ? 'Cada día se abre una ofensiva nueva, a las ' + HORA_OFENSIVA + ':00, y te avisamos por correo. Votas desde el móvil cuando quieras.' : 'Se abren todas de golpe y votas a tu ritmo, desde el móvil.') + ' La guerra no termina hasta que vota todo el mundo.');
   l.push('Tu voto es secreto para los demás. ' + (x.desfile ? 'El parte de guerra se revela al final, en el desfile de la victoria, del último puesto al primero.' : 'El parte de guerra se publica al final, de golpe.') +
     (doc.premio ? ' Premio: ' + doc.premio + '.' : ''));
   var extras = [];
@@ -700,7 +764,7 @@ function crearMotor(env) {
   }
   function madurar(doc, t) {
     if (!debeMadurar(doc, t)) return false;
-    if (doc.fase === 'abierta') terminar(doc, t);
+    if (doc.fase === 'abierta') { if (esTorneo(doc) && doc.cuadro) cerrarRonda(doc, t); else terminar(doc, t); }
     else cerrarDuelo(doc, t);
     return true;
   }
@@ -708,6 +772,7 @@ function crearMotor(env) {
   // Con una ofensiva al día: la 1.ª, al declarar; la siguiente, a las 9:00 del día siguiente, y así sucesivamente.
   function primeraHora(doc) { return env.inicioDia(doc.declarada) + HORA_OFENSIVA * 3600000; }
   function abiertas(doc, t) {
+    if (esTorneo(doc) && doc.cuadro) return doc.cuadro.actual;
     var total = totalOfensivas(doc);
     if (doc.ritmo !== 'diaria' || doc.fase !== 'abierta') return total;
     return Math.min(total, 1 + Math.max(0, Math.floor((t - primeraHora(doc)) / DIA)));
@@ -744,12 +809,26 @@ function crearMotor(env) {
     return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
   }
   function avisarOfensiva(doc, n, t) {
-    var total = totalOfensivas(doc), enviados = 0;
+    var total = esTorneo(doc) && doc.cuadro ? doc.cuadro.R : totalOfensivas(doc), enviados = 0, torneo = esTorneo(doc) && doc.cuadro;
     votantes(doc).forEach(function (g) {
       if (!g.correo || g.estado !== 'activo') return;
       var debe = batallasDe(doc, g).filter(function (b) { return b.of <= n && !votoDe(doc, b, g.id); }).length;
       if (!debe) return;
       try {
+        if (torneo) {
+          var ronda = nombreRonda(n, total), pasan = (doc.cuadro.rondas[n - 2] || []).filter(function (nd) { return nd.bid; }).map(function (nd) { return porId(doc.gente)[nd.pasa].nombre; });
+          env.correo({
+            para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': ' + (n === total ? '¡llega la final!' : 'se abren los ' + ronda.toLowerCase()).replace('los semifinales', 'las semifinales'),
+            html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', ' + (n === total ? 'llega la final.' : 'se abre una ronda nueva: ' + esc(ronda.toLowerCase()) + '.') + '</p>' +
+              (pasan.length ? '<p style="margin:0 0 14px;color:#cdc8e6">Pasan de ronda: <strong style="color:#ffffff">' + esc(enumerar(pasan)) + '</strong>. Los votos de cada cruce, en el desfile.</p>' : '') +
+              '<p style="margin:0 0 14px;color:#cdc8e6">Tienes ' + plural(debe, 'cruce', 'cruces') + ' por votar. La ronda se cierra cuando vote todo el mundo.</p>' +
+              botonCorreo(enlacePersonal(g), 'Ver el cuadro y votar') + pieFirma(doc),
+              '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: ronda }),
+            texto: g.nombre + ', se abre ' + ronda.toLowerCase() + '. A votar: ' + enlacePersonal(g)
+          });
+          enviados++;
+          return;
+        }
         env.correo({
           para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': se abre la ofensiva ' + n + ' de ' + total,
           html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', hay batallas nuevas.</p>' +
@@ -785,6 +864,34 @@ function crearMotor(env) {
       } catch (e) { g.correoError = String(e && e.message || e).slice(0, 200); }
     });
     anotar(doc, '', 'correo', 'Aviso de alto el fuego: ' + enviados + ' correos');
+  }
+  // Cierra la ronda en curso del torneo: decide quién pasa en cada cruce y monta la siguiente.
+  // Los votos que falten (si la cierra el alto mando) no cuentan.
+  function cerrarRonda(doc, t) {
+    var c = doc.cuadro, r = c.actual, nodos = c.rondas[r - 1], rec = recuento(doc), porB = porId(rec.batallas);
+    var decidir = function (nd) {
+      if (!nd.bid) return;
+      var bt = porB[nd.bid] || { va: 0, vb: 0 };
+      nd.pasa = ganaCruce(doc, nd.a, nd.b, bt.va, bt.vb);
+    };
+    nodos.forEach(decidir);
+    if (r === c.R) { if (c.tercero) decidir(c.tercero); terminar(doc, t); return; }
+    var sig = 1 + doc.batallas.reduce(function (m, b) { return Math.max(m, b.id); }, 0), nuevos = [];
+    for (var k = 0; k < nodos.length; k += 2) {
+      var nd = { a: nodos[k].pasa, b: nodos[k + 1].pasa, bid: sig++, pasa: null };
+      doc.batallas.push({ id: nd.bid, of: r + 1, a: nd.a, b: nd.b });
+      nuevos.push(nd);
+    }
+    c.rondas.push(nuevos);
+    // 3.er puesto: si las dos semifinales fueron batallas de verdad, sus perdedores se lo juegan en la última ronda.
+    if (r + 1 === c.R && nodos.length === 2 && nodos[0].bid && nodos[1].bid) {
+      var pa = nodos[0].pasa === nodos[0].a ? nodos[0].b : nodos[0].a, pb = nodos[1].pasa === nodos[1].a ? nodos[1].b : nodos[1].a;
+      c.tercero = { a: pa, b: pb, bid: sig++, pasa: null };
+      doc.batallas.push({ id: c.tercero.bid, of: r + 1, a: pa, b: pb, tercero: true });
+    }
+    c.actual = r + 1;
+    anotar(doc, '', 'ronda', 'Cerrada la ronda ' + r + '; se abre ' + nombreRonda(r + 1, c.R));
+    avisarOfensiva(doc, r + 1, t);
   }
   function terminar(doc, t) {
     doc.fase = 'terminada';
@@ -834,7 +941,8 @@ function crearMotor(env) {
       .map(function (g) {
         var d = env.leer('guerra:' + g.id), c = d && d.cronica;
         // Las crónicas de antes no guardaban las batallas: se sacan del resultado, que sigue ahí.
-        if (c && !c.batallas && d.resultado) c.batallas = marcadores(d.resultado);
+        if (c && d.resultado && (!c.batallas || (c.batallas[0] && c.batallas[0].length < 5))) c.batallas = marcadores(d.resultado);
+        if (c && !c.listaPreguntas) c.listaPreguntas = preguntas(d);
         return c;
       }).filter(Boolean)
       .sort(function (x, y) { return y.fecha - x.fecha; });
@@ -842,7 +950,7 @@ function crearMotor(env) {
   function guerrasTerminadas(persona, lista) {
     return lista.filter(function (c) { return c.gente.some(function (g) { return g.persona === persona && !g.desertor; }); }).length;
   }
-  function marcadores(r) { return (r.batallas || []).map(function (b) { return [b.a, b.b, b.va, b.vb]; }); }
+  function marcadores(r) { return (r.batallas || []).map(function (b) { return [b.a, b.b, b.va, b.vb, b.of]; }); }
   // Resumen congelado de una guerra publicada: es lo que leen las crónicas.
   function cronicaDe(doc) {
     var r = doc.resultado, pos = {}, fila = porId(r.tabla);
@@ -855,7 +963,7 @@ function crearMotor(env) {
     });
     return {
       id: doc.id, nombre: doc.nombre, campo: doc.campo || '', serie: norm(doc.nombre) + '|' + norm(doc.campo || ''), pregunta: doc.pregunta, preguntas: r.preguntas || [], fecha: doc.publicada || doc.terminada,
-      modo: doc.modo, puntuacion: doc.puntuacion, premio: doc.premio || '', batallas: marcadores(r),
+      modo: doc.modo, puntuacion: doc.puntuacion, premio: doc.premio || '', batallas: marcadores(r), listaPreguntas: preguntas(doc), formato: doc.formato || 'liga',
       campeon: r.empate ? null : r.tabla[0].id,
       porraGana: r.porra.gana, porraSuma: r.porra.lista.length ? r.porra.lista[0].suma : null,
       gente: doc.gente.map(function (g) {
@@ -883,12 +991,20 @@ function crearMotor(env) {
     doc.orden.forEach(function (id, i) { pos[id] = i; });
     return doc.gente.slice().sort(function (x, y) { return (pos[x.id] == null ? 999 : pos[x.id]) - (pos[y.id] == null ? 999 : pos[y.id]); });
   }
+  // El cuadro tal y como lo puede ver todo el mundo: quién pasa, sin votos. La última ronda no se sabe hasta el desfile.
+  function vistaCuadro(doc) {
+    var c = doc.cuadro, publico = doc.fase === 'publicada';
+    var ver = function (nd, r) { return { a: nd.a, b: nd.b, bid: nd.bid, pasa: nd.pasa && (publico || r < c.R) ? nd.pasa : null }; };
+    return { R: c.R, actual: c.actual, rondas: c.rondas.map(function (ns, i) { return ns.map(function (nd) { return ver(nd, i + 1); }); }),
+      tercero: c.tercero ? ver(c.tercero, c.R) : null };
+  }
   function vistaGuerra(doc) {
     var bat = doc.batallas || [];
     return {
       id: doc.id, nombre: doc.nombre, campo: doc.campo || '', ritmo: doc.ritmo || 'golpe', pregunta: doc.pregunta, preguntas: preguntas(doc), premio: doc.premio || '', botin: doc.botin || '', firma: doc.firma || '',
       fase: doc.fase, modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras,
-      ofensivas: bat.length ? Math.max.apply(null, bat.map(function (b) { return b.of; })) : 0,
+      ofensivas: doc.cuadro ? doc.cuadro.R : bat.length ? Math.max.apply(null, bat.map(function (b) { return b.of; })) : 0,
+      formato: doc.formato || 'liga', cuadro: doc.cuadro ? vistaCuadro(doc) : null,
       ordenanzas: doc.ordenanzas || ordenanzasAuto(doc), desfileInfo: textoDesfile(doc), desfileTs: doc.desfileTs || null,
       declarada: doc.declarada || null, terminada: doc.terminada || null, publicada: doc.publicada || null,
       alto: nombreMando(doc), diana: doc.diana && doc.diana.activa ? doc.diana.cadaDias : 0
@@ -989,6 +1105,7 @@ function crearMotor(env) {
       res.progreso = pr;
       res.batallas = batallasVivas(doc).map(function (b) {
         var fila = { id: b.id, of: b.of, a: b.a, b: b.b };
+        if (b.tercero) fila.tercero = true;
         if (yo && puedeVotar(yo, b)) {
           var v = votoDe(doc, b, yo.id); fila.mia = true; fila.voto = v ? v[0] : null; fila.ts = v ? v[1] : null;
           if (v && doc.extras.termometro && doc.fase === 'abierta' && t - v[1] > GRACIA + MARGEN) fila.termo = termometro(doc, b, yo.id);
@@ -1071,7 +1188,7 @@ function crearMotor(env) {
     return {
       rev: doc.rev,
       plan: {
-        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, otras: doc.otras || [], premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe',
+        id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, otras: doc.otras || [], premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe', formato: doc.formato || 'liga',
         pitch: doc.pitch || '', presenta: doc.presenta ? doc.id + '.' + doc.presenta : null,
         modo: doc.modo, puntuacion: doc.puntuacion, extras: Object.assign({ narrador: true }, doc.extras), diana: doc.diana, correo: doc.correo,
         ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '', desfileTs: doc.desfileTs || null, desfileFecha: doc.desfileFecha || '',
@@ -1115,7 +1232,7 @@ function crearMotor(env) {
     var doc = ctx.doc, x = doc.extras || {};
     return {
       nombre: doc.nombre, campo: doc.campo || '', pregunta: doc.pregunta, preguntas: preguntas(doc), premio: doc.premio || '', botin: doc.botin || '',
-      modo: doc.modo, ritmo: doc.ritmo || 'golpe', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
+      modo: doc.modo, ritmo: doc.ritmo || 'golpe', formato: doc.formato || 'liga', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
       extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas, corneta: !!x.corneta, narrador: x.narrador !== false },
       firma: nombreMando(doc), pitch: doc.pitch || '', enMarcha: ['borrador', 'llamamiento'].indexOf(doc.fase) < 0
     };
@@ -1165,6 +1282,16 @@ function crearMotor(env) {
     ctx.sinGuardar = true;
     return rep;
   });
+
+  // Puesto de cada combatiente en el escalafón de las ediciones anteriores de esta guerra: desempata los cruces.
+  function rangosPrevios(doc, previas) {
+    var serie = norm(doc.nombre) + '|' + norm(doc.campo || ''), antes = previas.filter(function (c) { return c.serie === serie; }), res = {};
+    if (!antes.length) return res;
+    var pos = {};
+    escalafones(antes, function () { return true; })[0].filas.forEach(function (f, i) { pos[f.clave] = i + 1; });
+    doc.gente.forEach(function (g) { var k = g.persona || 'cosa:' + norm(g.nombre); if (pos[k]) res[g.id] = pos[k]; });
+    return res;
+  }
 
   // Plato fuerte de cada ofensiva, a partir de las ediciones anteriores de la misma guerra:
   // la revancha más igualada, la gran rivalidad o los vecinos del escalafón. Sin historia, al azar.
@@ -1305,6 +1432,8 @@ function crearMotor(env) {
       if (p.modo) doc.modo = p.modo === 'cosas' ? 'cosas' : 'combatientes';
       if (p.puntuacion) doc.puntuacion = p.puntuacion === 'votos' ? 'votos' : 'liga';
       if (p.ritmo) doc.ritmo = p.ritmo === 'diaria' ? 'diaria' : 'golpe';
+      if (p.formato) doc.formato = p.formato === 'torneo' ? 'torneo' : 'liga';
+      if (doc.formato === 'torneo') doc.ritmo = 'golpe';
       if (p.dueloPorPuntos != null) doc.dueloPorPuntos = !!p.dueloPorPuntos;
       if (p.extras) EXTRAS.forEach(function (k) { if (p.extras[k] != null) doc.extras[k] = !!p.extras[k]; });
       if (p.llamamiento) {
@@ -1441,7 +1570,17 @@ function crearMotor(env) {
       if (g.vota) g.token = doc.id + '.' + env.id(20);
     });
     doc.orden = barajar(doc.gente.map(function (g) { return g.id; }), env.azar);
-    doc.batallas = calendario(cs.map(function (g) { return g.id; }), env.azar);
+    if (esTorneo(doc)) {
+      doc.ritmo = 'golpe';
+      doc.rangos = rangosPrevios(doc, previas);
+      doc.cuadro = montarCuadro(cs.map(function (g) { return g.id; }), env.azar);
+      var bid = 1;
+      doc.batallas = [];
+      doc.cuadro.rondas[0].forEach(function (nd) { if (nd.b) { nd.bid = bid++; doc.batallas.push({ id: nd.bid, of: 1, a: nd.a, b: nd.b }); } });
+    } else {
+      doc.cuadro = null;
+      doc.batallas = calendario(cs.map(function (g) { return g.id; }), env.azar);
+    }
     doc.platos = doc.extras.apuestas ? platosFuertes(doc, previas) : null;
     doc.votos = {}; doc.porras = {}; doc.espias = {}; doc.estrellas = []; doc.parte = null;
     doc.fase = 'abierta';
@@ -1591,6 +1730,7 @@ function crearMotor(env) {
     exigir(b, 'noexiste', 'Esa batalla no existe.');
     exigir(puedeVotar(yo, b), 'propia', 'En tus propios combates no votas.');
     exigir(b.of <= abiertas(doc, t), 'cerrada', 'Esa ofensiva aún no se ha abierto.');
+    exigir(!cerradaYa(doc, b), 'cerrada', 'Esa ronda ya se ha cerrado.');
     exigir(p.elegido === b.a || p.elegido === b.b, 'voto', 'Hay que elegir a uno de los dos.');
     var vs = doc.votos[b.id] || (doc.votos[b.id] = {});
     if (vs[yo.id]) {
@@ -1736,9 +1876,18 @@ function crearMotor(env) {
     return enviados;
   }
 
+  definir('cerrarRonda', { escribe: true, quien: 'mando' }, function (ctx) {
+    var doc = ctx.doc;
+    exigir(doc.fase === 'abierta' && esTorneo(doc) && doc.cuadro, 'fase', 'No hay ninguna ronda abierta.');
+    var r = doc.cuadro.actual;
+    cerrarRonda(doc, ctx.ahora);
+    return { cerrada: r, fase: doc.fase };
+  });
+
   definir('armisticio', { escribe: true, quien: 'mando' }, function (ctx, p) {
     var doc = ctx.doc, t = ctx.ahora, dec = p.decisiones || {};
     exigir(doc.fase === 'abierta', 'fase', 'La guerra no está abierta.');
+    exigir(!esTorneo(doc), 'torneo', 'En un torneo no hay armisticio: cierra la ronda desde el cuartel.');
     var rez = progreso(doc).rezagados, gente = porId(doc.gente);
     rez.forEach(function (r) {
       exigir(dec[r.id] && (dec[r.id].accion === 'expulsar' || dec[r.id].accion === 'indultar'), 'decision', 'Falta decidir qué hacer con ' + gente[r.id].nombre + '.');
@@ -1852,7 +2001,7 @@ function crearMotor(env) {
 
   definir('contraofensiva', { escribe: true, quien: 'mando' }, function (ctx) {
     var vieja = ctx.doc, doc = guerraNueva(ctx.ahora);
-    ['nombre', 'pregunta', 'otras', 'premio', 'botin', 'firma', 'campo', 'ritmo', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
+    ['nombre', 'pregunta', 'otras', 'premio', 'botin', 'firma', 'campo', 'ritmo', 'formato', 'modo', 'puntuacion', 'desfileInfo', 'dueloPorPuntos'].forEach(function (k) { doc[k] = vieja[k]; });
     doc.extras = JSON.parse(JSON.stringify(vieja.extras));
     doc.diana = { activa: vieja.diana.activa, cadaDias: vieja.diana.cadaDias, frases: vieja.diana.frases.slice(), ultimo: null };
     doc.correo = JSON.parse(JSON.stringify(vieja.correo));

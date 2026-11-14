@@ -52,7 +52,13 @@ registrar('/presentacion', () => {
   const x = d.extras, cosas = d.modo === 'cosas', nombre = d.nombre || 'La guerra';
   const paso = (n, t, txt) => `<li class="caja" style="flex-direction:row;gap:12px;align-items:flex-start"><b class="bc teal" style="font-size:34px;font-weight:800;line-height:.9;min-width:22px">${n}</b>
     <span class="col g4"><strong class="bc" style="font-size:22px;line-height:1.05;color:#fff;text-transform:uppercase">${t}</strong><span class="med t3">${txt}</span></span></li>`;
-  const pasos = [
+  const torneo = d.formato === 'torneo';
+  const pasos = torneo ? [
+    ['Torneo por eliminatorias', 'Cruces de uno contra uno: los demás votan quién pasa y sólo pasa uno. Ronda a ronda, hasta la final. Hay que mojarse: no vale el empate.' + (cosas ? '' : ' En tus propios cruces no votas.')],
+    ['Votas desde el móvil', 'Cada ronda se abre cuando se cierra la anterior, y te avisamos por correo. La votas en un minuto, cuando te venga bien. Sin instalar nada: entras con un enlace que es sólo tuyo.'],
+    ['En secreto', 'Nadie sabrá a quién has votado. Al cerrarse cada ronda se sabe quién pasa, pero no por cuántos votos.'],
+    x.desfile ? ['La final, en el desfile', 'El campeón no se sabe hasta el desfile de la victoria, donde se revelan todos los votos' + (x.narrador ? ', con un narrador con retranca que comenta cada puesto' : '') + '.'] : ['El parte de guerra', 'Al acabar la final se publica todo: el cuadro con los votos de cada cruce.']
+  ] : [
     cosas ? ['Dos contendientes, una pregunta', 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana. Hay que mojarse: no vale el empate.']
       : ['Todos contra todos', 'Cada batalla enfrenta a dos de nosotros y los demás eligen a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.'],
     ['Votas desde el móvil', (d.ritmo === 'diaria' ? `Cada mañana, a las ${d.hora}:00, se abre una ofensiva nueva con unas pocas batallas, y te avisamos por correo. Las votas en un par de minutos, cuando te venga bien.` : 'Todas las batallas se abren a la vez y las votas a tu ritmo, cuando te venga bien.') + ' Sin instalar nada: entras con un enlace que es sólo tuyo.'],

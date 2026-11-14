@@ -182,3 +182,19 @@ ul, ol { padding: 0; list-style: none; }
 .narrador { display: flex; gap: 8px; align-items: flex-start; justify-content: center; margin: 2px auto 0; max-width: 34em; font-style: italic; font-size: 17px; line-height: 1.4; color: #fff; text-align: center; }
 .narrador svg { flex: none; margin-top: 3px; color: var(--oro); }
 .narrador.chica { font-size: 14px; color: var(--txt2); }
+
+/* Cuadro del torneo */
+.cuadro-torneo { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+.ronda { flex: 1 0 190px; display: flex; flex-direction: column; gap: 8px; scroll-snap-align: start; }
+.ronda h3 { font-size: 18px; font-weight: 800; color: #fff; text-transform: uppercase; display: flex; gap: 6px; align-items: center; }
+.ronda-cruces { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; flex: 1; }
+.ronda.actual .cruce { border-color: var(--teal); }
+.cruce { display: flex; flex-direction: column; border: 1px solid #2a2648; border-radius: 12px; background: rgba(28,24,54,.85); overflow: hidden; }
+.cruce.libre { opacity: .75; }
+.cruce-lado { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 15px; min-height: 40px; }
+.cruce-lado + .cruce-lado { border-top: 1px solid #2a2648; }
+.cruce-lado.gana { color: var(--teal); font-weight: 700; }
+.cruce-lado.cae { color: var(--txt2); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.25); }
+.cruce-lado.vacio { color: var(--txt2); font-style: italic; }
+.cruce-lado b { font-family: var(--bc); font-size: 20px; }
+.avatar.chico { width: 26px; height: 26px; font-size: 12px; flex: none; }

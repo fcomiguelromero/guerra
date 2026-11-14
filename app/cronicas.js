@@ -217,12 +217,78 @@ function pestanaMedallero() {
     }).join('') : '<p class="med t2">Aún no has terminado ninguna guerra.</p>'}</section>`;
 }
 
+// ---------------------------------------------------------------- pestaña «Números»
+// Estadísticas de un combatiente en todas las guerras que se ven aquí: batallas, rachas, preguntas y rivales.
+function numerosDe(persona) {
+  const lista = S.ui.cronicas.guerras.slice().sort((a, b) => a.fecha - b.fecha);
+  const n = { guerras: 0, des: 0, g: 0, e: 0, p: 0, vf: 0, vc: 0, racha: 0, rachaDonde: '', sequia: 0, mejor: null, preguntas: {}, rivales: {} };
+  let va = 0, vd = 0, donde = [];
+  lista.forEach((c) => {
+    const yo = c.gente.find((g) => g.persona === persona && g.combate);
+    if (!yo) return;
+    if (yo.desertor) { n.des++; return; }
+    n.guerras++;
+    const G = porId(c.gente), qs = c.listaPreguntas && c.listaPreguntas.length ? c.listaPreguntas : [c.pregunta];
+    const mias = (c.batallas || []).filter((b) => b[0] === yo.id || b[1] === yo.id).sort((x, y) => (x[4] || 0) - (y[4] || 0));
+    let gg = 0, ee = 0, pp = 0;
+    mias.forEach((b) => {
+      const soyA = b[0] === yo.id, a = soyA ? b[2] : b[3], o = soyA ? b[3] : b[2], rival = G[soyA ? b[1] : b[0]];
+      n.vf += a; n.vc += o;
+      const q = qs[((b[4] || 1) - 1) % qs.length] || c.pregunta, kq = q.trim().toLowerCase();
+      const fq = n.preguntas[kq] || (n.preguntas[kq] = { texto: q, g: 0, e: 0, p: 0 });
+      const kr = rival.persona || 'cosa:' + rival.nombre, fr = n.rivales[kr] || (n.rivales[kr] = { g: rival, gano: 0, pierdo: 0 });
+      if (a > o) { n.g++; gg++; fq.g++; fr.gano++; va++; vd = 0; if (!donde.includes(c.nombre)) donde.push(c.nombre); }
+      else if (a < o) { n.p++; pp++; fq.p++; fr.pierdo++; va = 0; donde = []; vd++; }
+      else { n.e++; ee++; fq.e++; va = 0; donde = []; vd = 0; }
+      if (va > n.racha) { n.racha = va; n.rachaDonde = donde.slice(); }
+      if (vd > n.sequia) n.sequia = vd;
+    });
+    if (yo.pos && (!n.mejor || yo.pos < n.mejor.pos || (yo.pos === n.mejor.pos && gg > n.mejor.g))) n.mejor = { pos: yo.pos, c, g: gg, e: ee, p: pp };
+  });
+  return n;
+}
+function pestanaNumeros() {
+  const c = S.ui.cronicas;
+  const personas = {};
+  c.guerras.forEach((x) => x.gente.forEach((g) => { if (g.persona && g.combate) personas[g.persona] = g; }));
+  const claves = Object.keys(personas).sort((a, b) => personas[a].nombre.localeCompare(personas[b].nombre, 'es'));
+  if (!claves.length) return '<div class="caja"><p>Los números se estrenan cuando acabe la primera guerra.</p></div>';
+  const quien = S.ui.numerosDe && personas[S.ui.numerosDe] ? S.ui.numerosDe : c.persona && personas[c.persona] ? c.persona : claves[0];
+  const yo = quien === c.persona, n = numerosDe(quien), total = n.g + n.e + n.p, nom = personas[quien].nombre;
+  const pct = (a, b) => (b ? Math.round(100 * a / b) : 0);
+  const dato = (v, t) => `<div class="caja centro" style="gap:2px;padding:10px 6px"><b class="bc" style="font-size:28px;color:#fff;line-height:1;text-transform:none">${v}</b><span class="peq t2">${t}</span></div>`;
+  const preguntas = Object.values(n.preguntas).filter((q) => q.g + q.e + q.p).sort((a, b) => pct(b.g, b.g + b.e + b.p) - pct(a.g, a.g + a.e + a.p));
+  const rivales = Object.values(n.rivales);
+  const victima = rivales.filter((r) => r.gano > r.pierdo).sort((a, b) => (b.gano - b.pierdo) - (a.gano - a.pierdo) || b.gano - a.gano)[0];
+  const negra = rivales.filter((r) => r.pierdo > r.gano).sort((a, b) => (b.pierdo - b.gano) - (a.pierdo - a.gano) || b.pierdo - a.pierdo)[0];
+  const T = yo ? { de: 'Tus', su: 'tu', le: 'te', mejor: 'Tu mejor guerra', victima: 'Tu víctima favorita', negra: 'Tu bestia negra', gana: 'le ganas', pierde: 'te gana' }
+    : { de: 'Sus', su: 'su', le: 'le', mejor: 'Su mejor guerra', victima: 'Su víctima favorita', negra: 'Su bestia negra', gana: 'le gana', pierde: 'le gana' };
+  return `<label class="campo"><span>Números de</span><select data-c="numerosDe">${claves.map((k) => `<option value="${esc(k)}" ${k === quien ? 'selected' : ''}>${esc(k === c.persona ? personas[k].nombre + ' (tú)' : personas[k].nombre)}</option>`).join('')}</select></label>
+    ${!total ? `<div class="caja"><p>${esc(nom)} aún no ha librado ninguna batalla.</p></div>` : `
+    <div class="rejilla3">${dato(total, total === 1 ? 'Batalla' : 'Batallas')}${dato(pct(n.g, total) + '%', 'Victorias')}${dato(n.racha, 'Racha de victorias')}
+      ${dato(n.g + '-' + n.e + '-' + n.p, 'G-E-P')}${dato(pct(n.vf, n.vf + n.vc) + '%', 'Votos a favor')}${dato(n.guerras, n.guerras === 1 ? 'Guerra' : 'Guerras')}</div>
+    <section class="caja"><h2 class="h2">Rachas</h2>
+      <p class="med"><strong class="teal">${plural(n.racha, 'victoria seguida', 'victorias seguidas')}</strong> <span class="t2">como mejor racha${n.rachaDonde.length ? ', en ' + esc(enumerar(n.rachaDonde)) : ''}.</span></p>
+      <p class="med"><strong class="rosa">${plural(n.sequia, 'derrota seguida', 'derrotas seguidas')}</strong> <span class="t2">en ${T.su} peor travesía del desierto.</span></p>
+      <p class="med t2">En total, ${plural(n.vf, 'voto', 'votos')} a favor y ${n.vc} en contra.</p></section>
+    ${n.mejor ? `<section class="caja oro"><h2 class="h2">${T.mejor}</h2><p class="med"><strong>${esc(n.mejor.c.nombre)}</strong> <span class="t2">· ${fecha(n.mejor.c.fecha)}</span></p>
+      <p class="med">${n.mejor.c.campeon && n.mejor.pos === 1 ? '<span class="oro">Campeón</span>' : ordinal(n.mejor.pos) + ' puesto'} <span class="t2">con ${n.mejor.g}-${n.mejor.e}-${n.mejor.p}.</span></p></section>` : ''}
+    ${preguntas.length ? `<section class="caja"><h2 class="h2">Por pregunta</h2>${preguntas.map((q) => { const t = q.g + q.e + q.p, v = pct(q.g, t); return `<div class="col g4"><div class="fila entre"><span class="med">${esc(q.texto)}</span><strong class="${v >= 50 ? 'teal' : 'rosa'}">${v}%</strong></div>
+      <div class="medidor"><i style="width:${v}%"></i></div><span class="peq t2">${q.g}-${q.e}-${q.p} en ${plural(t, 'batalla', 'batallas')}</span></div>`; }).join('')}</section>` : ''}
+    ${victima || negra ? `<section class="caja"><h2 class="h2">Contra quién</h2>
+      ${victima ? `<div class="fila g12">${circulo(victima.g, 'grande')}<span class="col g4"><span class="med t2">${T.victima}:</span><strong>${esc(victima.g.nombre)}</strong><span class="med t2">${T.gana.charAt(0).toUpperCase() + T.gana.slice(1)} ${victima.gano} a ${victima.pierdo}</span></span></div>` : ''}
+      ${negra ? `<div class="fila g12">${circulo(negra.g, 'grande rosa')}<span class="col g4"><span class="med t2">${T.negra}:</span><strong>${esc(negra.g.nombre)}</strong><span class="med t2">${T.le === 'te' ? 'Te gana' : 'Le gana'} ${negra.pierdo} a ${negra.gano}</span></span></div>` : ''}</section>` : ''}
+    ${n.des ? `<p class="peq rosa centro">${plural(n.des, 'deserción', 'deserciones')}: esas guerras no cuentan en los números.</p>` : ''}`}
+    <p class="peq t2 centro">Suma todas las guerras que ves en las crónicas.</p>`;
+}
+accion('numerosDe', (v, el) => { S.ui.numerosDe = el.value; pintar(); });
+
 registrar('/cronicas', () => {
   const c = S.ui.cronicas;
   if (!S.est || !c) return marco(cargando('Abriendo las crónicas'), { fondo: 'a' });
   const pest = S.ui.pestanaCronicas || 'guerras';
-  const tabs = [['guerras', 'Guerras'], ['escalafon', 'Escalafón'], ['medallero', 'Medallero']];
-  const cuerpo = pest === 'escalafon' ? pestanaEscalafon() : pest === 'medallero' ? pestanaMedallero() : pestanaGuerras();
+  const tabs = [['guerras', 'Guerras'], ['escalafon', 'Escalafón'], ['medallero', 'Medallero'], ['numeros', 'Números']];
+  const cuerpo = pest === 'escalafon' ? pestanaEscalafon() : pest === 'medallero' ? pestanaMedallero() : pest === 'numeros' ? pestanaNumeros() : pestanaGuerras();
   return marco(`<header class="col g4"><div class="sobre">Palmarés</div><h1 class="h1">Crónicas</h1></header>
     <div class="opciones" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${pest === k}" aria-pressed="${pest === k}" data-a="pestanaCronicas" data-v="${k}">${t}</button>`).join('')}</div>
     ${cuerpo}

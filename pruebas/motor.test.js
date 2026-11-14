@@ -53,7 +53,7 @@ function declarar(w, id) {
 function votarTodo(w, g, quien, elegir, cuantas) {
   const est = w.do('estado', { token: g.tok[quien] });
   let n = 0;
-  est.batallas.filter((b) => b.mia && !b.voto).forEach((b) => {
+  est.batallas.filter((b) => b.mia && !b.voto && !(est.guerra.cuadro && b.of < est.guerra.cuadro.actual)).forEach((b) => {
     if (cuantas != null && n >= cuantas) return;
     const fa = g.doc.gente.findIndex((x) => x.id === b.a), fb = g.doc.gente.findIndex((x) => x.id === b.b);
     const elegido = elegir ? elegir(b, g.nombre[b.a], g.nombre[b.b]) : (fa < fb ? b.a : b.b);
@@ -400,6 +400,78 @@ prueba('frases propias del narrador: se guardan para todas las guerras y van pri
   const borrar = rep.frases[0].id;
   assert.strictEqual(w.mando('guardarFrase', { borrar }).frases.length, 2);
   assert.strictEqual(w.mando('narrador', {}).frases.length, 2);
+});
+
+prueba('torneo por eliminatorias: cuadro con exentos, rondas, 3.er puesto y desfile', () => {
+  const w = mundo(59);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 6), plan: { formato: 'torneo', ritmo: 'diaria' } });
+  assert.strictEqual(w.mando('plan', { guerra: id }).plan.formato, 'torneo');
+  const g = declarar(w, id);
+  let est = w.do('estado', { token: g.tok['María'] });
+  const c = est.guerra.cuadro;
+  assert.strictEqual(est.guerra.formato, 'torneo');
+  assert.strictEqual(est.guerra.ofensivas, 3, '6 combatientes: 3 rondas');
+  assert.strictEqual(c.rondas[0].length, 4);
+  assert.strictEqual(c.rondas[0].filter((nd) => !nd.b).length, 2, 'dos exentos');
+  assert.ok(c.rondas[0].filter((nd) => !nd.b).every((nd) => nd.pasa === nd.a), 'los exentos ya pasan');
+  assert.strictEqual(w.doc(id).batallas.length, 2, 'sólo los cruces de la primera ronda');
+  assert.ok(est.guerra.ordenanzas.some((r) => r.t === 'Torneo por eliminatorias') && !est.guerra.ordenanzas.some((r) => r.t === 'Los puntos'));
+  w.falla('torneo', () => w.mando('armisticio', { guerra: id, decisiones: {} }));
+  // Primera ronda: votan todos y se cierra sola.
+  NOMBRES.slice(0, 6).forEach((n) => votarTodo(w, g, n));
+  const n0 = w.correos.length;
+  w.pasa(20000);
+  est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.cuadro.actual, 2);
+  assert.ok(est.guerra.cuadro.rondas[0].every((nd) => nd.pasa), 'se sabe quién pasa');
+  assert.ok(!JSON.stringify(est.guerra.cuadro).includes('"va"'), 'sin votos');
+  assert.strictEqual(est.guerra.cuadro.rondas[1].length, 2);
+  assert.ok(w.correos.slice(n0).some((m) => /se abren las semifinales/.test(m.asunto) && /Pasan de ronda/.test(m.html)), 'correo de nueva ronda');
+  // Semifinales: el alto mando cierra la ronda sin esperar a todos.
+  votarTodo(w, g, 'María');
+  const r = w.mando('cerrarRonda', { guerra: id });
+  assert.strictEqual(r.cerrada, 2);
+  est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.cuadro.actual, 3);
+  assert.ok(est.guerra.cuadro.tercero && est.batallas.some((b) => b.tercero), 'se juega el 3.er puesto');
+  NOMBRES.slice(0, 6).forEach((n) => votarTodo(w, g, n));
+  w.pasa(20000);
+  est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.guerra.fase, 'terminada');
+  assert.strictEqual(est.guerra.cuadro.rondas[2][0].pasa, null, 'la final no se sabe hasta el desfile');
+  const doc = w.doc(id), fin = doc.cuadro.rondas[2][0], ter = doc.cuadro.tercero;
+  const tabla = doc.resultado.tabla;
+  assert.strictEqual(tabla[0].id, fin.pasa);
+  assert.strictEqual(tabla[1].id, fin.pasa === fin.a ? fin.b : fin.a);
+  assert.strictEqual(tabla[2].id, ter.pasa);
+  assert.strictEqual(tabla.length, 6);
+  assert.strictEqual(doc.resultado.empate, null);
+  w.mando('desfile', { guerra: id, orden: 'empezar' });
+  const pasos = w.doc(id).desfile.pasos.map((p) => p.t);
+  assert.ok(pasos.includes('finalistas') && pasos[pasos.length - 1] === 'campeon' && !pasos.includes('duelo'));
+});
+
+prueba('torneo: un cruce empatado lo gana el mejor del escalafón', () => {
+  const w = mundo(61);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
+  const g1 = declarar(w, id);
+  NOMBRES.slice(0, 4).forEach((n) => votarTodo(w, g1, n));
+  w.pasa(60000); w.do('estado', { token: g1.tok['María'] });
+  w.mando('publicar', { guerra: id });
+  const { id: id2 } = w.mando('contraofensiva', { guerra: id });
+  w.mando('guardarPlan', { guerra: id2, plan: { formato: 'torneo' } });
+  const g2 = declarar(w, id2);
+  const rangos = w.doc(id2).rangos;
+  assert.strictEqual(Object.keys(rangos).length, 4, 'rangos sacados del escalafón');
+  // Empate en el primer cruce: cada votante elige de forma que queden igualados.
+  const doc = w.doc(id2), nd = doc.cuadro.rondas[0][0];
+  const votan = NOMBRES.slice(0, 4).filter((n) => g2.id[n] !== nd.a && g2.id[n] !== nd.b);
+  w.do('votar', { token: g2.tok[votan[0]], batalla: nd.bid, elegido: nd.a });
+  w.do('votar', { token: g2.tok[votan[1]], batalla: nd.bid, elegido: nd.b });
+  w.pasa(20000);
+  w.mando('cerrarRonda', { guerra: id2 });
+  const pasa = w.doc(id2).cuadro.rondas[0][0].pasa;
+  assert.strictEqual(pasa, rangos[nd.a] < rangos[nd.b] ? nd.a : nd.b);
 });
 
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {

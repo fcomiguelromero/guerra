@@ -104,6 +104,10 @@ export function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 export const tituloGuerra = (g) => (g ? g.nombre + (g.campo ? ' · ' + g.campo : '') : '');
+export function nombreRonda(r, total) {
+  const f = total - r;
+  return f === 0 ? 'Final' : f === 1 ? 'Semifinales' : f === 2 ? 'Cuartos de final' : f === 3 ? 'Octavos de final' : 'Ronda ' + r;
+}
 export const plural = (n, uno, varios) => n + ' ' + (n === 1 ? uno : varios);
 export const signo = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n);
 export const ordinal = (n) => n + (n === 1 || n === 3 ? '.er' : '.º');

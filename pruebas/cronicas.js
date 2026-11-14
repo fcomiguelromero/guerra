@@ -67,6 +67,15 @@ async function guerra(nombre, gente, fuerza, desertor) {
     await p.locator('[data-a="pestanaCronicas"][data-v="medallero"]').click(); await p.waitForTimeout(200);
     await p.screenshot({ path: path.join(SALIDA, '3-medallero.png'), fullPage: true });
     assert.ok(/sargento/i.test(await p.locator('body').innerText()), 'tres guerras terminadas: sargento');
+    await p.locator('[data-a="pestanaCronicas"][data-v="numeros"]').click(); await p.waitForTimeout(200);
+    let tn = await p.locator('#app').innerText();
+    assert.ok(/Racha de victorias/i.test(tn) && /Por pregunta/i.test(tn) && /Tu mejor guerra/i.test(tn), 'números propios');
+    assert.ok(/\d+%/.test(tn));
+    await p.screenshot({ path: path.join(SALIDA, '3b-numeros.png'), fullPage: true });
+    const otra = await p.locator('[data-c="numerosDe"] option').evaluateAll((os) => os.map((o) => o.value));
+    await p.selectOption('[data-c="numerosDe"]', otra[0]); await p.waitForTimeout(200);
+    tn = await p.locator('#app').innerText();
+    assert.ok(/Su mejor guerra|Tu mejor guerra/i.test(tn), 'números de otro combatiente');
     const pc = await (await nav.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
     pc.on('pageerror', (e) => errores.push(e.message));
     await pc.goto(BASE + '#t=' + tokenJavier); await pc.waitForLoadState('networkidle');

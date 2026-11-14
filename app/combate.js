@@ -2,6 +2,7 @@
 import { botonCartel } from './carteles.js';
 import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
+import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
 
@@ -57,7 +58,11 @@ function avisoTermo(id) {
   }, GRACIA + 5500);
 }
 // Con una ofensiva al día, sólo se pueden votar las batallas de las ofensivas ya abiertas.
-const votables = () => { const ab = S.est.guerra.abiertas || S.est.guerra.ofensivas; return mias().filter((b) => b.of <= ab); };
+const votables = () => {
+  const g = S.est.guerra, ab = g.abiertas || g.ofensivas;
+  // En un torneo sólo se vota la ronda en juego; lo que quedó sin votar en las cerradas, se perdió.
+  return mias().filter((b) => (g.cuadro && g.fase === 'abierta' ? b.of === g.cuadro.actual || (b.of < g.cuadro.actual && b.voto) : b.of <= ab));
+};
 function cuando(ts) {
   const d = new Date(ts), dia = (x) => new Date(x).setHours(0, 0, 0, 0);
   const dias = Math.round((dia(ts) - dia(ahoraServidor())) / 86400000);
@@ -118,7 +123,7 @@ function navegador(lista, i, llevas) {
   }).join('');
   return `<div class="col" style="gap:6px"><div class="fila entre">
       <button class="cuadro" data-a="mover" data-v="-1" aria-label="Batalla anterior" ${i === 0 ? 'disabled' : ''}>${ico('izq')}</button>
-      <div class="col g4" style="align-items:center"><div class="bc" style="font-weight:700;font-size:20px;color:#fff">Ofensiva ${b.of} de ${of}</div>
+      <div class="col g4" style="align-items:center"><div class="bc" style="font-weight:700;font-size:20px;color:#fff">${S.est.guerra.cuadro ? (b.tercero ? 'Por el 3.er puesto' : nombreRonda(b.of, of)) : `Ofensiva ${b.of} de ${of}`}</div>
         <div class="peq t2">Batalla ${enOf.indexOf(b) + 1} de ${enOf.length}${llevas ? ' · ' + llevas : ''}</div></div>
       <button class="cuadro" data-a="mover" data-v="1" aria-label="Batalla siguiente" ${i === lista.length - 1 ? 'disabled' : ''}>${ico('der')}</button>
     </div><div class="tramos" aria-hidden="true">${tramos}</div></div>`;
@@ -148,6 +153,19 @@ function pantallaAbierta() {
   const v = votables();
   if (!v.length) S.ui.repaso = false;
   const hechas = m.filter((b) => b.voto).length, ab = e.guerra.abiertas || e.guerra.ofensivas;
+  if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso) {
+    const c = e.guerra.cuadro, ronda = nombreRonda(c.actual, c.R);
+    return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
+      <main class="col g12" style="flex:1;justify-content:center">
+        <div class="caja teal centro" style="align-items:center;padding:20px 14px">
+          <div class="enorme teal" style="font-size:40px">¡${c.actual === c.R ? 'Final votada' : 'Ronda cumplida'}!</div>
+          <p class="t3">Has votado ${v.filter((b) => b.of === c.actual).length ? 'todos los cruces de ' + (ronda === 'Final' ? 'la final' : ronda === 'Semifinales' ? 'las semifinales' : 'los ' + ronda.toLowerCase()) : 'lo que te tocaba'}.</p>
+          <p class="bc" style="font-weight:700;font-size:22px;color:#fff">${c.actual === c.R ? 'El campeón se sabrá en el desfile' : 'La siguiente ronda se abre cuando vote todo el mundo'}</p>
+          <p class="med t2">${c.actual === c.R ? 'Cuando vote todo el mundo, se acaba el torneo.' : 'Te avisaremos por correo, con quién pasa.'}</p>${resumenTermo()}
+          <div class="fila" style="gap:8px;width:100%"><button class="btn linea medio crece" data-a="ir" data-v="/cuadro">Ver el cuadro</button><button class="btn linea medio crece" data-a="repaso">Repasar mis votos</button></div>
+        </div>${apuestasPropias()}${barraRetirada()}
+      </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
+  }
   if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso) {
     return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
@@ -178,7 +196,7 @@ function pantallaAbierta() {
       <div class="fila" style="gap:10px"><button class="btn crece" data-a="votar" data-v="a">¡Por ${esc(a.nombre)}!</button><button class="btn rosa crece" data-a="votar" data-v="b">¡Por ${esc(c.nombre)}!</button></div>`;
   return marco(`${tickerRadio()}
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
-    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}
+    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col" style="flex:1;justify-content:center;gap:10px">
       <div class="duelo">${carta(a, { clase: b.voto === a.id ? '' : b.voto ? 'gris' : '' })}${carta(c, { clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' : '') })}<div class="vs" aria-hidden="true">VS</div></div>
       ${votada}${barraRetirada()}${apuestasPropias()}
@@ -275,7 +293,7 @@ function pantallaTerminada() {
     <p class="t3">Ya ha votado todo el mundo. ${puedeEspiar ? 'Antes del desfile puedes mandar al espía a descubrir quién ganó un combate: sólo uno, y sin ver los puntos.' : e.guerra.extras.desfile ? 'El parte de guerra se revelará en el desfile.' : 'El alto mando publicará el parte de guerra.'}</p>
     ${porra}${espia}
     <section class="caja"><h2 class="h2">${e.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med teal">Todos han votado</p>
-      <p class="med t3">${esc(e.guerra.desfileInfo || (e.guerra.extras.desfile ? 'El alto mando anunciará el día y la hora.' : 'El alto mando lo publicará en breve.'))}</p>${botonesCalendario(e.guerra)}</section>
+      <p class="med t3">${esc(e.guerra.desfileInfo || (e.guerra.extras.desfile ? 'El alto mando anunciará el día y la hora.' : 'El alto mando lo publicará en breve.'))}</p>${botonesCalendario(e.guerra)}${e.guerra.cuadro ? '<button class="btn linea medio" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}</section>
     ${bajas()}`, { lateral: lateral() });
 }
 accion('espiar', async () => {
@@ -366,6 +384,35 @@ function etiquetaSiguiente(s) {
   return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas, pantallaDesfile };
+
+// Cuadro del torneo: una columna por ronda. Quién pasa se sabe al cerrar cada ronda; los votos, al publicar el parte.
+registrar('/cuadro', () => {
+  if (!S.est) return marco(cargando('Desplegando el cuadro'));
+  const e = S.est, c = e.guerra.cuadro, G = gente();
+  if (!c) return marco('<div class="caja"><p>Esta guerra no es un torneo.</p></div>');
+  const marc = {};
+  if (e.resultado) e.resultado.batallas.forEach((b) => { marc[b.id] = b; });
+  const plazas = 2 ** c.R;
+  const lado = (id, nd, rival) => {
+    if (!id) return `<div class="cruce-lado vacio"><span class="avatar chico">?</span><span class="t2">${rival === undefined ? 'Por decidir' : 'Pasa sin combatir'}</span></div>`;
+    const gana = nd.pasa === id, pierde = nd.pasa && nd.pasa !== id, b = marc[nd.bid];
+    const votos = b ? (b.a === id ? b.va : b.vb) : null;
+    return `<div class="cruce-lado ${gana ? 'gana' : ''} ${pierde ? 'cae' : ''}">${avatar(G[id], 'chico')}<span class="crece">${esc(nombreDe(G[id]))}</span>${votos != null ? `<b>${votos}</b>` : gana ? ico('visto', 16) : ''}</div>`;
+  };
+  const cruce = (nd) => `<div class="cruce ${nd.bid ? '' : 'libre'}">${lado(nd.a, nd)}${nd.b || nd.bid ? lado(nd.b, nd) : lado(null, nd, null)}</div>`;
+  const futura = () => `<div class="cruce">${lado(null, {}, undefined)}${lado(null, {}, undefined)}</div>`;
+  const columnas = Array.from({ length: c.R }, (_, i) => {
+    const nodos = c.rondas[i], cuantos = plazas / 2 ** (i + 1);
+    const actual = e.guerra.fase === 'abierta' && i + 1 === c.actual;
+    return `<div class="ronda ${actual ? 'actual' : ''}"><h3 class="bc">${nombreRonda(i + 1, c.R)}${actual ? ' <span class="chapa">En juego</span>' : ''}</h3>
+      <div class="ronda-cruces">${(nodos || Array.from({ length: cuantos }, () => null)).map((nd) => (nd ? cruce(nd) : futura())).join('')}</div></div>`;
+  }).join('');
+  return marco(`${cabecera('El cuadro')}
+    <p class="med t2">${e.guerra.fase === 'publicada' ? 'El torneo completo, con los votos de cada cruce.' : 'Quién pasa se sabe al cerrar cada ronda. Los votos de cada cruce y la final, en ' + (e.guerra.extras.desfile ? 'el desfile.' : 'el parte final.')}</p>
+    <div class="cuadro-torneo">${columnas}</div>
+    ${c.tercero ? `<section class="col g4"><h3 class="bc oro" style="font-size:20px">Por el 3.er puesto</h3>${cruce(c.tercero)}</section>` : ''}
+    <button class="btn linea medio" data-a="ir" data-v="${S.mando && !S.est.yo ? '/cuartel' : '/batallas'}">Volver</button>`, S.est.yo ? { lateral: lateral() } : {});
+});
 
 // La frase del narrador, debajo de cada puesto.
 const narrador = (frase, chica) => (frase ? `<p class="narrador${chica ? ' chica' : ''}">${ico('micro', chica ? 14 : 18)}<span>${esc(frase)}</span></p>` : '');
@@ -464,7 +511,7 @@ function pantallaPublicada() {
         <div class="col g12"><div class="enorme oro">1.er puesto</div>${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
         ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</span></div>` : ''}
         <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}${botonAlbum()}</div></div></div>`}
-    <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}</section>
+    <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}${e.guerra.cuadro ? '<button class="btn linea medio" data-a="ir" data-v="/cuadro">Ver el cuadro del torneo</button>' : ''}</section>
     ${mia ? `<section class="caja"><h2 class="h2">Tu guerra</h2>
       <div class="fila g12">${avatar(G[mia.companero.id], 'grande')}<span class="col g4"><strong>Compañero de trinchera: ${esc(G[mia.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${mia.companero.n} de ${mia.companero.de} batallas</span></span></div>
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>Enemigo íntimo: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
