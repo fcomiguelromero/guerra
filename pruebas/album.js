@@ -70,9 +70,19 @@ async function jugar(id, tok) {
     for (const p of inf.proclamas.slice(0, 3)) await api('estrella', { guerra: id, batalla: p.batalla, de: p.de, si: true });
     assert.strictEqual(inf.resultado.preguntas.length, 3);
     await api('desfile', { guerra: id, orden: 'empezar' });
-    let vio = false;
+    let vio = false, vioPuesto = false;
     for (let k = 0; k < 60; k++) {
       const s = await api('estado', { token: tok['María'] });
+      if (s.desfile.actual.t === 'puesto' && !vioPuesto) {
+        await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(300);
+        assert.strictEqual(await ma.locator('.narrador').innerText(), s.desfile.actual.frase, 'la frase del narrador bajo el puesto');
+        await ma.screenshot({ path: path.join(SALIDA, '0-desfile-narrador.png'), fullPage: true });
+        const fr = await pagina('#mando=mando-local');
+        await fr.locator(`[data-a="abrirGuerra"][data-v="${id}"]`).click();
+        await fr.waitForSelector('text=Para leer en voz alta');
+        await fr.screenshot({ path: path.join(SALIDA, '0-mando-narrador.png'), fullPage: true });
+        vioPuesto = true;
+      }
       if (s.desfile.actual.t === 'pregunta' && !vio) {
         await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(300);
         assert.ok(/Pregunta 1 de 3/i.test(await ma.locator('#app').innerText()), 'paso del desfile de la pregunta');
@@ -83,6 +93,7 @@ async function jugar(id, tok) {
       await api('desfile', { guerra: id, orden: 'siguiente' });
     }
     assert.ok(vio, 'el desfile pasa por los campeones de cada pregunta');
+    assert.ok(vioPuesto, 'el desfile pasa por algún puesto con narrador');
     await api('desfile', { guerra: id, orden: 'terminar' });
     await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(300);
     assert.ok(/Campeones por pregunta/i.test(await ma.locator('#app').innerText()));
@@ -111,8 +122,9 @@ async function jugar(id, tok) {
     const plato = s2.batallas.find((b) => b.delDia && b.of === 1);
     assert.ok(plato && /^(Revancha|La gran rivalidad|Duelo en el escalafón)/.test(plato.motivo), 'plato fuerte con motivo');
     const m2 = await pagina('#t=' + tok2[NOMBRES.find((n) => { const g = s2.gente.find((x) => x.nombre === n); return g.id !== plato.a && g.id !== plato.b; })]);
-    for (let k = 0; k < 8 && !(await m2.locator('[data-a="apostar"]').count()); k++) { await m2.locator('[data-a="votar"][data-v="a"]').click(); await m2.waitForTimeout(200); }
-    assert.ok(new RegExp(plato.motivo.slice(0, 12)).test(await m2.locator('#app').innerText()), 'el motivo se ve en la app');
+    for (let k = 0; k < 12 && !(await m2.locator('#app').innerText()).includes(plato.motivo); k++) { await m2.locator('[data-a="votar"][data-v="a"]').click(); await m2.waitForTimeout(200); }
+    await m2.screenshot({ path: path.join(SALIDA, '4-plato-fuerte.png'), fullPage: true });
+    assert.ok((await m2.locator('#app').innerText()).includes(plato.motivo), 'el motivo se ve en la app: ' + plato.motivo);
     await m2.screenshot({ path: path.join(SALIDA, '4-plato-fuerte.png'), fullPage: true });
   } finally { await nav.close(); servidor.kill(); }
   if (errores.length) { console.log('ERRORES:\n' + errores.join('\n')); process.exit(1); }

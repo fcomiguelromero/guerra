@@ -96,8 +96,8 @@ const texto = (p) => p.locator('#app').innerText();
       if (await ma.locator('[data-a="apostar"]').count() && !aposte) {
         assert.ok(/Batalla del día/i.test(await texto(ma)), 'la batalla del día se anuncia');
         await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300);
-        assert.strictEqual(await ma.locator('[data-a="apostar"]').first().getAttribute('aria-pressed'), 'true');
         await ma.waitForLoadState('networkidle');
+        assert.ok((await api('estado', { token: tok['María'] })).batallas.some((b) => b.delDia && b.apuesta), 'la apuesta queda hecha');
         await foto(ma, '02a-batalla-del-dia');
         aposte = true;
       }

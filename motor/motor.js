@@ -12,7 +12,7 @@ var MARGEN = 4000;           // holgura por la latencia de la red
 var DIA = 86400000;
 var DUELO_SEG = 60;
 var HORA_OFENSIVA = 9;     // con una ofensiva al día, la nueva se abre a las 9:00
-var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta', 'termometro', 'apuestas'];
+var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta', 'termometro', 'apuestas', 'narrador'];
 var GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
 
 // ---------------------------------------------------------------- utilidades
@@ -365,6 +365,100 @@ function aplicarDuelo(doc, res) {
   res.porra = puntuarPorras(doc, res.tabla);
 }
 
+// ------------------------------------------------------------ narrador del desfile
+// Una frase con retranca para cada puesto, según cómo le fue a cada uno. Sin adjetivos con género,
+// para que valgan para cualquiera. La misma frase para todos los que miran el desfile.
+var FRASES = {
+  pleno: ['{n} no ha perdido ni una: {victorias} de {batallas}. Esto ya no es normalidad, es una apisonadora.',
+    'Pleno de victorias para {n}. Que alguien revise las urnas, por si acaso.'],
+  imbatible: ['{n} se lleva la guerra sin conocer la derrota. {empates} para disimular.',
+    'Ni una batalla perdida: {n} gana la guerra con la tranquilidad de quien ha hecho los deberes.'],
+  duelo: ['Empate a puntos y duelo a vida o muerte: {n} se lleva la gloria en la prórroga.',
+    'Hizo falta un duelo final para decidirlo, y {n} no tembló.'],
+  ajustado: ['Por la mínima: {n} gana con el corazón en un puño y {segundo} pisándole los talones.',
+    '{n} gana la guerra con el aliento de {segundo} en la nuca. Ha estado cerca, muy cerca.'],
+  campeon: ['La patria tiene quien la represente: {n}, con {puntos}.',
+    '{n} se alza con la victoria. {puntos} y la medalla bien colgada.',
+    '{n} gana la guerra. Que vayan preparando el monumento en la plaza del pueblo.'],
+  casi: ['{n} se queda a las puertas, a {dpts} de la gloria. Tan cerca y tan lejos.',
+    'Plata con sabor amargo para {n}: le faltó un pelo. Bueno, {dpts}.'],
+  segundo: ['Plata para {n}: el primero de los que no han ganado, que no es poco.',
+    '{n}, 2.º puesto. Nadie se acuerda del segundo… salvo en este desfile.'],
+  tercero: ['Bronce para {n}: podio y ninguna responsabilidad.',
+    '{n} sube al podio por la escalera de servicio, pero sube.'],
+  blanco: ['{n} cierra la tabla sin una sola victoria. La retaguardia también es un puesto de honor.',
+    'Cero victorias para {n}. Hay quien nace para la paz.'],
+  ultimo: ['Farolillo rojo para {n}. Alguien tenía que sujetar la tabla por abajo.',
+    '{n} cierra la tabla con la dignidad de quien llega el último a la cena.'],
+  penultimo: ['{n}, penúltimo puesto: sólo hubo alguien por detrás, y ya sabemos quién.',
+    '{pos} para {n}. Por poco no le toca cerrar la tabla.'],
+  racha: ['{n} llegó a encadenar {racha} victorias seguidas. Luego se le acabó la gasolina.',
+    '{racha} victorias seguidas de {n} en plena contienda. Lástima que la guerra fuese más larga.'],
+  empates: ['{n} firmó {empates}: diplomacia de primer nivel en plena guerra.',
+    'Con {empates}, {n} demostró que también se puede no mojarse.',
+    '{empates} de {n}. En tiempos de guerra, alguien tiene que repartir abrazos.'],
+  injusto: ['Con una diferencia de {dif} votos a favor, {n} merecía más. La guerra es así de injusta.',
+    '{n} recibió más votos de los que le dieron en contra y aun así acaba {pos}. Que lo revise el VAR.'],
+  paliza: ['{n} recibió {contra} votos en contra. Más que un penalti en el último minuto.',
+    'La tropa no tuvo piedad con {n}: {contra} votos en contra.'],
+  equilibrio: ['{victorias} y {derrotas}: {n}, el equilibrio hecho persona.',
+    '{n} ganó tantas como perdió. Si eso no es normalidad, que venga alguien y lo vea.'],
+  tropa: ['{n}, {pos} puesto. Ni gloria ni deshonra: tropa de la buena.',
+    '{pos} para {n}. Sirvió a la patria sin hacer ruido.',
+    '{n} termina {pos}. Ni medalla ni consejo de guerra: la normalidad en persona.',
+    '{pos} puesto para {n}, con {puntos}. Correcto, como un informe sin faltas de ortografía.'],
+  comodin: ['{n}, {pos} puesto. La historia lo recordará, probablemente en una nota a pie de página.',
+    '{pos} para {n}: ni en la foto del podio ni en el consejo de guerra. Zona templada.',
+    '{n} acaba {pos} con {puntos}. Hay guerras que se ganan y guerras que se cuentan en la cena.',
+    '{n}, {pos}. Se esperaba más, se esperaba menos; ha salido esto.',
+    '{pos} puesto para {n}. Volverá, y esta vez con estrategia.']
+};
+function narrar(doc, r) {
+  if (doc.extras && doc.extras.narrador === false) return {};
+  var t = r.tabla, n = t.length, usadas = {}, res = {}, nombres = porId(doc.gente);
+  var semilla = function (s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000003; return h; };
+  var racha = function (id) {
+    var mejor = 0, va = 0;
+    r.batallas.filter(function (b) { return b.a === id || b.b === id; }).sort(function (x, y) { return x.of - y.of; }).forEach(function (b) {
+      var gana = (b.a === id && b.va > b.vb) || (b.b === id && b.vb > b.va);
+      va = gana ? va + 1 : 0; if (va > mejor) mejor = va;
+    });
+    return mejor;
+  };
+  t.forEach(function (f) {
+    var uno = t[0], dos = t[1], rc = racha(f.id), cat;
+    if (f.pos === 1) cat = f.p === 0 && f.e === 0 ? 'pleno' : r.empate || r.duelo ? 'duelo' : f.p === 0 ? 'imbatible' : dos && f.pts - dos.pts <= 1 && f.pts !== dos.pts ? 'ajustado' : 'campeon';
+    else if (f.pos === 2) cat = uno.pts - f.pts <= 1 ? 'casi' : 'segundo';
+    else if (f.pos === 3 && n > 3) cat = 'tercero';
+    else if (f.pos === n) cat = f.g === 0 ? 'blanco' : 'ultimo';
+    else if (f.pos === n - 1 && n >= 5) cat = 'penultimo';
+    else if (rc >= 3) cat = 'racha';
+    else if (f.e >= 2) cat = 'empates';
+    else if (f.dif >= 3) cat = 'injusto';
+    else if (f.dif <= -5) cat = 'paliza';
+    else if (f.g === f.p && f.g > 0) cat = 'equilibrio';
+    else cat = 'tropa';
+    // Si ya se usaron todas las de su tipo, se tira de las generales: ninguna frase se repite.
+    var cadena = [cat].concat(f.pos > 3 && f.pos < n ? ['tropa', 'comodin'] : []), frase = null;
+    cadena.forEach(function (c) {
+      if (frase) return;
+      var lista = FRASES[c], k = semilla(String(doc.id) + f.id) % lista.length;
+      for (var i = 0; i < lista.length; i++) { var cand = lista[(k + i) % lista.length]; if (!usadas[cand]) { frase = cand; return; } }
+    });
+    if (!frase) frase = FRASES[cat][0];
+    usadas[frase] = true;
+    var vars = {
+      n: nombres[f.id] ? nombres[f.id].nombre : '', pos: f.pos + (f.pos === 1 || f.pos === 3 ? '.er' : '.º'), puntos: plural(f.pts, 'punto', 'puntos'),
+      victorias: plural(f.g, 'victoria', 'victorias'), derrotas: plural(f.p, 'derrota', 'derrotas'), empates: plural(f.e, 'empate', 'empates'),
+      batallas: String(f.g + f.e + f.p), racha: String(rc), dif: String(f.dif), contra: String(f.vc),
+      dpts: plural(Math.max(0, (uno ? uno.pts : 0) - f.pts), 'punto', 'puntos'), segundo: dos && nombres[dos.id] ? nombres[dos.id].nombre : ''
+    };
+    res[f.id] = frase.replace(/\{(\w+)\}/g, function (m, v) { return vars[v] != null ? vars[v] : m; });
+    res[f.id] = res[f.id].charAt(0).toUpperCase() + res[f.id].slice(1);
+  });
+  return res;
+}
+
 // Orden del desfile: consejo de guerra, puestos de abajo arriba con proclamas intercaladas,
 // condecoraciones antes del podio, duelo final si hay empate y campeón.
 function pasosDesfile(doc) {
@@ -432,6 +526,7 @@ function ordenanzasAuto(doc) {
   if (x.apuestas) lista.push({ t: doc.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', x: 'En cada ofensiva hay una batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ', la misma para todos. Si quieres, apuesta quién crees que la ganará: no tiene por qué coincidir con tu voto.' +
     ' La apuesta se hace antes de votar esa batalla, y puedes cambiarla mientras no la votes. Si es uno de tus combates, también puedes apostar.' +
     ' Quien más acierte se lleva el título de «El adivino'+ '»' + (x.desfile ? ', que se revela en el desfile' : '') + '. A igualdad de aciertos, gana quien menos falló. Nadie sabrá qué apostaste.' });
+  if (x.desfile && x.narrador !== false) lista.push({ t: 'El narrador', x: 'En el desfile, cada puesto llega con su frase: un narrador con retranca que comenta cómo le fue a cada uno. Se calcula con los resultados, y al alto mando sólo le toca leerla en voz alta.' });
   if (x.espia) lista.push({ t: 'Tu espía', x: 'Cuando haya votado todo el mundo, puedes mandar al espía a descubrir quién ganó un combate. Sólo uno, y sin ver los puntos.' });
   if (x.desfile) lista.push({ t: 'El desfile de la victoria', x: 'El parte de guerra se revela en el desfile, del último puesto al primero' +
     (x.condecoraciones ? ', con condecoraciones al más rebelde, al más borrego y al más tardón.' : '.') +
@@ -822,7 +917,7 @@ function crearMotor(env) {
     };
   }
   function vistaDesfile(doc, yo) {
-    var df = doc.desfile, r = doc.resultado, fila = {};
+    var df = doc.desfile, r = doc.resultado, fila = {}, narrador = narrar(doc, r);
     r.tabla.forEach(function (f) { fila[f.pos] = f; });
     var vistos = df.pasos.slice(0, df.paso + 1), revelados = [], premios = [], campeonesPregunta = [];
     vistos.forEach(function (p) {
@@ -837,7 +932,7 @@ function crearMotor(env) {
       var orden = r.desertores.map(function (d) { return d.id; });
       Object.assign(actual, { id: paso.id, sentencia: des.sentencia, faltaban: des.faltaban, n: orden.indexOf(paso.id) + 1, de: orden.length });
     } else if (paso.t === 'puesto') {
-      Object.assign(actual, { pos: paso.pos, fila: fila[paso.pos] });
+      Object.assign(actual, { pos: paso.pos, fila: fila[paso.pos], frase: narrador[fila[paso.pos].id] || '' });
     } else if (paso.t === 'proclama') {
       Object.assign(actual, proclamaDe(doc, paso.ref) || {}, { n: paso.n, de: paso.de });
     } else if (paso.t === 'condecoracion') {
@@ -851,7 +946,7 @@ function crearMotor(env) {
       var ord = doc.orden || [];
       actual.entre = [fila[1].id, fila[2].id].sort(function (x, y) { return ord.indexOf(x) - ord.indexOf(y); });   // orden del sorteo: no delata a nadie
     } else if (paso.t === 'campeon') {
-      Object.assign(actual, { fila: fila[1], segundo: fila[2] || null, porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null } });
+      Object.assign(actual, { frase: narrador[fila[1].id] || '', fraseSegundo: fila[2] ? narrador[fila[2].id] || '' : '', fila: fila[1], segundo: fila[2] || null, porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null } });
     }
     var sig = df.pasos[df.paso + 1] || null;
     return {
@@ -973,7 +1068,7 @@ function crearMotor(env) {
       plan: {
         id: doc.id, fase: doc.fase, nombre: doc.nombre, pregunta: doc.pregunta, otras: doc.otras || [], premio: doc.premio, botin: doc.botin, firma: doc.firma || '', campo: doc.campo || '', ritmo: doc.ritmo || 'golpe',
         pitch: doc.pitch || '', presenta: doc.presenta ? doc.id + '.' + doc.presenta : null,
-        modo: doc.modo, puntuacion: doc.puntuacion, extras: doc.extras, diana: doc.diana, correo: doc.correo,
+        modo: doc.modo, puntuacion: doc.puntuacion, extras: Object.assign({ narrador: true }, doc.extras), diana: doc.diana, correo: doc.correo,
         ordenanzas: doc.ordenanzas, ordenanzasAuto: ordenanzasAuto(doc), desfileInfo: doc.desfileInfo || '', desfileTs: doc.desfileTs || null, desfileFecha: doc.desfileFecha || '',
         llamamiento: doc.llamamiento, dueloPorPuntos: doc.dueloPorPuntos !== false,
         gente: doc.gente.map(function (g) {

@@ -40,7 +40,8 @@ function cajaApuesta(b, nota = '') {
 function apuestasPropias() {
   const e = S.est, ab = e.guerra.abiertas || e.guerra.ofensivas, id = yo().id;
   if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return '';
-  return e.batallas.filter((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id)).map((b) => {
+  // Una cada vez: la primera de sus batallas del día en la que aún no ha apostado.
+  return e.batallas.filter((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id) && !b.apuesta).slice(0, 1).map((b) => {
     const G = gente(), rival = G[b.a === id ? b.b : b.a];
     return cajaApuesta(b, `En esta combates tú, contra ${esc(rival.nombre)}. `);
   }).join('');
@@ -221,7 +222,11 @@ accion('apostar', (v) => {
   if (antes === elegido) return;
   b.apuesta = elegido; pintar();
   encolar(async () => {
-    try { await llamar('apostar', { batalla: b.id, elegido }, 2); }
+    try {
+      await llamar('apostar', { batalla: b.id, elegido }, 2);
+      const G = gente(), propia = b.a === yo().id || b.b === yo().id;
+      if (propia) aviso(`Apuesta hecha: ${elegido === yo().id ? 'por ti' : 'por ' + G[elegido].nombre}.`, true);
+    }
     catch (err) { b.apuesta = antes; aviso(err.codigo === 'red' ? 'Tu apuesta no ha llegado al cuartel general. Vuelve a intentarlo.' : err.message); pintar(); }
   });
 });
@@ -362,6 +367,9 @@ function etiquetaSiguiente(s) {
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas, pantallaDesfile };
 
+// La frase del narrador, debajo de cada puesto.
+const narrador = (frase, chica) => (frase ? `<p class="narrador${chica ? ' chica' : ''}">${ico('micro', chica ? 14 : 18)}<span>${esc(frase)}</span></p>` : '');
+
 // «ensayo» es la barra del ensayo privado del alto mando: con ella se pinta la vista que se le pasa, no el desfile real.
 function pantallaDesfile(vista, ensayo) {
   const e = S.est, d = vista || e.desfile, a = d.actual, G = gente();
@@ -375,7 +383,8 @@ function pantallaDesfile(vista, ensayo) {
         <p><span class="bc oro" style="font-weight:800;font-size:20px">Que conste en acta.</span> <span class="peq t2">Firmado: el alto mando</span></p></div>`;
   } else if (a.t === 'puesto') {
     centro = `<div class="bc oro centro" style="font-weight:800;font-size:32px;letter-spacing:.04em">${ordinal(a.pos)} puesto</div>
-      ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}`;
+      ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}
+      ${narrador(a.frase)}`;
   } else if (a.t === 'proclama') {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Proclamas anónimas</h2><span class="peq rosa" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">Proclama anónima · ${a.n} de ${a.de}</span></div>
       <blockquote class="cita" style="margin:0">«${esc(a.texto || '')}»</blockquote>
@@ -403,7 +412,8 @@ function pantallaDesfile(vista, ensayo) {
     centro = `<p class="sobre centro">${esc(e.guerra.pregunta)}</p>
       <div class="enorme oro centro">1.er puesto</div>
       ${carta(G[f.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(f)}<span class="t2">${textoBatallas(f)}</span><span class="t2">${signo(f.dif)}</span></div>` })}
-      ${a.segundo ? `<p class="centro"><span class="t2">2.º puesto:</span> <strong>${esc(nombreDe(G[a.segundo.id]))}</strong> <span class="t2">· ${plural(a.segundo.pts, 'punto', 'puntos')}</span></p>` : ''}
+      ${narrador(a.frase)}
+      ${a.segundo ? `<p class="centro"><span class="t2">2.º puesto:</span> <strong>${esc(nombreDe(G[a.segundo.id]))}</strong> <span class="t2">· ${plural(a.segundo.pts, 'punto', 'puntos')}</span></p>${narrador(a.fraseSegundo, true)}` : ''}
       ${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
       ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(a.porra.suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ', y se lleva' + (gana.length > 1 ? 'n' : '') + ' ' + esc(e.guerra.botin) : ''}.</span></div>` : ''}`;
   }

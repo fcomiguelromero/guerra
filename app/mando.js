@@ -11,6 +11,7 @@ const EXTRAS = [
   ['condecoraciones', 'Condecoraciones', 'El más rebelde (vota contra la mayoría), el más borrego (vota con ella) y el más tardón'], ['radio', 'Radio Macuto', 'Pullas anónimas con censura'],
   ['parte', 'Parte a mitad de contienda', 'Aviso con los rezagados, sin resultados'], ['corneta', 'Toque de corneta en el desfile', 'Suena en tu móvil'],
   ['termometro', 'Termómetro de la guerra', 'Tras votar, cada uno ve si va con la mayoría o contra ella, sin cifras'],
+  ['narrador', 'Narrador del desfile', 'Una frase con retranca para cada puesto, según sus resultados'],
   ['apuestas', 'Apuesta de la batalla del día', 'Adivinar quién gana una batalla de cada ofensiva; título de «El adivino»']
 ];
 const enlaceApp = () => location.origin + location.pathname;
@@ -601,6 +602,7 @@ function mandoDesfile() {
     <section class="caja"><h2 class="sobre" style="font-size:11px;letter-spacing:.14em">Ahora en todas las pantallas</h2>
       <div class="fila g12"><span class="col g4 crece"><span class="bc oro" style="font-weight:800;font-size:20px;letter-spacing:.04em">${esc(uno)}</span>
         <span class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(dos)}</span></span><span class="bc t2" style="font-weight:700;font-size:20px">${esc(tres)}</span></div>
+      ${d.actual.frase ? `<div class="caja oro" style="gap:6px;padding:10px 12px"><span class="sobre oro" style="font-size:11px">Para leer en voz alta</span><span style="font-size:18px;font-style:italic;color:#fff">«${esc(d.actual.frase)}»</span>${d.actual.fraseSegundo ? `<span class="med t3" style="font-style:italic">Y del 2.º: «${esc(d.actual.fraseSegundo)}»</span>` : ''}</div>` : ''}
       <p class="med t2">Paso ${d.paso + 1}${d.pendienteDuelo ? '' : ' de ' + d.pasos}${dueloAbierto ? ' · al pasar, el duelo se cierra con los votos que haya' : ''}</p></section>
     <button class="btn claro" style="height:72px;font-size:26px;font-weight:800;border-radius:16px" data-a="desfile" data-v="${d.ultimo ? 'terminar' : 'siguiente'}">${esc(etiquetaSiguiente(d.siguiente))}${d.ultimo ? '' : ico('flecha', 24)}</button>
     <button class="btn linea medio" data-a="desfile" data-v="anterior" ${d.paso === 0 ? 'disabled' : ''}>Anterior</button>

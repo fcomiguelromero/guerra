@@ -177,3 +177,8 @@ ul, ol { padding: 0; list-style: none; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .avatar.cara { width: 72px; height: 72px; font-size: 28px; border-width: 3px; }
 .termo { gap: 6px; font-size: 14px; } .termo.teal { color: var(--teal); } .termo.rosa { color: var(--rosa); }
+
+/* Narrador del desfile */
+.narrador { display: flex; gap: 8px; align-items: flex-start; justify-content: center; margin: 2px auto 0; max-width: 34em; font-style: italic; font-size: 17px; line-height: 1.4; color: #fff; text-align: center; }
+.narrador svg { flex: none; margin-top: 3px; color: var(--oro); }
+.narrador.chica { font-size: 14px; color: var(--txt2); }

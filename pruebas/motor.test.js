@@ -343,6 +343,34 @@ prueba('plato fuerte: en la segunda edición la batalla del día tiene su motivo
   delDia.forEach((b) => assert.strictEqual(b.id, platos[b.of].id));
 });
 
+prueba('narrador del desfile: una frase distinta para cada puesto, la misma para todos', () => {
+  const w = mundo(47);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 6) });
+  const g = declarar(w, id);
+  NOMBRES.slice(0, 6).forEach((n) => votarTodo(w, g, n));
+  w.pasa(60000);
+  w.do('estado', { token: g.tok['María'] });
+  w.mando('desfile', { guerra: id, orden: 'empezar' });
+  const frases = {};
+  for (let k = 0; k < 40; k++) {
+    const d = w.do('estado', { token: g.tok['María'] }).desfile, a = d.actual;
+    if (a.t === 'puesto' || a.t === 'campeon') {
+      const fila = a.fila;
+      assert.ok(a.frase && !/[{}]/.test(a.frase), 'frase completa: ' + a.frase);
+      assert.ok(a.frase.includes(w.doc(id).gente.find((x) => x.id === fila.id).nombre), 'lleva el nombre');
+      assert.strictEqual(w.do('estado', { token: g.tok['Andrés'] }).desfile.actual.frase, a.frase, 'la misma para todos');
+      frases[fila.id] = a.frase;
+      if (a.t === 'campeon' && a.segundo) { assert.ok(a.fraseSegundo); frases[a.segundo.id] = a.fraseSegundo; }
+    }
+    if (d.ultimo || a.t === 'duelo') break;
+    w.mando('desfile', { guerra: id, orden: 'siguiente' });
+  }
+  const lista = Object.values(frases);
+  assert.ok(lista.length >= 5);
+  assert.strictEqual(new Set(lista).size, lista.length, 'sin frases repetidas');
+  assert.ok(!/ 1 victorias| 1 puntos| 1 derrotas/.test(lista.join(' ')), 'singulares bien puestos');
+});
+
 prueba('borrar una guerra publicada: desaparece de crónicas, escalafón y grados', () => {
   const w = mundo(17);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { extras: { desfile: false } } });
