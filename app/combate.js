@@ -2,7 +2,7 @@
 import { botonCartel } from './carteles.js';
 import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
-import { icono, ILU } from './dibujos.js';
+import { icono, ILU, piezas } from './dibujos.js';
 import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
@@ -630,7 +630,7 @@ function dibujo(v, alto) { return v.ilu === 'vs' ? ILU.vs('#5ef0d0', '#ff6ad5', 
 
 registrar('/ordenanzas', () => {
   if (!S.est) return marco(cargando(), { sinNav: true });
-  const o = S.est.guerra.ordenanzas, abierta = S.ui.ordAbierta;
+  const o = S.est.guerra.ordenanzas;
   const tarjetas = o.slice(0, 5).map((r, k) => {
     const v = vestir(r), primera = frases(r.x)[0] || '';
     return `<article class="tarjeta-manual" style="--c:${v.color}"><span class="sobre" style="color:${v.color}">Ordenanza ${k + 1} · ${esc(r.t)}</span>
@@ -638,23 +638,22 @@ registrar('/ordenanzas', () => {
       <h2 class="bc">${esc(v.frase)}</h2><p class="med t2">${esc(primera)}</p></article>`;
   }).join('');
   const lista = o.map((r, k) => {
-    const v = vestir(r), ab = abierta === k, partes = frases(r.x);
-    return `<li class="regla ${ab ? 'abierta' : ''}" style="--c:${v.color}">
-      <button class="regla-cab" data-a="ordAbrir" data-v="${k}" aria-expanded="${ab}"><span class="regla-ico">${icono(v.ic, 26, 1.8)}</span>
-        <span class="col crece" style="gap:3px;min-width:0"><span class="regla-num">${k + 1} · ${esc(r.t)}</span><span class="bc regla-frase">${esc(v.frase)}</span></span>${icono(ab ? 'arriba' : 'abajo', 18)}</button>
-      ${ab ? `<div class="regla-cuerpo">${r.puntos ? '<div class="puntos310"><div><b>3</b>Ganar</div><div><b>1</b>Empatar</div><div><b>0</b>Perder</div></div>' : v.ilu && v.ilu !== 'vs' && v.ilu !== 'p310' ? `<div style="max-width:260px">${dibujo(v, 90)}</div>` : ''}
-        ${partes.length > 1 ? `<ul>${partes.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : `<p class="med t3" style="white-space:pre-line">${esc(r.x)}</p>`}</div>` : ''}
+    const v = vestir(r), partes = frases(r.x);
+    return `<li class="regla" style="--c:${v.color}">
+      <div class="regla-cab"><span class="regla-ico">${icono(v.ic, 26, 1.8)}</span>
+        <span class="col crece" style="gap:3px;min-width:0"><span class="regla-num">${k + 1} · ${esc(r.t)}</span><span class="bc regla-frase">${esc(v.frase)}</span></span></div>
+      <div class="regla-cuerpo">${r.puntos ? '<div class="puntos310"><div><b>3</b>Ganar</div><div><b>1</b>Empatar</div><div><b>0</b>Perder</div></div>' : ''}
+        ${partes.length > 1 ? `<ul>${partes.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : `<p class="med t3" style="white-space:pre-line">${esc(r.x)}</p>`}</div>
     </li>`;
   }).join('');
   return marco(`${cabecera('Manual de campaña')}
     ${S.est.guerra.desfileTs ? `<section class="caja"><h2 class="h2">${S.est.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med t3">${esc(S.est.guerra.desfileInfo)}</p>${botonesCalendario(S.est.guerra)}</section>` : ''}
     <section aria-label="Lo esencial, en tarjetas" class="col g8"><div class="carrusel">${tarjetas}</div>
       <p class="peq t2" style="text-align:right">Desliza para ver lo esencial →</p></section>
-    <div class="fila entre" style="align-items:baseline"><h2 class="h2">Todas las ordenanzas</h2><span class="peq t2">Toca para leer más</span></div>
+    <h2 class="h2">Todas las ordenanzas</h2>
     <ol class="reglas">${lista}</ol>
     <p class="bc centro" style="font-weight:800;font-size:22px;color:var(--oro)">¡Sólo puede quedar uno!</p>`, { fondo: 'a' });
 });
-accion('ordAbrir', (k) => { S.ui.ordAbierta = S.ui.ordAbierta === Number(k) ? null : Number(k); pintar(); });
 
 // ---------------------------------------------------------------- Radio Macuto
 
@@ -702,7 +701,7 @@ registrar('/entrada', () => {
   const enFilas = votan.filter((g) => g.alistado === true).length;
   const desdeCorreo = sel && S.ui.cartaEnlace === sel.id && llamamiento;
   const explicacion = llamamiento ? `<section class="caja"><h2 class="h2">Así es esta guerra</h2>
-      <ul class="col" style="gap:10px">${(c.explicacion || []).map((x) => `<li class="fila" style="align-items:flex-start;gap:10px"><span class="teal" style="flex:none;margin-top:1px">${ico('visto', 16)}</span><span class="med t3">${esc(x)}</span></li>`).join('')}</ul>
+      ${piezas(c.explicacion || [])}
       <details><summary class="med teal" style="cursor:pointer">Leer las ordenanzas completas</summary>
         <ol class="col" style="margin-top:10px;gap:10px">${c.guerra.ordenanzas.map((r, k) => `<li class="col g4"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3" style="white-space:pre-line">${esc(r.x)}</span></li>`).join('')}</ol></details>
       <p class="med t2">Si te alistas, cuando se declare la guerra te llegará por correo tu orden de movilización, con tu enlace personal para votar.</p></section>` : '';

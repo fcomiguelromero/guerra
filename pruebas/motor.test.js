@@ -131,7 +131,7 @@ prueba('llamamiento por correo: explica el juego, lleva a la carta y no repite',
   w.falla('fase', () => w.mando('enviarLlamamiento', { guerra: id }));
   const { general } = w.mando('abrirLlamamiento', { guerra: id });
   const conv = w.do('convocatoria', { g: general });
-  assert.ok(conv.explicacion.length >= 4 && /10 batallas/.test(conv.explicacion[1]));
+  assert.ok(conv.explicacion.length >= 4 && conv.explicacion.some((p) => /10 batallas/.test(p.x)));
   const idDe = Object.fromEntries(conv.gente.map((g) => [g.nombre, g.id]));
   w.do('alistar', { g: general, id: idDe['María'], si: true });
   let r = w.mando('enviarLlamamiento', { guerra: id });
@@ -164,7 +164,7 @@ prueba('vista previa: los dos correos se componen sin enviar nada, antes de decl
   assert.strictEqual(v.asunto, '¡A las armas!');
   assert.strictEqual(v.de, 'Fran');
   assert.ok(/^María </.test(v.para), 'se previsualiza para un combatiente que no es el alto mando');
-  assert.ok(v.html.includes('Las 9 ofensivas') && v.html.includes('36 batallas') && v.html.includes('Ha llegado la hora.') && v.html.includes('Así es esta guerra'));
+  assert.ok(/>9<\/div>[^]*ofensivas/.test(v.html) && />36<\/div>[^]*batallas por votar/.test(v.html) && v.html.includes('Ha llegado la hora.') && v.html.includes('Así es esta guerra'));
   w.mando('abrirLlamamiento', { guerra: id });
   v = w.mando('previaCorreo', { guerra: id, tipo: 'llamamiento' });
   assert.ok(/Se avecina/.test(v.asunto) && v.html.includes('Responder al llamamiento'));
@@ -502,7 +502,7 @@ prueba('orden de movilización: un correo por combatiente con su enlace personal
   assert.strictEqual(c.asunto, '¡A las armas!');
   assert.strictEqual(c.nombre, 'Fran');
   assert.ok(c.html.includes('https://ejemplo.test/guerra/#t=' + g.tok['María']));
-  assert.ok(c.html.includes('Las 9 ofensivas') && c.html.includes('36 batallas'));
+  assert.ok(/>9<\/div>[^]*ofensivas/.test(c.html) && />36<\/div>[^]*batallas por votar/.test(c.html));
   assert.ok(c.html.includes('Ha llegado la hora.') && c.html.includes('Suerte.') && c.html.includes('María, la patria te reclama.'));
   assert.strictEqual(new Set(Object.values(g.tok)).size, 10);
   assert.ok(c.html.includes('Así es esta guerra'), 'sin llamamiento, la orden explica el juego');
@@ -845,7 +845,7 @@ prueba('una ofensiva al día: se abren a las 9:00, con aviso diario, y al final 
   const w = mundo(18);     // el mundo arranca a las 17:00
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 4), plan: { ritmo: 'diaria', campo: 'Compañeros de trabajo', desfileInfo: 'Sábado a las 21:00', diana: { activa: false } } });
   const g = declarar(w, id);
-  assert.ok(w.correos[0].html.includes('una nueva cada mañana a las 9:00') && w.correos[0].html.includes('Compañeros de trabajo'));
+  assert.ok(w.correos[0].html.includes('cada mañana a las 9:00 se abre otra') && w.correos[0].html.includes('Compañeros de trabajo'));
   let est = w.do('estado', { token: g.tok['María'] });
   assert.strictEqual(est.guerra.abiertas, 1);
   assert.strictEqual(est.guerra.ofensivas, 3);

@@ -52,6 +52,7 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
     await plan.soyYo(m, 3);
     await foto(m, '01b-plan-paso2', true);
     for (const n of [3, 4, 5]) { await plan.paso(m, n); await foto(m, '01c-plan-paso' + n, true); }
+    await plan.abrir(m, 'ordenanzas'); await m.locator('.pliegue', { hasText: 'Personalizar las ordenanzas' }).screenshot({ path: path.join(SALIDA, '01d-plan-ordenanzas.png') });
     await plan.paso(m, 6);
     await foto(m, '01-plan', true);
     assert.strictEqual((await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).plan.premio, 'Una cena pagada por los demás', 'el plan se guarda al cambiar de paso');

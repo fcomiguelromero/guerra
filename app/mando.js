@@ -200,7 +200,7 @@ function seccionOrdenanzas() {
   if (!propias) {
     return `<section class="caja"><h2 class="h2">Ordenanzas</h2>
       <p class="med t2">Se escriben solas con la puntuación y los extras que elijas. Son las reglas que leerán los combatientes.</p>
-      <details><summary class="med teal" style="cursor:pointer">Ver cómo quedan</summary><ol class="col" style="margin-top:10px;gap:10px">${p.ordenanzasAuto.map((r, k) => `<li class="col g4"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3">${esc(r.x)}</span></li>`).join('')}</ol></details>
+      <ol class="col" style="margin:0;padding:0;list-style:none;gap:12px">${p.ordenanzasAuto.map((r, k) => `<li class="col g4" style="padding-left:12px;border-left:3px solid #2a2648"><strong class="bc" style="font-size:18px;color:#fff">${k + 1}. ${esc(r.t)}</strong><span class="med t3" style="white-space:pre-line">${esc(r.x)}</span></li>`).join('')}</ol>
       <button class="btn linea medio" data-a="ordPersonalizar">Personalizar las ordenanzas</button></section>`;
   }
   return `<section class="caja"><h2 class="h2">Ordenanzas</h2>

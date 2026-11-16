@@ -118,6 +118,7 @@ function png() {
     await m.waitForFunction(() => location.hash === '#/cuartel');
     const correos = (await api('_prueba', {})).correos.filter((c) => /Comienza/.test(c.asunto));
     assert.strictEqual(correos.length, 4);
+    fs.writeFileSync(path.join(SALIDA, 'correo-orden.html'), correos[0].html);
     const tok = {};
     correos.forEach((c) => { tok[NOMBRES[Number(c.para[1])]] = /#t=([\w.]+)/.exec(c.html)[1]; });
     // Con cuatro combatientes cada batalla tiene dos votos: todos votan «a» y «b» alternando para empatar todo.

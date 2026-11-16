@@ -32,6 +32,16 @@ export const ICONOS = {
   pergamino: '<path d="M8 4h10a2 2 0 0 1 2 2v1h-4"/><path d="M16 7v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1h10"/><path d="M8 4a2 2 0 0 0-2 2v11"/>',
   calendario: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
 };
+// Color de cada icono en la explicación del juego (el mismo que en los correos).
+export const COLOR_ICONO = { vs: '#5ef0d0', preguntas: '#8f7bff', cuadro: '#8f7bff', calendario: '#8f7bff', sol: '#ffd36a', rayo: '#ffd36a', candado: '#ff6ad5',
+  desfile: '#ff6ad5', parte: '#8f7bff', medalla: '#ffd36a', porra: '#5ef0d0', espia: '#8f7bff', radio: '#ff6ad5', apuesta: '#ffd36a', termo: '#5ef0d0' };
+// Lista de piezas {ic, t, x} con su icono: la explicación del juego en pantalla.
+export function piezas(items) {
+  return `<ul class="piezas">${items.map((p) => typeof p === 'string' ? `<li><span class="pieza-ico">${icono('visto', 20)}</span><span class="med t3">${esc0(p)}</span></li>`
+    : `<li style="--c:${COLOR_ICONO[p.ic] || '#5ef0d0'}"><span class="pieza-ico">${icono(p.ic, 22, 1.9)}</span><span class="col" style="gap:2px"><b class="bc pieza-t">${esc0(p.t)}</b><span class="med t3">${esc0(p.x)}</span></span></li>`).join('')}</ul>`;
+}
+const esc0 = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
 export function icono(nombre, tam = 22, grosor = 2) {
   return `<svg aria-hidden="true" width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${grosor}" stroke-linecap="round" stroke-linejoin="round">${ICONOS[nombre] || ICONOS.pergamino}</svg>`;
 }

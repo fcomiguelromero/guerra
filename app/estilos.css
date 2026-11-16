@@ -283,11 +283,18 @@ ul, ol { padding: 0; list-style: none; }
 .tarjeta-manual p { margin: 0; }
 .reglas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .regla { border: 1px solid #2a2648; border-radius: 16px; background: rgba(22,19,43,.94); overflow: hidden; }
-.regla.abierta { border-color: var(--c); }
+.regla { border-left: 3px solid var(--c); }
 .regla-cab { width: 100%; min-height: 72px; box-sizing: border-box; padding: 12px; border: 0; background: none; color: var(--txt); display: flex; align-items: center; gap: 12px; text-align: left; }
 .regla-ico { width: 46px; height: 46px; flex: none; border-radius: 14px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); display: flex; align-items: center; justify-content: center; }
 .regla-num { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--c); }
 .regla-frase { font-size: 21px; line-height: 1; color: #fff; }
-.regla-cuerpo { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.regla-cuerpo { padding: 0 14px 14px 70px; display: flex; flex-direction: column; gap: 10px; }
 .regla-cuerpo ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; color: var(--txt3); }
 @media (min-width: 900px) { .tarjeta-manual { flex-basis: 300px; } }
+
+/* Explicación del juego en piezas con icono */
+.piezas { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.piezas li { display: flex; align-items: flex-start; gap: 12px; }
+.pieza-ico { width: 40px; height: 40px; flex: none; border-radius: 12px; background: color-mix(in srgb, var(--c, #5ef0d0) 14%, transparent); color: var(--c, #5ef0d0); display: flex; align-items: center; justify-content: center; }
+.pieza-t { font-size: 18px; line-height: 1.05; text-transform: uppercase; color: var(--c, #5ef0d0); }
+@media (max-width: 420px) { .regla-cuerpo { padding-left: 14px; } }

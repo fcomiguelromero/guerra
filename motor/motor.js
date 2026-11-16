@@ -608,31 +608,52 @@ function ordenanzasAuto(doc) {
   return lista;
 }
 
-// Explicación breve del juego: va en el llamamiento a filas (pantalla y correo).
+// Explicación breve del juego, en piezas con icono: va en el llamamiento a filas (pantalla y correo)
+// y en la orden de movilización. Cada pieza: ic (icono), t (titular corto) y x (una o dos frases).
 function resumenJuego(doc) {
   var x = doc.extras, cosas = doc.modo === 'cosas', l = [];
-  var nc = doc.gente.filter(function (g) { return g.combate; }).length, nb = nc * (nc - 1) / 2;
-  l.push(cosas
-    ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana según la pregunta. Hay que mojarse: no vale el empate.'
-    : 'Todos contra todos: cada batalla enfrenta a dos combatientes y el resto elige a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.');
-  if (preguntas(doc).length > 1) l.push('Hay ' + preguntas(doc).length + ' preguntas, que se turnan por ofensiva: «' + preguntas(doc).join('», «') + '». Cada una tiene su campeón, y el de la guerra suma todo.');
-  if (esTorneo(doc)) l.push('Es un torneo por eliminatorias: en cada cruce sólo pasa uno, ronda a ronda, hasta la final. Al cerrarse cada ronda se sabe quién pasa; los votos, al final.');
-  l.push((nc >= 3 ? 'Con ' + nc + (cosas ? ' contendientes' : ' combatientes') + ' habrá ' + (esTorneo(doc) ? plural(nc - 1 + (nc >= 4 ? 1 : 0), 'cruce', 'cruces') : nb + ' batallas') + '. ' : '') +
-    (esTorneo(doc) ? 'Cada ronda se abre cuando se cierra la anterior, y te avisamos por correo. Votas desde el móvil cuando quieras.' : doc.ritmo === 'diaria' ? 'Cada día se abre una ofensiva nueva, a las ' + HORA_OFENSIVA + ':00, y te avisamos por correo. Votas desde el móvil cuando quieras.' : 'Se abren todas de golpe y votas a tu ritmo, desde el móvil.') + ' La guerra no termina hasta que vota todo el mundo.');
-  l.push('Tu voto es secreto para los demás. ' + (x.desfile ? 'El parte de guerra se revela al final, en el desfile de la victoria, del último puesto al primero.' : 'El parte de guerra se publica al final, de golpe.') +
-    (doc.premio ? ' Premio: ' + doc.premio + '.' : ''));
-  var extras = [];
-  if (x.porra) extras.push('una porra para adivinar la clasificación');
-  if (x.espia) extras.push('un espía para descubrir un combate antes del desfile');
-  if (x.radio) extras.push('Radio Macuto, para lanzar pullas anónimas');
-  if (x.apuestas) extras.push('una apuesta en la batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ' de cada ofensiva');
-  if (x.termometro) extras.push('un termómetro para saber si vas con la mayoría');
-  if (extras.length) l.push('Y de propina: ' + enumerar(extras) + '.');
+  var nc = doc.gente.filter(function (g) { return g.combate; }).length, nb = nc * (nc - 1) / 2, lp = preguntas(doc);
+  l.push({ ic: 'vs', t: 'Dos cartas, una pregunta', x: cosas
+    ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana. No vale el empate.'
+    : 'Cada batalla enfrenta a dos combatientes y eliges a uno. No vale el empate, y en tus propios combates no votas.' });
+  if (lp.length > 1) l.push({ ic: 'preguntas', t: lp.length + ' preguntas', x: 'Se turnan por ofensiva: «' + lp.join('», «') + '». Cada una tiene su campeón; el de la guerra suma todo.' });
+  if (esTorneo(doc)) l.push({ ic: 'cuadro', t: 'Por eliminatorias', x: 'En cada cruce sólo pasa uno, ronda a ronda, hasta la final.' });
+  var cuantas = nc >= 3 ? (esTorneo(doc) ? plural(nc - 1 + (nc >= 4 ? 1 : 0), 'cruce', 'cruces') : nb + ' batallas') : '';
+  l.push(esTorneo(doc)
+    ? { ic: 'calendario', t: 'Ronda a ronda', x: (cuantas ? cuantas[0].toUpperCase() + cuantas.slice(1) + '. ' : '') + 'Cada ronda se abre al cerrarse la anterior y te avisamos por correo.' }
+    : doc.ritmo === 'diaria'
+    ? { ic: 'sol', t: 'Una ofensiva al día', x: (cuantas ? cuantas[0].toUpperCase() + cuantas.slice(1) + '. ' : '') + 'Cada mañana, a las ' + HORA_OFENSIVA + ':00, se abre una nueva y te avisamos por correo.' }
+    : { ic: 'rayo', t: 'Todo, de golpe', x: (cuantas ? cuantas[0].toUpperCase() + cuantas.slice(1) + ', ' : 'Las batallas, ') + 'abiertas desde el primer día. Votas a tu ritmo, desde el móvil.' });
+  l.push({ ic: 'candado', t: 'Voto secreto', x: 'Nadie ve lo que votas. La guerra no termina hasta que vota todo el mundo.' });
+  l.push(x.desfile
+    ? { ic: 'desfile', t: 'Desfile de la victoria', x: 'El parte de guerra se revela al final, del último puesto al primero.' }
+    : { ic: 'parte', t: 'Parte de guerra', x: 'La clasificación se publica al final, de golpe.' });
+  if (doc.premio) l.push({ ic: 'medalla', t: 'Premio', x: doc.premio });
+  if (x.porra) l.push({ ic: 'porra', t: 'La porra', x: 'Adivina la clasificación final.' });
+  if (x.espia) l.push({ ic: 'espia', t: 'Tu espía', x: 'Descubre un combate antes del desfile.' });
+  if (x.radio) l.push({ ic: 'radio', t: 'Radio Macuto', x: 'Pullas anónimas desde las trincheras.' });
+  if (x.apuestas) l.push({ ic: 'apuesta', t: 'Batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella'), x: 'Apuesta por quién gana la batalla destacada de cada ofensiva.' });
+  if (x.termometro) l.push({ ic: 'termo', t: 'Termómetro', x: 'Descubre si vas con la mayoría.' });
   return l;
 }
-function listaCorreo(items) {
-  return '<ul style="margin:0 0 14px;padding-left:20px">' + items.map(function (x) { return '<li style="margin:0 0 8px">' + esc(x) + '</li>'; }).join('') + '</ul>';
+// Las piezas, como filas con icono (imágenes PNG alojadas en la web: los correos no muestran SVG).
+var COLOR_ICONO = { vs: '#5ef0d0', preguntas: '#8f7bff', cuadro: '#8f7bff', calendario: '#8f7bff', sol: '#ffd36a', rayo: '#ffd36a', candado: '#ff6ad5',
+  desfile: '#ff6ad5', parte: '#8f7bff', medalla: '#ffd36a', porra: '#5ef0d0', espia: '#8f7bff', radio: '#ff6ad5', apuesta: '#ffd36a', termo: '#5ef0d0' };
+function listaCorreo(items, base) {
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px">' + items.map(function (p) {
+    return '<tr><td width="52" valign="top" style="padding:0 12px 14px 0"><img src="' + (base || '') + 'assets/correo/ic-' + p.ic + '.png" width="40" height="40" alt="" style="display:block;border:0"></td>' +
+      '<td valign="top" style="padding:0 0 14px"><div style="font-family:\'Barlow Condensed\',\'Arial Narrow\',Arial,sans-serif;font-weight:800;font-size:17px;letter-spacing:.5px;text-transform:uppercase;color:' + (COLOR_ICONO[p.ic] || '#5ef0d0') + '">' + esc(p.t) + '</div>' +
+      '<div style="font-size:15px;line-height:1.45;color:#d9d5f2">' + esc(p.x) + '</div></td></tr>';
+  }).join('') + '</table>';
 }
+function cifrasCorreo(pares) {
+  return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 10px"><tr>' + pares.map(function (c, k) {
+    return '<td width="' + Math.floor(100 / pares.length) + '%" style="padding:' + (k ? '0 0 0 5px' : '0 5px 0 0') + '"><div style="padding:12px 8px;border-radius:12px;background-color:#221d40;text-align:center">' +
+      '<div style="font-family:\'Barlow Condensed\',\'Arial Narrow\',Arial,sans-serif;font-weight:800;font-size:34px;line-height:1;color:#ffffff">' + c[0] + '</div>' +
+      '<div style="margin-top:4px;font-size:12px;color:#b3aecf">' + esc(c[1]) + '</div></div></td>';
+  }).join('') + '</tr></table>';
+}
+function textoResumen(items) { return items.map(function (p) { return '· ' + p.t + ': ' + p.x; }).join('\n'); }
 
 // ---------------------------------------------------------------- correos
 
@@ -1609,11 +1630,11 @@ function crearMotor(env) {
     var cuerpo = '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la patria te reclama.</p>' + parrafos(c.apertura) +
       '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">' + (lp.length > 1 ? 'Qué se dirime, una pregunta por ofensiva' : 'Qué se dirime') + '</p>' +
       '<p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + lp.map(esc).join('<br>') + '</p>' +
-      (doc.ritmo === 'diaria'
-        ? '<p style="margin:0 0 14px">La primera ofensiva ya está abierta. Después se abrirá una nueva cada mañana a las ' + HORA_OFENSIVA + ':00, hasta completar las ' + of + ', y te avisaremos por correo. En total tienes ' + plural(mias, 'batalla', 'batallas') + ' por votar. La guerra no termina hasta que vota todo el mundo.</p>'
-        : '<p style="margin:0 0 14px">Las ' + of + ' ofensivas ya están abiertas, todas a la vez. Tienes ' + plural(mias, 'batalla', 'batallas') +
-      ' por votar, a tu ritmo. La guerra no termina hasta que vota todo el mundo, y todos verán quién la tiene en pausa.</p>') +
-      (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc))) +
+      cifrasCorreo([[mias, mias === 1 ? 'batalla por votar' : 'batallas por votar'], [of, of === 1 ? 'ofensiva' : 'ofensivas']]) +
+      '<p style="margin:0 0 18px;font-size:15px;color:#d9d5f2">' + (doc.ritmo === 'diaria'
+        ? 'La primera ofensiva ya está abierta; cada mañana a las ' + HORA_OFENSIVA + ':00 se abre otra y te avisamos.'
+        : 'Todas abiertas ya: vota a tu ritmo.') + '</p>' +
+      (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc), urlApp())) +
       botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) +
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
@@ -1643,7 +1664,7 @@ function crearMotor(env) {
       '<p style="margin:0 0 14px">El alto mando prepara una nueva guerra, la <strong>' + esc(doc.nombre) + '</strong>, y estás en la lista de reclutas.</p>' +
       '<p style="margin:0 0 4px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf">Qué se dirime</p>' +
       '<p style="margin:0 0 18px;font-size:20px;font-weight:bold;color:#ffffff">' + preguntas(doc).map(esc).join('<br>') + '</p>' +
-      '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc)) +
+      '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc), urlApp()) +
       '<p style="margin:0 0 14px">¿Te alistas? Responde con este botón, que te lleva directo a tu carta. Es sólo tuyo: con él puedes cambiar de opinión hasta que se declare la guerra.' + (ll.cierre ? ' Cierre del alistamiento: <strong>' + esc(ll.cierre) + '</strong>.' : '') + '</p>' +
       '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(url) + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#5ef0d0;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder al llamamiento</a></p>' +
       '<p style="margin:0 0 14px;font-size:13px;color:#b3aecf">Si te alistas, cuando se declare la guerra te llegará otro correo: tu orden de movilización, con tu enlace personal para votar.</p>' +
@@ -1651,7 +1672,7 @@ function crearMotor(env) {
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
       html: marcoCorreo(doc, cuerpo, 'Responde antes del cierre del alistamiento.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: '¡Llamamiento a filas!' }),
-      texto: 'El alto mando prepara la ' + doc.nombre + ': ' + preguntas(doc).join(' / ') + '\n\n' + resumenJuego(doc).join('\n') + '\n\n¿Te alistas? Responde aquí: ' + url
+      texto: 'El alto mando prepara la ' + doc.nombre + ': ' + preguntas(doc).join(' / ') + '\n\n' + textoResumen(resumenJuego(doc)) + '\n\n¿Te alistas? Responde aquí: ' + url
     };
   }
   function enviarLlamada(doc, g, t) {
