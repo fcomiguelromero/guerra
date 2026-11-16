@@ -2,6 +2,7 @@
 import { botonCartel } from './carteles.js';
 import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
+import { icono, ILU } from './dibujos.js';
 import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
@@ -596,16 +597,64 @@ accion('porraEnviar', async () => {
 
 // ---------------------------------------------------------------- ordenanzas
 
+// Ordenanzas como manual de campaña: cada regla con su icono y una frase corta; el detalle, al desplegar.
+// Las reglas vienen del motor (o del alto mando, si las personalizó); aquí sólo se visten.
+const MANUAL = {
+  'El combate': ['vs', 'Dos cartas, una pregunta: tú decides', '#5ef0d0', 'vs'],
+  'Secreto y sin vuelta atrás': ['candado', 'Votas tú, en secreto', '#8f7bff'],
+  'Todas las ofensivas, de golpe': ['rayo', 'Todas las batallas, desde ya', '#ffd36a', 'golpe'],
+  'Una ofensiva al día': ['sol', 'Una ofensiva cada mañana', '#ffd36a', 'dia'],
+  'Torneo por eliminatorias': ['cuadro', 'Sólo pasa uno', '#ffd36a', 'torneo'],
+  'Los puntos': ['medalla', '3 puntos por victoria', '#5ef0d0', 'p310'],
+  'La porra': ['porra', 'Adivina el parte final', '#ff6ad5'],
+  'El termómetro': ['termo', '¿Vas con la mayoría?', '#5ef0d0'],
+  'La batalla del día': ['apuesta', 'Apuesta por el plato fuerte', '#ffd36a'],
+  'La batalla estrella': ['apuesta', 'Apuesta por el plato fuerte', '#ffd36a'],
+  'Tu espía': ['espia', 'Un chivatazo. Sólo uno', '#8f7bff'],
+  'El narrador': ['micro', 'Un locutor con retranca', '#8f7bff'],
+  'El desfile de la victoria': ['desfile', 'El parte, en directo', '#ffd36a'],
+  'Desertores e indultos': ['diana', 'Quien no vota, deserta', '#ff6ad5'],
+  'Rezagados': ['diana', 'Quien se duerme, pierde sus votos', '#ff6ad5'],
+  'Grados': ['grados', 'De soldado a general', '#5ef0d0'],
+  'Radio Macuto': ['radio', 'Pullas sin firma', '#ff6ad5'],
+  'Varias preguntas': ['preguntas', 'Cada ofensiva, su pregunta', '#ffd36a']
+};
+function vestir(r) {
+  const m = MANUAL[r.t] || ['pergamino', r.t, '#5ef0d0'];
+  const [ic, frase, color, ilu] = m;
+  if (r.t === 'Los puntos' && S.est.guerra.puntuacion === 'votos') return { ic, frase: 'Cada voto recibido suma', color, ilu: 'votos' };
+  return { ic, frase, color, ilu };
+}
+const frases = (x) => String(x || '').split(/(?<=[.!?»])\s+(?=[A-ZÁÉÍÓÚÑ¿¡«])/).filter((f) => f.trim());
+function dibujo(v, alto) { return v.ilu === 'vs' ? ILU.vs('#5ef0d0', '#ff6ad5', alto) : v.ilu ? ILU[v.ilu](v.color, alto) : `<span style="color:${v.color};display:flex;justify-content:center">${icono(v.ic, Math.round(alto * 0.6), 1.6)}</span>`; }
+
 registrar('/ordenanzas', () => {
   if (!S.est) return marco(cargando(), { sinNav: true });
-  const o = S.est.guerra.ordenanzas;
-  return marco(`${cabecera('Ordenanzas')}
-    <p class="t3">De todos es de sobra conocido el sistema, pero lo repasaremos para los nuevos reclutas.</p>
+  const o = S.est.guerra.ordenanzas, abierta = S.ui.ordAbierta;
+  const tarjetas = o.slice(0, 5).map((r, k) => {
+    const v = vestir(r), primera = frases(r.x)[0] || '';
+    return `<article class="tarjeta-manual" style="--c:${v.color}"><span class="sobre" style="color:${v.color}">Ordenanza ${k + 1} · ${esc(r.t)}</span>
+      <div class="tarjeta-dibujo">${dibujo(v, 130)}</div>
+      <h2 class="bc">${esc(v.frase)}</h2><p class="med t2">${esc(primera)}</p></article>`;
+  }).join('');
+  const lista = o.map((r, k) => {
+    const v = vestir(r), ab = abierta === k, partes = frases(r.x);
+    return `<li class="regla ${ab ? 'abierta' : ''}" style="--c:${v.color}">
+      <button class="regla-cab" data-a="ordAbrir" data-v="${k}" aria-expanded="${ab}"><span class="regla-ico">${icono(v.ic, 26, 1.8)}</span>
+        <span class="col crece" style="gap:3px;min-width:0"><span class="regla-num">${k + 1} · ${esc(r.t)}</span><span class="bc regla-frase">${esc(v.frase)}</span></span>${icono(ab ? 'arriba' : 'abajo', 18)}</button>
+      ${ab ? `<div class="regla-cuerpo">${r.puntos ? '<div class="puntos310"><div><b>3</b>Ganar</div><div><b>1</b>Empatar</div><div><b>0</b>Perder</div></div>' : v.ilu && v.ilu !== 'vs' && v.ilu !== 'p310' ? `<div style="max-width:260px">${dibujo(v, 90)}</div>` : ''}
+        ${partes.length > 1 ? `<ul>${partes.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : `<p class="med t3" style="white-space:pre-line">${esc(r.x)}</p>`}</div>` : ''}
+    </li>`;
+  }).join('');
+  return marco(`${cabecera('Manual de campaña')}
     ${S.est.guerra.desfileTs ? `<section class="caja"><h2 class="h2">${S.est.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med t3">${esc(S.est.guerra.desfileInfo)}</p>${botonesCalendario(S.est.guerra)}</section>` : ''}
-    <ol class="col g12">${o.map((r, k) => `<li class="caja"><div class="fila" style="gap:10px"><b class="bc teal" style="font-size:26px;font-weight:800">${k + 1}</b><h2 class="h2">${esc(r.t)}</h2></div>
-      ${r.puntos ? '<div class="puntos310"><div><b>3</b>Ganar</div><div><b>1</b>Empatar</div><div><b>0</b>Perder</div></div>' : ''}<p class="med t3" style="white-space:pre-line">${esc(r.x)}</p></li>`).join('')}</ol>
-    <p class="bc centro" style="font-weight:800;font-size:22px;color:#fff">¡Sólo puede quedar uno!</p>`, { fondo: 'a' });
+    <section aria-label="Lo esencial, en tarjetas" class="col g8"><div class="carrusel">${tarjetas}</div>
+      <p class="peq t2" style="text-align:right">Desliza para ver lo esencial →</p></section>
+    <div class="fila entre" style="align-items:baseline"><h2 class="h2">Todas las ordenanzas</h2><span class="peq t2">Toca para leer más</span></div>
+    <ol class="reglas">${lista}</ol>
+    <p class="bc centro" style="font-weight:800;font-size:22px;color:var(--oro)">¡Sólo puede quedar uno!</p>`, { fondo: 'a' });
 });
+accion('ordAbrir', (k) => { S.ui.ordAbierta = S.ui.ordAbierta === Number(k) ? null : Number(k); pintar(); });
 
 // ---------------------------------------------------------------- Radio Macuto
 

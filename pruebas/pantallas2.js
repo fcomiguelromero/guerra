@@ -4,6 +4,7 @@
 const { spawn } = require('child_process');
 const path = require('path'), fs = require('fs'), assert = require('assert'), zlib = require('zlib');
 const { chromium } = require('playwright');
+const plan = require('./ayuda-plan');
 const PUERTO = 8132, BASE = 'http://localhost:' + PUERTO + '/', SALIDA = process.argv[2] || '/tmp/gn2', errores = [];
 const NOMBRES = ['María', 'Andrés', 'Carmen', 'Fran'];
 async function api(accion, p) {
@@ -38,24 +39,32 @@ function png() {
     const m = await pagina(nav, 390, 844, '#mando=mando-local');
     await pulsa(m, 'Plan de guerra nuevo');
     await m.fill('#p-nombre', 'Guerra del Empate'); await m.fill('#p-pregunta', '¿Quién empata mejor?');
-    for (let i = 0; i < NOMBRES.length; i++) { await pulsa(m, 'Reclutar combatiente'); await m.fill('#gn-' + i, NOMBRES[i]); await m.fill('#gc-' + i, 'c' + i + '@ejemplo.test'); }
-    await m.locator('[data-a="soyYo"][data-v="3"]').click();
+    await plan.paso(m, 2);
+    for (let i = 0; i < NOMBRES.length; i++) await plan.reclutar(m, i, NOMBRES[i], 'c' + i + '@ejemplo.test');
+    await plan.soyYo(m, 3);
     fs.writeFileSync(path.join(SALIDA, 'foto.png'), png());
+    await m.locator('[data-a="abrirFicha"][data-v="0"]').click();
     await m.locator('input[type=file][data-v="0"]').setInputFiles(path.join(SALIDA, 'foto.png'));
     await m.waitForSelector('.retrato img');
+    await m.locator('.hoja [data-a="cerrarFicha"]').click();
+    await plan.abrir(m, 'llamamiento');
     await pulsa(m, 'Abrir el llamamiento');
+    await plan.abrir(m, 'llamamiento');
     await m.fill('#nota', 'Reclutas: ha llegado la hora de saber quién es el más normal.');
     await m.locator('[data-a="previa"][data-v="llamamiento"]').click();
     await m.waitForSelector('.velo iframe'); await m.waitForTimeout(300);
     await foto(m, '00a-previa-llamamiento');
     await m.locator('.velo [data-a="cerrarVelo"]').click();
+    await plan.paso(m, 5);
     await m.locator('[data-a="previa"][data-v="orden"]').click();
     await m.waitForSelector('.velo iframe'); await m.waitForTimeout(300);
     await foto(m, '00b-previa-orden');
     assert.ok((await m.locator('.velo').innerText()).includes('No se ha enviado nada'));
     await m.locator('.velo [data-a="cerrarVelo"]').click();
     assert.strictEqual((await api('_prueba', {})).correos.length, 0, 'la vista previa no envía correos');
+    await plan.paso(m, 2); await plan.abrir(m, 'llamamiento');
     await pulsa(m, 'Llamamiento por correo');
+    await plan.abrir(m, 'llamamiento');
     await foto(m, '01-llamamiento-plan', true);
     const llamadas = (await api('_prueba', {})).correos.filter((c) => /Llamamiento/.test(c.asunto));
     assert.strictEqual(llamadas.length, 3, 'tres correos de llamamiento: todos menos el alto mando');
@@ -75,11 +84,13 @@ function png() {
     await foto(r, '03-alistado', true);
     // Cierre con fecha y hora, último parte para un rezagado y ordenanzas personalizadas.
     await m.reload(); await m.waitForLoadState('networkidle');
+    await plan.paso(m, 2); await plan.abrir(m, 'llamamiento');
     await m.fill('#cierre', '2030-11-20T20:00'); await m.locator('#cierre').dispatchEvent('change');
+    await plan.paso(m, 5); await plan.abrir(m, 'ordenanzas');
     await pulsa(m, 'Personalizar las ordenanzas');
     await m.fill('#ot-0', 'El combate, versión del alto mando');
     await m.locator('[data-a="ordMover"][data-v="1:-1"]').click();
-    await pulsa(m, 'Guardar borrador');
+    await plan.paso(m, 6);
     await foto(m, '04b-ordenanzas', true);
     const conv0 = await api('convocatoria', { g: general });
     assert.strictEqual(conv0.guerra.ordenanzas[1].t, 'El combate, versión del alto mando', 'las ordenanzas personalizadas se guardan');
@@ -94,12 +105,15 @@ function png() {
     const conv = await api('convocatoria', { g: general });
     for (const g of conv.gente) if (g.alistado == null && g.nombre !== 'Carmen') await api('alistar', { g: general, id: g.id, si: true });
     await m.reload(); await m.waitForLoadState('networkidle');
+    await plan.paso(m, 2); await plan.abrir(m, 'llamamiento');
     await foto(m, '04-plan-respuestas', true);
     assert.ok(await m.getByText('se presenta voluntario').count(), 'el voluntario aparece en el plan');
     await m.locator('[data-a="reclutar"][data-v$=":0"]').click(); await m.waitForLoadState('networkidle');
+    await plan.abrir(m, 'llamamiento');
     await m.locator('[data-a="conmutar"][data-v="plan.llamamiento.soloAlistados"]').click();   // que entre también Carmen
-    await m.locator('[data-a="conmutar"][data-v="plan.extras.condecoraciones"]').click();
-    await pulsa(m, '¡Declarar la guerra!');
+    await plan.paso(m, 4);
+    await m.locator('[data-a="extra"][data-v="condecoraciones"]').click();
+    await plan.declarar(m);
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');
     const correos = (await api('_prueba', {})).correos.filter((c) => /Comienza/.test(c.asunto));

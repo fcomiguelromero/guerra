@@ -4,6 +4,7 @@
 const { spawn } = require('child_process');
 const path = require('path'), fs = require('fs'), assert = require('assert');
 const { chromium } = require('playwright');
+const plan = require('./ayuda-plan');
 
 const PUERTO = 8131, BASE = 'http://localhost:' + PUERTO + '/';
 const SALIDA = process.argv[2] || '/tmp/gn';
@@ -39,18 +40,22 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
     await pulsa(m, 'Plan de guerra nuevo');
     await m.fill('#p-nombre', 'Guerra de la Normalidad');
     await m.fill('#p-pregunta', '¿Quién es más normal?');
+    await plan.abrir(m, 'premio');
     await m.fill('#p-premio', 'Una cena pagada por los demás');
     await m.fill('#p-botin', '2 € por cabeza');
+    await foto(m, '01a-plan-paso1', true);
+    await plan.paso(m, 2);
     for (let i = 0; i < NOMBRES.length; i++) {
-      await pulsa(m, 'Reclutar combatiente');
-      await m.fill('#gn-' + i, NOMBRES[i]);
-      await m.fill('#gc-' + i, NOMBRES[i].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '@ejemplo.test');
-      await m.fill('#gf-' + i, i === 0 ? 'Frase de María: hasta 100 caracteres. Este ejemplo los gasta todos para que veas bien cuánto cabe aquí.' : 'Frase de ' + NOMBRES[i]);
+      await plan.reclutar(m, i, NOMBRES[i], NOMBRES[i].toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '@ejemplo.test',
+        i === 0 ? 'Frase de María: hasta 100 caracteres. Este ejemplo los gasta todos para que veas bien cuánto cabe aquí.' : 'Frase de ' + NOMBRES[i]);
     }
-    await m.locator('[data-a="soyYo"][data-v="3"]').click();
-    await pulsa(m, 'Guardar borrador');
+    await plan.soyYo(m, 3);
+    await foto(m, '01b-plan-paso2', true);
+    for (const n of [3, 4, 5]) { await plan.paso(m, n); await foto(m, '01c-plan-paso' + n, true); }
+    await plan.paso(m, 6);
     await foto(m, '01-plan', true);
-    await pulsa(m, '¡Declarar la guerra!');
+    assert.strictEqual((await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).plan.premio, 'Una cena pagada por los demás', 'el plan se guarda al cambiar de paso');
+    await plan.declarar(m);
     await foto(m, '02-confirmar');
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');

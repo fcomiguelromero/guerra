@@ -3,6 +3,7 @@ import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, or
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
 import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
 import { botonCartel } from './carteles.js';
+import { icono, ILU } from './dibujos.js';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -67,7 +68,7 @@ registrar('/guerras', () => {
 });
 async function abrir(id) {
   const g = (S.ui.guerras || []).find((x) => x.id === id);
-  S.guerra = id; S.est = null; S.ui.plan = null; S.ui.informe = null; S.ui.cursor = null; S.ui.porra = null;
+  S.guerra = id; S.est = null; S.ui.plan = null; S.ui.pasoPlan = 1; S.ui.ficha = null; S.ui.pliegues = {}; S.ui.extraInfo = null; S.ui.informe = null; S.ui.cursor = null; S.ui.porra = null;
   if (g && g.token) S.sesiones[id] = g.token;
   recordar();
   await refrescar(true);
@@ -84,7 +85,7 @@ accion('guerraNueva', async () => {
 
 async function cargarPlan() {
   const d = await llamar('plan', {}, 1);
-  S.ui.plan = d.plan; S.ui.planMando = d.mando;
+  S.ui.plan = d.plan; S.ui.planMando = d.mando; S.ui.otrasLista = (d.plan.otras || []).slice();
   S.ui.frases = (d.plan.diana.frases || []).join('\n');
   pedirFotos(d.plan.gente.map((g) => g.foto));
 }
@@ -230,64 +231,234 @@ accion('ordMover', (v) => {
   pintar();
 });
 
-registrar('/plan', () => {
+// ---------------------------------------------------------------- el plan, por pasos
+const PASOS = [['casco', 'Guerra', 'La guerra'], ['tropa', 'Tropa', 'Combatientes'], ['reglas', 'Reglas', 'Reglas'], ['extras', 'Extras', 'Extras'],
+  ['correo', 'Correo', 'Correo y presentación'], ['bandera', 'Revisar', 'Revisar y declarar']];
+const ICONO_EXTRA = { porra: 'porra', espia: 'espia', desfile: 'desfile', proclamas: 'proclama', condecoraciones: 'medalla', radio: 'radio', parte: 'parte',
+  corneta: 'corneta', termometro: 'termo', narrador: 'micro', apuestas: 'apuesta' };
+const CORTO_EXTRA = { porra: ['La porra', 'Adivinar el parte'], espia: ['El espía', 'Un chivatazo'], desfile: ['Desfile', 'El parte, en directo'],
+  proclamas: ['Proclamas', 'Razones sin firma'], condecoraciones: ['Medallas', 'Rebelde, borrego…'], radio: ['Radio Macuto', 'Pullas anónimas'],
+  parte: ['Parte', 'A mitad de guerra'], corneta: ['Corneta', 'Suena en tu móvil'], termometro: ['Termómetro', '¿Con la mayoría?'],
+  narrador: ['Narrador', 'Frases en el desfile'], apuestas: ['Batalla del día', 'Apuesta y adivino'] };
+
+function numeros(p) {
+  const combaten = p.gente.filter((g) => g.combate), nc = combaten.length;
+  const torneo = p.formato === 'torneo', ofensivas = nc % 2 ? nc : nc - 1;
+  let rondas = 1; while (2 ** rondas < nc) rondas++;
+  return { nc, votan: p.gente.filter((g) => g.vota).length, torneo, ofensivas, rondas, batallas: torneo ? nc - 1 + (nc >= 4 ? 1 : 0) : nc * (nc - 1) / 2 };
+}
+function cabeceraPlan(n) {
+  return `<header class="plan-cab"><div class="fila entre" style="align-items:flex-start">
+      <div class="col g4"><span class="sobre">Plan de guerra · paso ${n} de 6</span><h1 class="h1">${PASOS[n - 1][2]}</h1></div>
+      ${S.ui.planGuardado ? `<span class="peq teal fila" style="gap:4px;white-space:nowrap">${icono('visto', 14, 3)}Guardado</span>` : ''}</div>
+    <ol class="pasos" aria-label="Pasos del plan">${PASOS.map(([ic, t], i) => {
+      const k = i + 1, est = k < n ? 'hecho' : k === n ? 'actual' : '';
+      return `<li class="${est}"><button data-a="pasoPlan" data-v="${k}" ${k === n ? 'aria-current="step"' : ''} aria-label="Paso ${k}: ${PASOS[i][2]}"><span class="punto">${icono(k < n ? 'visto' : ic, 16, k < n ? 3 : 2)}</span><span class="nombre">${t}</span></button></li>`;
+    }).join('')}</ol></header>`;
+}
+function piePlan(n, previa) {
+  const sig = n < 6 ? `<button class="btn crece" data-a="pasoPlan" data-v="${n + 1}">Siguiente: ${['', 'combatientes', 'reglas', 'extras', 'correo', 'revisar'][n]}${icono('flecha', 20, 2.6)}</button>`
+    : previa ? `<button class="btn rosa crece" data-a="declarar">¡Declarar la guerra!</button>` : `<button class="btn crece" data-a="guardarPlan">Guardar cambios</button>`;
+  return `<footer class="plan-pie">${n > 1 ? `<button class="btn linea cuadro-grande" data-a="pasoPlan" data-v="${n - 1}" aria-label="Paso anterior">${icono('atras', 20, 2.6)}</button>` : ''}${sig}</footer>`;
+}
+// Bloque plegable: una fila con icono y resumen que se abre al tocarla.
+function pliegue(clave, ic, titulo, resumen, contenido, abiertoPorDefecto) {
+  const pl = S.ui.pliegues || (S.ui.pliegues = {});
+  const abierto = pl[clave] != null ? pl[clave] : !!abiertoPorDefecto;
+  return `<section class="pliegue ${abierto ? 'abierto' : ''}"><button class="pliegue-cab" data-a="plegar" data-v="${clave}" aria-expanded="${abierto}">
+    <span class="pliegue-ico">${icono(ic, 22)}</span><span class="col crece" style="gap:2px;text-align:left"><strong>${titulo}</strong>${resumen ? `<span class="peq t2">${resumen}</span>` : ''}</span>${icono(abierto ? 'arriba' : 'abajo', 18)}</button>
+    ${abierto ? `<div class="pliegue-cuerpo">${contenido}</div>` : ''}</section>`;
+}
+accion('plegar', (k) => { const pl = S.ui.pliegues || (S.ui.pliegues = {}); const el = document.querySelector(`[data-a="plegar"][data-v="${k}"]`); pl[k] = !(el && el.getAttribute('aria-expanded') === 'true'); pintar(); });
+function eleccion(titulo, pregunta, opciones, ruta, actual, color) {
+  return `<section class="col g8"><div class="fila entre" style="align-items:baseline"><h2 class="h2">${titulo}</h2><span class="peq t2">${pregunta}</span></div>
+    <div class="elecciones">${opciones.map(([valor, nombre, desc, ilu]) => {
+      const sel = actual === valor;
+      return `<button class="eleccion ${sel ? 'sel' : ''}" style="--c:${color}" aria-pressed="${sel}" data-a="opcion" data-v="${ruta}=${valor}">
+        ${sel ? `<span class="marca-sel" aria-hidden="true">${icono('visto', 13, 3.4)}</span>` : ''}${ILU[ilu](sel ? color : '#8f7bff')}
+        <span class="bc nombre">${nombre}</span><span class="peq t2">${desc}</span></button>`;
+    }).join('')}</div></section>`;
+}
+function estadoFicha(g, p, cosa) {
+  if (g.mando) return ['oro', 'Tú · alto mando'];
+  if (!cosa && !g.nombre) return ['rosa', 'Falta el nombre'];
+  if (!cosa && !g.correo) return ['naranja', 'Falta el correo'];
+  if (p.llamamiento.activo && g.vota) return g.alistado === true ? ['teal', 'En filas'] : g.alistado === false ? ['rosa', 'Objetor'] : ['t2', 'Sin respuesta'];
+  return ['teal', 'Listo'];
+}
+function rejillaGente(indices, cosa, previa) {
   const p = S.ui.plan;
-  if (!p) return marco(cargando('Desplegando el plan'), { sinNav: true, fondo: 'a', marca: 'Alto mando' });
-  const previa = p.fase === 'borrador' || p.fase === 'llamamiento', cosas = p.modo === 'cosas';
-  const indices = p.gente.map((g, i) => i);
-  const combaten = indices.filter((i) => p.gente[i].combate), votan = indices.filter((i) => p.gente[i].vota);
-  const nc = combaten.length, nb = nc * (nc - 1) / 2;
-  return marco(`${volver('/guerras', 'Tus guerras')}${cab('Alto mando', 'Plan de guerra')}
-    <p class="t3">Una guerra nueva con su tema, su gente y sus reglas. Los nombres del juego (batallas, ofensivas, desfile) se quedan igual.</p>
-    <section class="caja"><h2 class="h2">La guerra</h2>
-      <label class="campo"><span>Nombre</span><input id="p-nombre" maxlength="80" data-m="plan.nombre" value="${esc(p.nombre)}" placeholder="Guerra de la Normalidad" ${previa ? '' : 'disabled'}></label>
-      <label class="campo"><span>La pregunta</span><input id="p-pregunta" maxlength="160" data-m="plan.pregunta" value="${esc(p.pregunta)}" placeholder="¿Quién es más normal?" ${previa ? '' : 'disabled'}></label>
-      <label class="campo"><span>Otras preguntas (opcional, una por línea, hasta 4)</span><textarea id="p-otras" rows="3" maxlength="700" data-m="plan.otrasTexto" placeholder="¿Quién sobreviviría a un apocalipsis zombi?" ${previa ? '' : 'disabled'}>${esc(p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n'))}</textarea></label>
-      <p class="peq t2" style="margin-top:-6px">Con varias preguntas, cada ofensiva usa una, por turnos${nc >= 3 ? `: con ${nc} combatientes hay ${nc % 2 ? nc : nc - 1} ofensivas` : ''}. Cada pregunta tiene su campeón, que se revela en el desfile, y el campeón de la guerra suma todas las batallas.</p>
+  return `<ul class="fichas">${indices.map((i) => {
+    const g = p.gente[i], [color, estado] = estadoFicha(g, p, cosa);
+    return `<li><button class="ficha ${g.mando ? 'yo' : ''}" data-a="abrirFicha" data-v="${i}" aria-label="Editar a ${esc(g.nombre || 'sin nombre')}">
+      ${avatar(Object.assign({ id: 'p' + i }, g), 'ficha-foto')}<strong>${esc(g.nombre || 'Sin nombre')}</strong><span class="peq ${color}">${estado}</span></button></li>`;
+  }).join('')}${previa ? `<li><button class="ficha nueva" data-a="masGente" data-v="${cosa ? 'cosa' : 'persona'}">${icono('mas', 26)}${cosa ? 'Añadir' : 'Reclutar'}</button></li>` : ''}</ul>`;
+}
+function hojaFicha() {
+  const p = S.ui.plan, i = S.ui.ficha;
+  if (i == null || !p.gente[i]) return '';
+  const g = p.gente[i], cosa = !g.vota;
+  return `<div class="hoja-fondo" data-a="cerrarFicha" aria-hidden="true"></div>
+    <section class="hoja" role="dialog" aria-modal="true" aria-label="Editar a ${esc(g.nombre || 'un combatiente')}"><span class="hoja-asa" aria-hidden="true"></span>
+      ${filaGente(g, i, cosa)}
+      <button class="btn medio" data-a="cerrarFicha">Hecho</button></section>`;
+}
+accion('abrirFicha', (i) => { S.ui.ficha = Number(i); pintar(); const el = document.getElementById('gn-' + i); if (el && !el.value) el.focus(); });
+accion('cerrarFicha', () => { S.ui.ficha = null; pintar(); });
+
+function paso1(p, previa) {
+  const otras = S.ui.otrasLista || (S.ui.otrasLista = (p.otras || []).slice());
+  return `<p class="t3">Lo esencial: cómo se llama la guerra y qué se dirime. <strong style="color:#fff">Todo lo demás es opcional.</strong></p>
+    <section class="caja"><label class="campo"><span>Nombre</span><input id="p-nombre" maxlength="80" data-m="plan.nombre" value="${esc(p.nombre)}" placeholder="Guerra de la Normalidad" ${previa ? '' : 'disabled'}></label>
       <label class="campo"><span>Campo de batalla</span><input id="p-campo" maxlength="60" data-m="plan.campo" value="${esc(p.campo || '')}" placeholder="Familia, compañeros de trabajo, amigos…"></label>
-      <p class="peq t2" style="margin-top:-6px">El grupo que combate. Distingue guerras con el mismo nombre: cada campo de batalla lleva su propio escalafón.</p>
+      <p class="peq t2" style="margin-top:-6px">El grupo que combate. Cada campo de batalla lleva su propio escalafón.</p></section>
+    <section class="caja oro"><div class="fila" style="gap:8px"><span class="oro">${icono('vs', 22)}</span><h2 class="h2">La pregunta</h2></div>
+      <input id="p-pregunta" class="pregunta-grande" aria-label="La pregunta" maxlength="160" data-m="plan.pregunta" value="${esc(p.pregunta)}" placeholder="¿Quién es más normal?" ${previa ? '' : 'disabled'}>
+      ${otras.map((q, k) => `<div class="fila" style="gap:8px"><b class="bc t2" style="width:22px;font-size:18px">${k + 2}</b><input class="crece" id="p-otra-${k}" aria-label="Pregunta ${k + 2}" maxlength="160" data-m="otrasLista.${k}" value="${esc(q)}" ${previa ? '' : 'disabled'}>
+        ${previa ? `<button class="cuadro" data-a="quitarPregunta" data-v="${k}" aria-label="Quitar la pregunta ${k + 2}">${ico('equis', 16)}</button>` : ''}</div>`).join('')}
+      ${previa && otras.length < 4 ? `<button class="btn linea medio discontinuo" data-a="otraPregunta">${ico('mas')}Otra pregunta (hasta 5)</button>` : ''}
+      <p class="peq t2">${otras.length ? 'Cada ofensiva usa una, por turnos, y cada pregunta tiene su campeón, que se revela en el desfile.' : 'Puedes añadir más: cada ofensiva usaría una, por turnos.'}</p></section>
+    ${pliegue('premio', 'medalla', 'Premio, botín y firma', [p.premio, p.botin, p.firma].filter(Boolean).map(esc).join(' · ') || 'Opcional', `
       <label class="campo"><span>Premio</span><input id="p-premio" maxlength="160" data-m="plan.premio" value="${esc(p.premio)}" placeholder="Una cena pagada por los demás"></label>
       <label class="campo"><span>Botín de la porra</span><input id="p-botin" maxlength="160" data-m="plan.botin" value="${esc(p.botin)}" placeholder="2 € por cabeza"></label>
       <label class="campo"><span>Tu firma como alto mando</span><input id="p-firma" maxlength="60" data-m="plan.firma" value="${esc(p.firma || '')}" placeholder="Francisco M. Romero"></label>
-      <p class="peq t2" style="margin-top:-6px">Así firmas los correos y el diploma. Si lo dejas vacío, se usa el nombre de tu carta.</p>
-      <label class="campo"><span>Día y hora del desfile</span><input id="p-desfile-ts" type="datetime-local" data-c="desfileFecha" value="${p.desfileTs ? localISO(p.desfileTs) : ''}"></label>
-      <p class="peq t2" style="margin-top:-6px">Opcional. Con fecha y hora, cada combatiente podrá apuntárselo en su calendario, y el correo de alto el fuego lo llevará adjunto.</p>
-      <label class="campo"><span>Lugar y detalles del desfile</span><input id="p-desfile" maxlength="200" data-m="plan.desfileInfo" value="${esc(p.desfileInfo)}" placeholder="En el bar de siempre"></label></section>
-    ${previa ? `<section class="caja"><h2 class="h2">Quién compite</h2>
-      <div class="opciones"><button aria-pressed="${!cosas}" data-a="modo" data-v="combatientes">Los combatientes</button><button aria-pressed="${cosas}" data-a="modo" data-v="cosas">Otra cosa</button></div>
-      <p class="med t2">${cosas ? 'Compiten otras cosas (bodas, películas, tortillas) y los combatientes sólo votan: todos votan todas las batallas.' : 'Cada combatiente también es contendiente: no vota en sus propios combates.'}</p></section>
-    ${seccionLlamamiento()}` : ''}
-    ${cosas ? `<section class="caja"><div class="fila entre"><h2 class="h2">Contendientes</h2><span class="med t2">${nc}</span></div>
-      ${combaten.map((i) => filaGente(p.gente[i], i, true)).join('')}${previa ? `<button class="btn linea medio" data-a="masGente" data-v="cosa">${ico('mas')}Añadir contendiente</button>` : ''}</section>` : ''}
-    <section class="caja"><div class="fila entre"><h2 class="h2">Combatientes</h2><span class="med t2">${votan.length}</span></div>
-      ${votan.map((i) => filaGente(p.gente[i], i, false)).join('')}
-      ${previa ? `<button class="btn linea medio" data-a="masGente" data-v="persona">${ico('mas')}Reclutar combatiente</button>` : ''}
-      <p class="peq t2">${nc >= 3 ? (p.formato === 'torneo' ? textoTorneo(nc) : `Con ${nc} contendientes habrá ${nb} batallas en ${nc % 2 ? nc : nc - 1} ofensivas.`) : 'Hacen falta al menos 3 contendientes.'} Marca «Soy yo» en tu propia carta.</p></section>
-    <section class="caja"><h2 class="h2">La orden de movilización</h2><p class="med t2">Tu frase de apertura y tu remate; el enlace personal de cada uno va en medio.</p>
-      <label class="campo"><span>Asunto</span><input id="p-asunto" maxlength="150" data-m="plan.correo.asunto" value="${esc(p.correo.asunto)}" placeholder="¡Comienza la ${esc(p.nombre || 'guerra')}!"></label>
-      <label class="campo"><span>Apertura</span><textarea id="p-apertura" maxlength="1500" data-m="plan.correo.apertura">${esc(p.correo.apertura)}</textarea></label>
-      <label class="campo"><span>Remate</span><textarea id="p-remate" maxlength="1500" data-m="plan.correo.remate">${esc(p.correo.remate)}</textarea></label>
-      <button class="btn linea medio" data-a="previa" data-v="orden">Ver cómo queda el correo</button></section>
-    ${previa ? `<section class="caja"><h2 class="h2">Formato</h2>
-      <div class="opciones"><button aria-pressed="${p.formato !== 'torneo'}" data-a="opcion" data-v="plan.formato=liga">Liga: todos contra todos</button><button aria-pressed="${p.formato === 'torneo'}" data-a="opcion" data-v="plan.formato=torneo">Torneo por eliminatorias</button></div>
-      <p class="med t2">${p.formato === 'torneo' ? `Cruces de uno contra uno: sólo pasa uno, ronda a ronda, hasta la final. Cada ronda se abre cuando se cierra la anterior, y al cerrarse se publica quién pasa, sin votos. ${nc >= 3 ? textoTorneo(nc) : ''} Va bien con grupos grandes, donde la liga se hace eterna.` : `Cada contendiente se enfrenta a todos los demás y gana quien más puntos suma.`}</p></section>
-    ${p.formato === 'torneo' ? '' : `<section class="caja"><h2 class="h2">Puntuación</h2>
-      <div class="opciones"><button aria-pressed="${p.puntuacion !== 'votos'}" data-a="opcion" data-v="plan.puntuacion=liga">Liga: 3, 1, 0</button><button aria-pressed="${p.puntuacion === 'votos'}" data-a="opcion" data-v="plan.puntuacion=votos">Por votos</button></div>
-      <p class="med t2">${p.puntuacion === 'votos' ? 'Cada voto recibido vale 3 puntos, como en el cambio de 2012.' : 'Ganar un combate, 3 puntos; empatarlo, 1; perderlo, 0. Desempata la diferencia de votos.'}</p></section>
-    <section class="caja"><h2 class="h2">Ritmo de la guerra</h2>
-      <div class="opciones"><button aria-pressed="${p.ritmo !== 'diaria'}" data-a="opcion" data-v="plan.ritmo=golpe">Todas de golpe</button><button aria-pressed="${p.ritmo === 'diaria'}" data-a="opcion" data-v="plan.ritmo=diaria">Una ofensiva al día</button></div>
-      <p class="med t2">${p.ritmo === 'diaria' ? `La primera ofensiva se abre al declarar la guerra y, después, una nueva cada mañana a las 9:00${nc >= 3 ? `: la guerra durará al menos ${nc % 2 ? nc : nc - 1} días` : ''}. Cada día sale un correo avisando de las batallas nuevas a quien tenga algo por votar. Las ofensivas abiertas no caducan: el que se retrase puede ponerse al día cuando quiera.` : 'Todas las ofensivas se abren a la vez y cada uno vota a su ritmo.'}</p></section>`}
-    <section class="caja"><h2 class="h2">Extras</h2>${EXTRAS.map(([k, t, n]) => interruptor('plan.extras.' + k, p.extras[k], t, n)).join('')}</section>` : ''}
-    ${seccionNarrador()}
-    ${seccionPresentacion()}
-    ${seccionOrdenanzas()}
-    <section class="caja"><h2 class="h2">Toque de diana</h2>
+      <p class="peq t2" style="margin-top:-6px">Así firmas los correos y el diploma. Si lo dejas vacío, se usa el nombre de tu carta.</p>`)}
+    ${pliegue('desfile', 'desfile', 'Día y lugar del desfile', esc([p.desfileFecha, p.desfileInfo].filter(Boolean).join(', ')) || 'Opcional', `
+      <label class="campo"><span>Día y hora</span><input id="p-desfile-ts" type="datetime-local" data-c="desfileFecha" value="${p.desfileTs ? localISO(p.desfileTs) : ''}"></label>
+      <p class="peq t2" style="margin-top:-6px">Con fecha y hora, cada combatiente podrá apuntárselo en su calendario.</p>
+      <label class="campo"><span>Lugar y detalles</span><input id="p-desfile" maxlength="200" data-m="plan.desfileInfo" value="${esc(p.desfileInfo)}" placeholder="En el bar de siempre"></label>`)}`;
+}
+accion('otraPregunta', () => { S.ui.otrasLista.push(''); pintar(); const el = document.getElementById('p-otra-' + (S.ui.otrasLista.length - 1)); if (el) el.focus(); });
+accion('quitarPregunta', (k) => { S.ui.otrasLista.splice(Number(k), 1); pintar(); });
+
+function paso2(p, previa) {
+  const cosas = p.modo === 'cosas', idx = p.gente.map((g, i) => i);
+  const combaten = idx.filter((i) => p.gente[i].combate), votan = idx.filter((i) => p.gente[i].vota), n = numeros(p);
+  const ll = p.llamamiento;
+  const resLl = ll.activo ? `${p.gente.filter((g) => g.vota && g.alistado === true).length} en filas · ${p.gente.filter((g) => g.vota && g.alistado == null).length} sin responder` : 'Pregunta antes quién se apunta';
+  return `<div class="fila entre" style="align-items:baseline"><p style="margin:0"><b class="bc" style="font-size:32px;color:#fff">${n.votan}</b> <span class="t3">combatientes</span></p>
+      <span class="peq t2">${n.nc >= 3 ? (n.torneo ? `${n.rondas} rondas · ${n.batallas} cruces` : `${n.ofensivas} ofensivas · ${n.batallas} batallas`) : 'Hacen falta al menos 3'}</span></div>
+    ${cosas ? `<h2 class="h2">Contendientes</h2>${rejillaGente(combaten, true, previa)}<h2 class="h2">Quién vota</h2>` : ''}
+    ${rejillaGente(votan, false, previa)}
+    <p class="peq t2 centro">Toca una ficha para editar su nombre, correo, foto y grito de guerra. Marca «Soy yo» en la tuya.</p>
+    ${previa ? pliegue('llamamiento', 'corneta', 'Llamamiento a filas', resLl, seccionLlamamiento().replace(/^<section class="caja[^"]*">/, '<div class="col g12">').replace(/<\/section>\s*$/, '</div>')) : ''}
+    ${previa ? pliegue('modo', 'tropa', '¿Compiten personas u otra cosa?', cosas ? 'Ahora: otras cosas (bodas, películas…)' : 'Ahora: los propios combatientes', `
+      <div class="elecciones">${[['combatientes', 'Los combatientes', 'Cada uno es contendiente y no vota en sus combates.', 'personas'], ['cosas', 'Otra cosa', 'Bodas, películas, tortillas… y todos votan todo.', 'cosas']].map(([v, t, d, il]) => {
+        const sel = (v === 'cosas') === cosas;
+        return `<button class="eleccion ${sel ? 'sel' : ''}" style="--c:#5ef0d0" aria-pressed="${sel}" data-a="modo" data-v="${v}">${sel ? `<span class="marca-sel" aria-hidden="true">${icono('visto', 13, 3.4)}</span>` : ''}${ILU[il](sel ? '#5ef0d0' : '#8f7bff')}<span class="bc nombre">${t}</span><span class="peq t2">${d}</span></button>`;
+      }).join('')}</div>`) : ''}
+    ${hojaFicha()}`;
+}
+
+function paso3(p, previa) {
+  const n = numeros(p);
+  if (!previa) return `<div class="caja"><p>La guerra ya está declarada: las reglas no se pueden cambiar.</p><p class="med t2">${n.torneo ? 'Torneo por eliminatorias' : 'Liga'} · ${p.ritmo === 'diaria' ? 'una ofensiva al día' : 'todas de golpe'} · ${p.puntuacion === 'votos' ? 'por votos' : '3-1-0'}</p></div>`;
+  const resumen = n.nc < 3 ? 'Recluta al menos 3 contendientes para ver cuánto durará.'
+    : n.torneo ? `${textoTorneo(n.nc)} Cada ronda se abre cuando se cierra la anterior.`
+    : p.ritmo === 'diaria' ? `La guerra dura <strong style="color:#fff">al menos ${n.ofensivas} días</strong>, ${n.batallas} batallas, y cada mañana llega un correo con las nuevas.`
+    : `${n.batallas} batallas en ${n.ofensivas} ofensivas, todas abiertas desde el primer momento.`;
+  return eleccion('Formato', '¿Cómo se enfrentan?', [['liga', 'Liga', 'Todos contra todos. Gana quien más puntos suma.', 'liga'], ['torneo', 'Torneo', 'Cruces de uno contra uno. Sólo pasa uno.', 'torneo']], 'plan.formato', n.torneo ? 'torneo' : 'liga', '#5ef0d0') +
+    (n.torneo ? '' : eleccion('Ritmo', '¿Cuándo se vota?', [['golpe', 'De golpe', `Las ${n.nc >= 3 ? n.ofensivas + ' ' : ''}ofensivas a la vez. Cada uno, a su ritmo.`, 'golpe'], ['diaria', 'Una al día', 'Una ofensiva nueva cada mañana a las 9:00.', 'dia']], 'plan.ritmo', p.ritmo === 'diaria' ? 'diaria' : 'golpe', '#ffd36a') +
+      eleccion('Puntos', '¿Cómo se gana?', [['liga', 'Como en la liga', 'Ganar, empatar o perder cada batalla.', 'p310'], ['votos', 'Por votos', 'Cada voto recibido suma 3 puntos.', 'votos']], 'plan.puntuacion', p.puntuacion === 'votos' ? 'votos' : 'liga', '#5ef0d0')) +
+    `<section class="caja fila" style="gap:10px;align-items:center;padding:12px"><span class="oro">${icono(n.torneo ? 'cuadro' : p.ritmo === 'diaria' ? 'sol' : 'rayo', 26)}</span><p class="med" style="margin:0;color:#cdc8e6">${resumen}</p></section>`;
+}
+
+function paso4(p, previa) {
+  const claves = EXTRAS.map((e) => e[0]), on = claves.filter((k) => p.extras[k]).length, info = S.ui.extraInfo && EXTRAS.find((e) => e[0] === S.ui.extraInfo);
+  return `<div class="fila entre"><p style="margin:0"><b class="bc teal" style="font-size:32px">${on}</b> <span class="t3">de ${claves.length} encendidos</span></p>
+      <button class="btn linea chico" data-a="todosExtras">${on === claves.length ? 'Apagar todos' : 'Encender todos'}</button></div>
+    <div class="extras-rejilla">${EXTRAS.map(([k]) => {
+      const si = !!p.extras[k], [t, d] = CORTO_EXTRA[k];
+      return `<button class="extra ${si ? 'on' : ''}" aria-pressed="${si}" data-a="extra" data-v="${k}"><span class="luz" aria-hidden="true"></span>${icono(ICONO_EXTRA[k], 32, 1.8)}<span class="bc">${t}</span><span class="peq">${d}</span></button>`;
+    }).join('')}</div>
+    ${info ? `<section class="caja ${p.extras[info[0]] ? 'teal' : ''}" style="padding:12px;gap:6px"><div class="fila" style="gap:8px"><span class="${p.extras[info[0]] ? 'teal' : 't2'}">${icono(ICONO_EXTRA[info[0]], 22)}</span><strong class="bc" style="font-size:18px">${info[1]}</strong><span class="peq ${p.extras[info[0]] ? 'teal' : 't2'}">${p.extras[info[0]] ? 'Encendido' : 'Apagado'}</span></div><p class="med" style="margin:0;color:#cdc8e6">${info[2]}.</p></section>`
+      : '<p class="peq t2 centro">Toca una ficha para encenderla o apagarla; aquí verás qué hace.</p>'}
+    ${pliegue('diana', 'diana', 'Toque de diana', p.diana.activa ? `Recordatorio cada ${plural(p.diana.cadaDias, 'día', 'días')}` : 'Apagado', `
       ${interruptor('plan.diana.activa', p.diana.activa, 'Recordar a los rezagados', 'Un correo automático, sólo de día')}
-      <div class="opciones">${[1, 2, 3].map((n) => `<button aria-pressed="${p.diana.cadaDias === n}" data-a="opcion" data-v="plan.diana.cadaDias=${n}">Cada ${plural(n, 'día', 'días')}</button>`).join('')}</div>
-      <label class="campo"><span>Tus frases, una por línea. Usa {nombre} y {faltan}</span><textarea id="p-frases" data-m="frases" placeholder="Si lo dejas vacío: «{nombre}, el enemigo sigue esperando: te quedan {faltan} batallas.»">${esc(S.ui.frases || '')}</textarea></label></section>
-    <div class="col">${previa ? `<button class="btn" data-a="declarar">¡Declarar la guerra!</button>` : ''}
-      <button class="btn linea" data-a="guardarPlan">${previa ? 'Guardar borrador' : 'Guardar cambios'}</button>
-      <button class="btn chico peligro" style="align-self:center" data-a="borrarGuerra">Borrar esta guerra</button></div>`, { sinNav: true, fondo: 'a', marca: 'Alto mando' });
+      <div class="opciones">${[1, 2, 3].map((d) => `<button aria-pressed="${p.diana.cadaDias === d}" data-a="opcion" data-v="plan.diana.cadaDias=${d}">Cada ${plural(d, 'día', 'días')}</button>`).join('')}</div>
+      <label class="campo"><span>Tus frases, una por línea. Usa {nombre} y {faltan}</span><textarea id="p-frases" data-m="frases" placeholder="Si lo dejas vacío: «{nombre}, el enemigo sigue esperando: te quedan {faltan} batallas.»">${esc(S.ui.frases || '')}</textarea></label>`)}`;
+}
+accion('extra', (k) => { S.ui.plan.extras[k] = !S.ui.plan.extras[k]; S.ui.extraInfo = k; pintar(); });
+accion('todosExtras', () => { const p = S.ui.plan, todos = EXTRAS.every(([k]) => p.extras[k]); EXTRAS.forEach(([k]) => { p.extras[k] = !todos; }); pintar(); });
+
+function paso5(p) {
+  const orden = `<label class="campo"><span>Asunto</span><input id="p-asunto" maxlength="150" data-m="plan.correo.asunto" value="${esc(p.correo.asunto)}" placeholder="¡Comienza la ${esc(p.nombre || 'guerra')}!"></label>
+    <label class="campo"><span>Apertura</span><textarea id="p-apertura" maxlength="1500" data-m="plan.correo.apertura">${esc(p.correo.apertura)}</textarea></label>
+    <label class="campo"><span>Remate</span><textarea id="p-remate" maxlength="1500" data-m="plan.correo.remate">${esc(p.correo.remate)}</textarea></label>
+    <p class="peq t2">El enlace personal de cada uno va en medio.</p>`;
+  const sinCaja = (h) => h.replace(/^<section class="caja[^"]*">\s*<h2 class="h2">[^<]*<\/h2>/, '<div class="col g12">').replace(/<\/section>\s*$/, '</div>');
+  const ej = p.gente.find((g) => g.vota && !g.mando) || { nombre: 'Recluta' };
+  return `<section class="col g8"><div class="fila entre" style="align-items:baseline"><h2 class="h2">Orden de movilización</h2><span class="peq t2">Correo a cada uno</span></div>
+      <div class="correo-mini"><div class="correo-mini-cab bc">${esc(p.nombre || 'La guerra')}</div><div class="col g4" style="padding:12px 14px">
+        <strong>${esc(ej.nombre || 'Recluta')}, la patria te reclama.</strong><span class="med t2" style="white-space:pre-line">${esc((p.correo.apertura || '').slice(0, 140))}${(p.correo.apertura || '').length > 140 ? '…' : ''}</span>
+        <span class="correo-mini-boton bc">A las trincheras</span></div></div>
+      <div class="fila" style="gap:8px"><button class="btn linea medio crece" data-a="plegar" data-v="orden">${icono('lapiz', 16)}Editar el texto</button><button class="btn linea medio crece" data-a="previa" data-v="orden">${icono('ojo', 16)}Ver entero</button></div>
+      ${(S.ui.pliegues || {}).orden ? `<div class="caja">${orden}</div>` : ''}</section>
+    ${pliegue('presentacion', 'bandera', 'Presentación de la guerra', 'Página para animar al grupo', sinCaja(seccionPresentacion()), true)}
+    ${pliegue('ordenanzas', 'reglas', 'Ordenanzas', p.ordenanzas ? 'Personalizadas' : 'Se escriben solas con tus reglas', sinCaja(seccionOrdenanzas()))}
+    ${pliegue('narrador', 'micro', 'Frases del narrador', S.ui.repertorio ? plural(S.ui.repertorio.frases.length, 'frase propia', 'frases propias') : 'Tus frases para el desfile', sinCaja(seccionNarrador()))}`;
+}
+
+function paso6(p, previa) {
+  const n = numeros(p), extrasOn = EXTRAS.filter(([k]) => p.extras[k]);
+  const preguntas = [p.pregunta].concat(S.ui.otrasLista || p.otras || []).filter(Boolean);
+  const votan = p.gente.filter((g) => g.vota), sinCorreo = votan.filter((g) => !g.correo && !g.mando), avisos = [];
+  if (!p.nombre) avisos.push(['1', 'Falta el nombre de la guerra.']);
+  if (!p.pregunta) avisos.push(['1', 'Falta la pregunta.']);
+  if (n.nc < 3) avisos.push(['2', 'Hacen falta al menos 3 contendientes.']);
+  if (sinCorreo.length) avisos.push(['2', `${enumerar(sinCorreo.map((g) => g.nombre || 'alguien sin nombre'))} sin correo: no recibirá${sinCorreo.length > 1 ? 'n' : ''} su enlace.`]);
+  if (!p.gente.some((g) => g.mando)) avisos.push(['2', 'No has marcado «Soy yo» en ninguna ficha: dirigirás sin combatir.']);
+  const fila = (k, ic, t, v, color = 'teal') => `<li><span class="fila-ico ${color}">${icono(ic, 20)}</span><span class="col crece" style="gap:2px;min-width:0"><span class="etiqueta">${t}</span><span style="font-weight:600">${v}</span></span>
+    <button class="cuadro" data-a="pasoPlan" data-v="${k}" aria-label="Cambiar: ${t}">${icono('lapiz', 16)}</button></li>`;
+  return `<section class="orden-batalla"><span class="sello-orden" aria-hidden="true">Orden de batalla</span>
+      ${p.campo ? `<span class="sobre oro">${esc(p.campo)}</span>` : ''}<h2 class="bc" style="font-size:34px;line-height:.95;color:#fff;max-width:80%">${esc(p.nombre || 'Guerra sin nombre')}</h2>
+      ${preguntas.length ? `<p class="bc oro" style="font-size:20px;line-height:1.15;margin:0">${preguntas.map(esc).join('<br>')}</p>` : ''}
+      <div class="fila" style="gap:10px"><span class="caras">${votan.slice(0, 9).map((g, i) => avatar(Object.assign({ id: 'p' + i }, g), 'chico')).join('')}</span><span class="peq t2">${plural(votan.length, 'combatiente', 'combatientes')}</span></div>
+      <div class="rejilla3 centro">
+        <div class="dato"><b class="bc">${n.batallas}</b><span class="peq t2">${n.torneo ? 'cruces' : 'batallas'}</span></div>
+        <div class="dato"><b class="bc">${n.torneo ? n.rondas : n.ofensivas}</b><span class="peq t2">${n.torneo ? 'rondas' : p.ritmo === 'diaria' ? 'días, uno por ofensiva' : 'ofensivas'}</span></div>
+        <div class="dato"><b class="bc">${extrasOn.length}</b><span class="peq t2">extras</span></div></div></section>
+    ${avisos.length ? `<section class="caja rosa" style="gap:6px">${avisos.map(([k, t]) => `<button class="aviso-plan" data-a="pasoPlan" data-v="${k}">${esc(t)}<span class="peq">Ir al paso ${k}</span></button>`).join('')}</section>` : ''}
+    <ul class="lista-orden">
+      ${fila(3, 'reglas', 'Reglas', n.torneo ? 'Torneo por eliminatorias' : `Liga · ${p.ritmo === 'diaria' ? 'una ofensiva al día' : 'todas de golpe'} · ${p.puntuacion === 'votos' ? 'por votos' : '3-1-0'}`)}
+      ${fila(4, 'extras', 'Extras', extrasOn.length ? `<span class="fila" style="flex-wrap:wrap;gap:6px;padding-top:2px">${extrasOn.map(([k, t]) => `<span class="teal" title="${t}">${icono(ICONO_EXTRA[k], 20, 1.8)}</span>`).join('')}</span>` : 'Ninguno')}
+      ${fila(1, 'desfile', 'Desfile', esc([p.desfileFecha, p.desfileInfo].filter(Boolean).join(', ')) || 'Sin fecha', 'oro')}
+      ${fila(2, 'tropa', 'Combatientes', `${votan.length - sinCorreo.length} con su enlace${sinCorreo.length ? `, ${sinCorreo.length} sin correo` : ''}`, sinCorreo.length ? 'naranja' : 'teal')}
+      ${fila(5, 'correo', 'Orden de movilización', esc(p.correo.asunto || '¡Comienza la ' + (p.nombre || 'guerra') + '!'))}
+    </ul>
+    ${previa ? `<p class="med t2 centro">Al declarar, cada combatiente recibe su enlace por correo. <strong style="color:#fff">No hay vuelta atrás.</strong></p>` : ''}
+    <div class="fila" style="justify-content:center;gap:8px"><button class="btn linea chico" data-a="guardarPlan">${previa ? 'Guardar borrador' : 'Guardar cambios'}</button><button class="btn chico peligro" data-a="borrarGuerra">Borrar esta guerra</button></div>`;
+}
+
+// Resumen vivo, a la derecha, en pantallas anchas.
+function resumenPlan(p) {
+  const n = numeros(p);
+  return `<aside class="plan-resumen"><span class="sobre oro">Orden de batalla, en vivo</span><h2 class="bc" style="font-size:26px;color:#fff;line-height:1">${esc(p.nombre || 'Guerra sin nombre')}</h2>
+    ${p.pregunta ? `<p class="oro" style="margin:0;font-weight:600">${esc(p.pregunta)}</p>` : ''}
+    <span class="caras">${p.gente.filter((g) => g.vota).slice(0, 9).map((g, i) => avatar(Object.assign({ id: 'p' + i }, g), 'chico')).join('')}</span>
+    <ul class="col g8 med" style="color:#cdc8e6">
+      <li class="fila" style="gap:8px"><span class="teal">${icono('reglas', 18)}</span>${n.torneo ? `Torneo · ${n.batallas} cruces` : `Liga · ${n.batallas} batallas`}</li>
+      ${n.torneo ? '' : `<li class="fila" style="gap:8px"><span class="oro">${icono(p.ritmo === 'diaria' ? 'sol' : 'rayo', 18)}</span>${p.ritmo === 'diaria' ? `Una ofensiva al día · ${n.ofensivas} días` : 'Todas de golpe'}</li>`}
+      <li class="fila" style="gap:8px"><span class="teal">${icono('extras', 18)}</span>${EXTRAS.filter(([k]) => p.extras[k]).length} extras</li></ul>
+    <p class="peq t2">Se va completando mientras rellenas el plan.</p></aside>`;
+}
+
+registrar('/plan', () => {
+  const p = S.ui.plan;
+  if (!p) return marco(cargando('Desplegando el plan'), { sinNav: true, fondo: 'a', marca: 'Alto mando' });
+  const previa = p.fase === 'borrador' || p.fase === 'llamamiento', n = Math.min(6, Math.max(1, S.ui.pasoPlan || 1));
+  const cuerpo = [paso1, paso2, paso3, paso4, paso5, paso6][n - 1](p, previa);
+  return marco(`${volver('/guerras', 'Tus guerras')}${cabeceraPlan(n)}
+    <div class="plan-rejilla"><div class="col g12 plan-principal">${cuerpo}</div>${resumenPlan(p)}</div>
+    ${piePlan(n, previa)}`, { sinNav: true, fondo: 'a', marca: 'Alto mando', ancha: true });
+});
+accion('pasoPlan', async (v) => {
+  const n = Number(v);
+  S.ui.ficha = null;
+  try { await guardarPlan(); S.ui.planGuardado = Date.now(); } catch (e) { aviso(e.message || 'No se ha podido guardar.'); }
+  S.ui.pasoPlan = n;
+  pintar();
+  window.scrollTo(0, 0);
 });
 
 accion('modo', (m) => {
@@ -300,11 +471,12 @@ accion('modo', (m) => {
 accion('masGente', (tipo) => {
   const p = S.ui.plan, cosa = tipo === 'cosa';
   p.gente.push({ nombre: '', correo: '', frase: '', foto: null, combate: cosa || p.modo !== 'cosas', vota: !cosa, mando: false, alistado: null, eraCosa: cosa });
+  S.ui.ficha = p.gente.length - 1;
   pintar();
   const el = document.getElementById('gn-' + (p.gente.length - 1));
   if (el) el.focus();
 });
-accion('quitarGente', (i) => { S.ui.plan.gente.splice(Number(i), 1); pintar(); });
+accion('quitarGente', (i) => { S.ui.plan.gente.splice(Number(i), 1); S.ui.ficha = null; pintar(); });
 accion('soyYo', (i) => { S.ui.plan.gente.forEach((g, k) => { g.mando = k === Number(i) ? !g.mando : false; }); pintar(); });
 
 function reducirFoto(archivo) {
@@ -339,7 +511,7 @@ async function guardarPlan() {
   const p = S.ui.plan;
   const plan = {
     nombre: p.nombre, pregunta: p.pregunta, premio: p.premio, botin: p.botin, firma: p.firma || '', campo: p.campo || '', ritmo: p.ritmo || 'golpe', pitch: p.pitch || '',
-    otras: (p.otrasTexto != null ? p.otrasTexto : (p.otras || []).join('\n')).split('\n').map((q) => q.trim()).filter(Boolean).slice(0, 4), desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, formato: p.formato || 'liga', puntuacion: p.puntuacion,
+    otras: (S.ui.otrasLista || p.otras || []).map((q) => (q || '').trim()).filter(Boolean).slice(0, 4), desfileInfo: p.desfileInfo, desfileTs: p.desfileTs || null, desfileFecha: p.desfileFecha || '', modo: p.modo, formato: p.formato || 'liga', puntuacion: p.puntuacion,
     extras: p.extras, correo: p.correo, llamamiento: { cierre: p.llamamiento.cierre, cierreTs: p.llamamiento.cierreTs || 0, soloAlistados: p.llamamiento.soloAlistados, nota: p.llamamiento.nota || '' },
     diana: { activa: p.diana.activa, cadaDias: p.diana.cadaDias, frases: (S.ui.frases || '').split('\n') },
     ordenanzas: p.ordenanzas ? p.ordenanzas.filter((o) => (o.t || '').trim() || (o.x || '').trim()) : null,

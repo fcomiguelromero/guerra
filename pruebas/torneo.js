@@ -4,6 +4,7 @@
 const { spawn } = require('child_process');
 const path = require('path'), fs = require('fs'), assert = require('assert');
 const { chromium } = require('playwright');
+const plan = require('./ayuda-plan');
 const PUERTO = 8139, BASE = 'http://localhost:' + PUERTO + '/', SALIDA = process.argv[2] || '/tmp/gn-torneo', errores = [];
 const NOMBRES = ['María', 'Andrés', 'Carmen', 'Fran', 'Javier', 'Elena'];
 const sinTilde = (n) => n.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '');
@@ -43,14 +44,15 @@ async function votarRonda(tok, menos) {
     // --- plan: elegir torneo
     const m = await pagina('#mando=mando-local');
     await m.locator(`[data-a="abrirGuerra"][data-v="${id}"]`).click();
+    await plan.paso(m, 3);
     await m.waitForSelector('[data-v="plan.formato=torneo"]');
     await m.locator('[data-v="plan.formato=torneo"]').click(); await m.waitForTimeout(150);
     assert.ok(/3 rondas y 6 cruces, 3\.er puesto incluido; 2 pasan la primera ronda sin combatir/.test(await texto(m)), 'resumen del cuadro en el plan');
-    assert.strictEqual(await m.locator('text=Ritmo de la guerra').count(), 0, 'sin ritmo en el torneo');
-    await m.getByRole('button', { name: 'Guardar borrador' }).first().click(); await m.waitForLoadState('networkidle');
+    assert.strictEqual(await m.locator('[data-v="plan.ritmo=diaria"]').count(), 0, 'sin ritmo en el torneo');
+    await plan.paso(m, 4); await plan.paso(m, 3);
     assert.strictEqual((await api('plan', { guerra: id })).plan.formato, 'torneo');
     await m.waitForTimeout(600);
-    await m.locator('.caja', { hasText: 'Torneo por eliminatorias' }).first().screenshot({ path: path.join(SALIDA, '1-plan-formato.png') });
+    await m.screenshot({ path: path.join(SALIDA, '1-plan-formato.png'), fullPage: true });
     const n0 = (await prueba()).correos.length;
     await api('declarar', { guerra: id });
     const tok = {};

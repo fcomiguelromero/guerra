@@ -5,6 +5,7 @@
 const { spawn } = require('child_process');
 const path = require('path'), fs = require('fs'), assert = require('assert');
 const { chromium } = require('playwright');
+const plan = require('./ayuda-plan');
 
 const PUERTO = 8135, BASE = 'http://localhost:' + PUERTO + '/';
 const SALIDA = process.argv[2] || '/tmp/gn-ritmo';
@@ -43,24 +44,25 @@ const texto = (p) => p.locator('#app').innerText();
     await m.fill('#p-nombre', 'Guerra de la Normalidad');
     await m.fill('#p-pregunta', '¿Quién es más normal?');
     await m.fill('#p-campo', 'Compañeros de trabajo');
+    await plan.abrir(m, 'desfile');
     await m.fill('#p-desfile', 'En el bar de siempre');
     await m.fill('#p-desfile-ts', '2030-11-23T21:00');
     await m.waitForTimeout(100);
-    for (let i = 0; i < NOMBRES.length; i++) {
-      await pulsa(m, 'Reclutar combatiente');
-      await m.fill('#gn-' + i, NOMBRES[i]);
-      await m.fill('#gc-' + i, sinTilde(NOMBRES[i]) + '@ejemplo.test');
-    }
-    await m.locator('[data-a="soyYo"][data-v="3"]').click();
+    await plan.paso(m, 2);
+    for (let i = 0; i < NOMBRES.length; i++) await plan.reclutar(m, i, NOMBRES[i], sinTilde(NOMBRES[i]) + '@ejemplo.test');
+    await plan.soyYo(m, 3);
+    await plan.paso(m, 3);
     await m.locator('[data-a="opcion"][data-v="plan.ritmo=diaria"]').click();
-    assert.ok(/durará al menos 5 días/.test(await texto(m)));
-    await pulsa(m, 'Guardar borrador');
-    assert.strictEqual(await m.inputValue('#p-campo'), 'Compañeros de trabajo');
+    assert.ok(/dura al menos 5 días/i.test(await texto(m)));
+    await plan.paso(m, 4); await plan.paso(m, 3);
     assert.strictEqual(await m.locator('[data-v="plan.ritmo=diaria"]').getAttribute('aria-pressed'), 'true');
     await foto(m, '01-plan-ritmo', true);
+    await plan.paso(m, 1);
+    assert.strictEqual(await m.inputValue('#p-campo'), 'Compañeros de trabajo');
+    await plan.paso(m, 5);
     // --- presentación: página suelta, sólo para leer
     await m.fill('#p-pitch', 'Compañeros: ha llegado la hora de saber quién es quién.');
-    await pulsa(m, 'Guardar borrador');
+    await plan.paso(m, 6); await plan.paso(m, 5);
     const urlPres = await m.getByRole('link', { name: 'Ver la presentación' }).getAttribute('href');
     assert.ok(/#p=g\w+\.\w+$/.test(urlPres));
     assert.ok(/^mailto:\?subject=/.test(await m.getByRole('link', { name: 'Por correo' }).getAttribute('href')));
@@ -77,6 +79,7 @@ const texto = (p) => p.locator('#app').innerText();
     await prPc.waitForSelector('.enorme');
     await foto(prPc, '00-presentacion-pc', true);
     // --- frases propias del narrador, desde el plan
+    await plan.abrir(m, 'narrador');
     await m.waitForSelector('#nf-texto');
     await m.selectOption('#nf-cat', 'ultimo');
     await m.fill('#nf-texto', '{n}, en el furgón de cola, como el autobús de las tres.');
@@ -84,7 +87,7 @@ const texto = (p) => p.locator('#app').innerText();
     assert.ok(/María, en el furgón de cola/.test(await texto(m)), 'la frase se guarda y se ve con un ejemplo');
     assert.strictEqual((await api('narrador', { mando: 'mando-local' })).frases.length, 1);
     await m.locator('#nf-texto').scrollIntoViewIfNeeded();
-    await m.locator('.caja', { hasText: 'Frases del narrador' }).screenshot({ path: path.join(SALIDA, '00-frases-narrador.png') });
+    await m.locator('.pliegue', { hasText: 'Frases del narrador' }).screenshot({ path: path.join(SALIDA, '00-frases-narrador.png') });
     // --- presentación de una guerra con extras apagados: no se explican
     const { id: idSin } = await api('crearGuerra', { mando: 'mando-local', plan: { nombre: 'Guerra sin extras', pregunta: '¿Quién es más normal?', extras: { porra: false, radio: false, espia: false, apuestas: false, termometro: false, corneta: false, narrador: false } } });
     const presSin = (await api('plan', { mando: 'mando-local', guerra: idSin })).plan.presenta;
@@ -94,7 +97,7 @@ const texto = (p) => p.locator('#app').innerText();
     assert.ok(!/La porra|Radio Macuto|El espía|batalla del día|batalla estrella|termómetro|redoble|narrador/i.test(tps), 'los extras apagados no salen en la presentación');
     assert.ok(/Proclamas anónimas/i.test(tps), 'los encendidos, sí');
     await api('borrarGuerra', { mando: 'mando-local', guerra: idSin });
-    await pulsa(m, '¡Declarar la guerra!');
+    await plan.declarar(m);
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');
     await m.waitForLoadState('networkidle');
