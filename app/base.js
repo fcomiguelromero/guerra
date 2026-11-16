@@ -216,11 +216,28 @@ export function marco(cuerpo, o = {}) {
   const lista = o.sinNav ? [] : pestanas();
   const nav = (corto) => lista.map((p) => `<button data-a="ir" data-v="${p.ruta}" ${S.ruta.indexOf(p.ruta) === 0 ? 'aria-current="page"' : ''}>${p.ic ? `<svg class="nav-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FAMILIA[p.ic] || ''}</svg>` : ''}<span>${corto && p.corto ? p.corto : p.texto}</span></button>`).join('');
   const marca = o.marca || (S.est ? S.est.guerra.nombre : '') || 'Guerra de la Normalidad';
+  const yo = fichaPropia(o);
   return `<div class="marco fondo-${o.fondo || 'b'}">
-    <aside class="lateral"><div class="marca">${esc(marca)}</div><nav aria-label="Secciones">${nav(false)}</nav><div class="abajo">${o.lateral || ''}</div></aside>
-    <div class="pantalla ${o.ancha ? 'ancha' : ''}">${cuerpo}</div>
+    <aside class="lateral"><div class="marca">${esc(marca)}</div><nav aria-label="Secciones">${nav(false)}</nav>${yo ? yo.lateral : ''}<div class="abajo">${o.lateral || ''}</div></aside>
+    <div class="pantalla ${o.ancha ? 'ancha' : ''}">${yo ? yo.movil : ''}${cuerpo}</div>
     ${lista.length ? `<nav class="barra ${lista.length > 4 ? 'cinco' : ''}" aria-label="Secciones">${nav(true)}</nav>` : ''}
   </div>`;
+}
+// Tu propia ficha: foto, nombre y grado. En el ordenador, en el lateral bajo el menú; en el móvil, una franja arriba.
+// Al tocarla se abre tu medallero.
+function fichaPropia(o) {
+  if (o.sinNav || o.sinFicha || !S.est || !S.est.yo) return null;
+  const g = (S.est.gente || []).find((x) => x.id === S.est.yo.id);
+  if (!g) return null;
+  const foto = g.foto && S.fotos[g.foto], gr = Math.min(S.est.yo.grado || 0, GRADOS.length - 1);
+  const cara = (tam) => `<span class="yo-foto" style="width:${tam}px;height:${tam}px;background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="">` : `<b style="font-size:${Math.round(tam * 0.45)}px">${esc(String(g.nombre).charAt(0).toUpperCase())}</b>`}</span>`;
+  const grado = `<span class="yo-grado">${gr ? insignia(gr, 12) : ''}${GRADOS[gr]}</span>`;
+  return {
+    lateral: `<button class="yo-lateral" data-a="miMedallero" aria-label="Tu ficha: ${esc(g.nombre)}, ${GRADOS[gr]}. Abrir tu medallero">${cara(76)}
+      <strong class="bc">${esc(g.nombre)}</strong>${grado}${g.frase ? `<em>«${esc(g.frase)}»</em>` : ''}<span class="peq teal">Tu medallero ›</span></button>`,
+    movil: `<button class="yo-movil solo-movil" data-a="miMedallero" aria-label="Tu ficha: ${esc(g.nombre)}, ${GRADOS[gr]}. Abrir tu medallero">${cara(40)}
+      <span class="col" style="gap:2px;min-width:0;text-align:left"><strong class="bc">${esc(g.nombre)}</strong>${grado}</span><span class="peq teal" style="margin-left:auto">Tu medallero ›</span></button>`
+  };
 }
 export function cargando(texto = 'Cargando') { return `<div class="cargando" role="status">${esc(texto)}…</div>`; }
 

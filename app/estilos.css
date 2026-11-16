@@ -445,3 +445,18 @@ ul, ol { padding: 0; list-style: none; }
 .escenario .carta.sola { box-shadow: 0 0 0 1px rgba(255,211,106,.3), 0 0 60px rgba(255,211,106,.28), 0 18px 30px rgba(0,0,0,.6); }
 .tablas { height: 18px; margin-top: 4px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(255,211,106,.35), transparent 70%); }
 @media (prefers-reduced-motion: reduce) { .focos i, .dial .aguja, .piloto { animation: none !important; } }
+
+/* Tu propia ficha: lateral en el ordenador, franja arriba en el móvil */
+.yo-foto { flex: none; border-radius: 50%; border: 3px solid transparent; background-clip: padding-box; box-shadow: 0 0 0 2px var(--teal), 0 6px 14px rgba(0,0,0,.45); overflow: hidden; display: flex; align-items: center; justify-content: center; color: #fff; }
+.yo-foto img { width: 100%; height: 100%; object-fit: cover; }
+.yo-foto b { font-family: var(--bc); font-weight: 800; }
+.yo-grado { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--oro); }
+.yo-lateral { display: none; }
+.yo-movil { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px 8px 8px; border: 1px solid var(--borde2); border-radius: 999px; background: rgba(22,19,43,.85); color: var(--txt); text-align: left; }
+.yo-movil strong { font-size: 19px; line-height: 1; text-transform: uppercase; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 900px) {
+  .yo-lateral { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 18px 12px 4px; padding: 16px 12px 14px; border: 1px solid var(--borde2); border-radius: 18px; background: rgba(22,19,43,.85); color: var(--txt); text-align: center; }
+  .yo-lateral strong { margin-top: 4px; font-size: 24px; line-height: 1; text-transform: uppercase; color: #fff; }
+  .yo-lateral em { font-size: 12px; line-height: 1.3; color: var(--txt3); }
+  .yo-lateral:hover { border-color: var(--teal); }
+}

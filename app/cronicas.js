@@ -1,7 +1,7 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
 import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos } from './base.js';
+  registrar, accion, alEntrar, pedirFotos, ir } from './base.js';
 
 const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón', adivino: 'Medalla al adivino' };
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
@@ -299,6 +299,7 @@ registrar('/cronicas', () => {
     ${cuerpo}
     ${pest === 'guerras' && c.persona ? '<p class="peq t2 centro">Sólo ves las guerras en las que has combatido.</p>' : ''}`, { fondo: 'a' });
 });
+accion('miMedallero', () => { S.ui.pestanaCronicas = 'medallero'; ir('/cronicas'); });
 accion('pestanaCronicas', (k) => { S.ui.pestanaCronicas = k; pintar(); window.scrollTo(0, 0); });
 accion('abrirCronica', (id) => { S.ui.cronicaAbierta = id; pintar(); });
 accion('serie', (s) => { S.ui.serie = s; pintar(); });
