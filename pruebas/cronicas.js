@@ -69,7 +69,7 @@ async function guerra(nombre, gente, fuerza, desertor) {
     assert.ok(/sargento/i.test(await p.locator('body').innerText()), 'tres guerras terminadas: sargento');
     await p.locator('[data-a="pestanaCronicas"][data-v="numeros"]').click(); await p.waitForTimeout(200);
     let tn = await p.locator('#app').innerText();
-    assert.ok(/Racha de victorias/i.test(tn) && /Por pregunta/i.test(tn) && /Tu mejor guerra/i.test(tn), 'números propios');
+    assert.ok(/victorias seguidas/i.test(tn) && /Por pregunta/i.test(tn) && /Tu mejor guerra/i.test(tn), 'números propios');
     assert.ok(/\d+%/.test(tn));
     await p.screenshot({ path: path.join(SALIDA, '3b-numeros.png'), fullPage: true });
     const otra = await p.locator('[data-c="numerosDe"] option').evaluateAll((os) => os.map((o) => o.value));

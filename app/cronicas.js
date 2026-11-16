@@ -1,4 +1,5 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
   registrar, accion, alEntrar, pedirFotos } from './base.js';
 
@@ -66,18 +67,19 @@ function pestanaGuerras() {
   const lista = S.ui.cronicas.guerras;
   if (!lista.length) return '<div class="caja"><p>Las crónicas se estrenan cuando acabe la primera guerra.</p></div>';
   const abierta = S.ui.cronicaAbierta || lista[0].id;
-  return lista.map((c) => {
+  return `<ol class="linea-tiempo">${lista.map((c, k) => {
     const G = porId(c.gente), g = c.campeon && G[c.campeon], des = c.gente.filter((x) => x.desertor).length;
+    const hito = `<span class="hito" aria-hidden="true"></span><span class="fecha-hito">${fecha(c.fecha)}</span>`;
     if (c.id !== abierta) {
-      return `<div class="caja"><div class="fila entre"><h2 class="h2">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
+      return `<li>${hito}<div class="ficha-archivo"><span class="num-ficha">Exp. ${String(lista.length - k).padStart(3, '0')}</span><div class="fila entre"><h2 class="h2">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2></div>
         <p class="med"><span class="oro">1.er puesto:</span> ${g ? esc(nombre(g)) : 'pendiente del duelo final'}</p>
         <p class="peq t2">${c.porraGana.length ? 'Porra: ' + esc(enumerar(c.porraGana.map((id) => nombre(G[id])))) + ' · ' : ''}${des ? plural(des, 'desertor', 'desertores') : 'Sin desertores'}</p>
-        <button class="btn linea chico" style="align-self:flex-start" data-a="abrirCronica" data-v="${c.id}">Ver el parte</button></div>`;
+        <button class="btn linea chico" style="align-self:flex-start" data-a="abrirCronica" data-v="${c.id}">Ver el parte</button></div></li>`;
     }
-    return `<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">${fecha(c.fecha)}</span></div>
+    return `<li class="abierta">${hito}<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">Exp. ${String(lista.length - k).padStart(3, '0')}</span></div>
       <p class="med t2" style="margin-top:-6px">${esc(c.pregunta)}</p>
-      ${campeon(c)}${(c.preguntas || []).length ? `<section class="caja"><h2 class="h2">Campeones por pregunta</h2>${c.preguntas.map((q) => `<p class="med"><span class="t2">${esc(q.texto)}</span><br><strong class="oro">${esc(nombre(G[q.id]))}</strong> · ${plural(q.pts, 'punto', 'puntos')}</p>`).join('')}</section>` : ''}<section class="caja">${parte(c)}${porraTexto(c) ? `<p class="med t2">${porraTexto(c)}</p>` : ''}</section>${tuGuerra(c)}</section>`;
-  }).join('');
+      ${campeon(c)}${(c.preguntas || []).length ? `<section class="caja"><h2 class="h2">Campeones por pregunta</h2>${c.preguntas.map((q) => `<p class="med"><span class="t2">${esc(q.texto)}</span><br><strong class="oro">${esc(nombre(G[q.id]))}</strong> · ${plural(q.pts, 'punto', 'puntos')}</p>`).join('')}</section>` : ''}<section class="caja">${parte(c)}${porraTexto(c) ? `<p class="med t2">${porraTexto(c)}</p>` : ''}</section>${tuGuerra(c)}</section></li>`;
+  }).join('')}</ol>`;
 }
 
 // ---------------------------------------------------------------- pestaña «Escalafón»
@@ -135,6 +137,7 @@ function bloqueCaraACara(serie) {
       <b class="bc ${color}" style="font-size:52px;line-height:1;font-weight:800">${g}</b></div>`;
   const marcador = d ? `<div class="fila" style="align-items:center;gap:8px">${lado(a, d.g, d.g > d.p ? 'teal' : d.g < d.p ? 'rosa' : '')}
       <span class="bc t2" style="font-size:22px;font-weight:800">VS</span>${lado(b, d.p, d.p > d.g ? 'teal' : d.p < d.g ? 'rosa' : '')}</div>
+    ${tiraAfloja(d.g, d.p, nom(a), nom(b))}
     <p class="med centro">${d.g === d.p ? 'Igualdad absoluta' : (d.g > d.p ? a : b) === yo ? 'Dominas <strong>tú</strong>' : `Domina <strong>${esc(nom(d.g > d.p ? a : b))}</strong>`}: ${plural(d.n, 'batalla', 'batallas')}${d.e ? `, ${plural(d.e, 'empate', 'empates')}` : ''}. En votos, ${d.vf} a ${d.vc}.</p>`
     : '<p class="med t2 centro">Nunca se han enfrentado en esta guerra.</p>';
 
@@ -173,14 +176,14 @@ function pestanaMedallero() {
   const mias = c.guerras.map((x) => ({ c: x, yo: yoEn(x) })).filter((x) => x.yo);
   const terminadas = c.grados[persona] || 0, gr = Math.min(terminadas, GRADOS.length - 1);
   const est = { tit: 0, podios: 0, porras: 0, cond: 0, mejor: null, des: 0 };
-  const condecoraciones = [], companeros = {}, enemigos = {};
+  const condecoraciones = [], piezas = [], companeros = {}, enemigos = {};
   mias.forEach(({ c: x, yo }) => {
     if (yo.desertor) { est.des++; return; }
-    if (x.campeon === yo.id) est.tit++;
+    if (x.campeon === yo.id) { est.tit++; piezas.push({ tipo: 'titulo', letra: '1', titulo: 'Campeón', sub: x.nombre }); }
     if (yo.pos && yo.pos <= 3) est.podios++;
     if (yo.pos && (est.mejor == null || yo.pos < est.mejor)) est.mejor = yo.pos;
-    if (x.porraGana.indexOf(yo.id) >= 0) est.porras++;
-    (yo.premios || []).forEach((p) => { est.cond++; condecoraciones.push({ p, c: x }); });
+    if (x.porraGana.indexOf(yo.id) >= 0) { est.porras++; piezas.push({ tipo: 'porra', letra: 'P', titulo: 'Porra', sub: x.nombre }); }
+    (yo.premios || []).forEach((p) => { est.cond++; condecoraciones.push({ p, c: x }); piezas.push({ tipo: p.cual, letra: ({ rebelde: 'R', borrego: 'B', tardon: 'T', adivino: 'A' })[p.cual] || '★', titulo: CORTO[p.cual] || 'Medalla', sub: x.nombre }); });
     const G = porId(x.gente);
     if (yo.companero) { const q = G[yo.companero.id]; const k = q.persona || q.nombre; companeros[k] = companeros[k] || { g: q, n: 0 }; companeros[k].n++; }
     if (yo.enemigo) { const q = G[yo.enemigo.id]; const k = q.persona || q.nombre; enemigos[k] = enemigos[k] || { g: q, n: 0 }; enemigos[k].n++; }
@@ -203,7 +206,7 @@ function pestanaMedallero() {
       <div class="fila entre peq t2"><span>Recluta</span><span>General</span></div></section>
     <div class="rejilla3">${dato(est.tit, est.tit === 1 ? 'Título' : 'Títulos')}${dato(est.podios, est.podios === 1 ? 'Podio' : 'Podios')}${dato(est.porras, 'Porras ganadas')}
       ${dato(est.cond, est.cond === 1 ? 'Condecoración' : 'Condecoraciones')}${dato(est.mejor ? ordinal(est.mejor) : '—', 'Mejor puesto')}${dato(est.des, est.des === 1 ? 'Deserción' : 'Deserciones')}</div>
-    ${condecoraciones.length ? `<section class="caja"><h2 class="h2">Condecoraciones</h2>${condecoraciones.map(({ p, c: x }) => `<div class="fila entre"><strong class="oro">${CORTO[p.cual]}</strong><span class="med t2">${esc(x.nombre)}</span></div>`).join('')}</section>` : ''}
+    <section class="col g8"><h2 class="h2">La vitrina</h2>${vitrina(piezas)}${piezas.length ? '' : '<p class="peq t2 centro">Aún vacía: títulos, porras y condecoraciones se cuelgan aquí.</p>'}</section>
     ${comp || enem ? `<section class="caja"><h2 class="h2">De siempre</h2>
       ${comp ? `<div class="fila g12">${circulo(comp.g, 'grande')}<span class="col g4"><span class="med t2">Compañero de trinchera:</span><strong>${esc(comp.g.nombre)}</strong><span class="med t2">En ${comp.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}
       ${enem ? `<div class="fila g12">${circulo(enem.g, 'grande rosa')}<span class="col g4"><span class="med t2">Enemigo íntimo:</span><strong>${esc(enem.g.nombre)}</strong><span class="med t2">En ${enem.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}</section>` : ''}
@@ -221,7 +224,7 @@ function pestanaMedallero() {
 // Estadísticas de un combatiente en todas las guerras que se ven aquí: batallas, rachas, preguntas y rivales.
 function numerosDe(persona) {
   const lista = S.ui.cronicas.guerras.slice().sort((a, b) => a.fecha - b.fecha);
-  const n = { guerras: 0, des: 0, g: 0, e: 0, p: 0, vf: 0, vc: 0, racha: 0, rachaDonde: '', sequia: 0, mejor: null, preguntas: {}, rivales: {} };
+  const n = { guerras: 0, des: 0, g: 0, e: 0, p: 0, vf: 0, vc: 0, racha: 0, rachaDonde: '', sequia: 0, mejor: null, preguntas: {}, rivales: {}, serie: [] };
   let va = 0, vd = 0, donde = [];
   lista.forEach((c) => {
     const yo = c.gente.find((g) => g.persona === persona && g.combate);
@@ -237,6 +240,7 @@ function numerosDe(persona) {
       const q = qs[((b[4] || 1) - 1) % qs.length] || c.pregunta, kq = q.trim().toLowerCase();
       const fq = n.preguntas[kq] || (n.preguntas[kq] = { texto: q, g: 0, e: 0, p: 0 });
       const kr = rival.persona || 'cosa:' + rival.nombre, fr = n.rivales[kr] || (n.rivales[kr] = { g: rival, gano: 0, pierdo: 0 });
+      n.serie.push(a > o ? 'g' : a < o ? 'p' : 'e');
       if (a > o) { n.g++; gg++; fq.g++; fr.gano++; va++; vd = 0; if (!donde.includes(c.nombre)) donde.push(c.nombre); }
       else if (a < o) { n.p++; pp++; fq.p++; fr.pierdo++; va = 0; donde = []; vd++; }
       else { n.e++; ee++; fq.e++; va = 0; donde = []; vd = 0; }
@@ -265,9 +269,10 @@ function pestanaNumeros() {
     : { de: 'Sus', su: 'su', le: 'le', mejor: 'Su mejor guerra', victima: 'Su víctima favorita', negra: 'Su bestia negra', gana: 'le gana', pierde: 'le gana' };
   return `<label class="campo"><span>Números de</span><select data-c="numerosDe">${claves.map((k) => `<option value="${esc(k)}" ${k === quien ? 'selected' : ''}>${esc(k === c.persona ? personas[k].nombre + ' (tú)' : personas[k].nombre)}</option>`).join('')}</select></label>
     ${!total ? `<div class="caja"><p>${esc(nom)} aún no ha librado ninguna batalla.</p></div>` : `
-    <div class="rejilla3">${dato(total, total === 1 ? 'Batalla' : 'Batallas')}${dato(pct(n.g, total) + '%', 'Victorias')}${dato(n.racha, 'Racha de victorias')}
-      ${dato(n.g + '-' + n.e + '-' + n.p, 'G-E-P')}${dato(pct(n.vf, n.vf + n.vc) + '%', 'Votos a favor')}${dato(n.guerras, n.guerras === 1 ? 'Guerra' : 'Guerras')}</div>
+    <section class="fila anillos">${anillo(pct(n.g, total), 'Victorias')}${anillo(pct(n.vf, n.vf + n.vc), 'Votos a favor', '#8f7bff')}</section>
+    <div class="rejilla3">${dato(cuenta(total, '', 'nb:' + quien), total === 1 ? 'Batalla' : 'Batallas')}${dato(`<span class="teal">${n.g}</span>-${n.e}-<span class="rosa">${n.p}</span>`, 'Gana · empata · pierde')}${dato(cuenta(n.guerras, '', 'ng:' + quien), n.guerras === 1 ? 'Guerra' : 'Guerras')}</div>
     <section class="caja"><h2 class="h2">Rachas</h2>
+      ${casillasRacha(n.serie)}<div class="fila entre peq t2"><span>Antes</span><span><i class="ley-racha r-g"></i>Gana <i class="ley-racha r-e"></i>Empata <i class="ley-racha r-p"></i>Pierde</span><span>Ahora</span></div>
       <p class="med"><strong class="teal">${plural(n.racha, 'victoria seguida', 'victorias seguidas')}</strong> <span class="t2">como mejor racha${n.rachaDonde.length ? ', en ' + esc(enumerar(n.rachaDonde)) : ''}.</span></p>
       <p class="med"><strong class="rosa">${plural(n.sequia, 'derrota seguida', 'derrotas seguidas')}</strong> <span class="t2">en ${T.su} peor travesía del desierto.</span></p>
       <p class="med t2">En total, ${plural(n.vf, 'voto', 'votos')} a favor y ${n.vc} en contra.</p></section>

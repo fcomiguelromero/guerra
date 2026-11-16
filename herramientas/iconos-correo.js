@@ -4,8 +4,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const { chromium } = require('playwright');
-const COLORES = { vs: '#5ef0d0', preguntas: '#8f7bff', cuadro: '#8f7bff', calendario: '#8f7bff', sol: '#ffd36a', rayo: '#ffd36a', candado: '#ff6ad5',
-  desfile: '#ff6ad5', parte: '#8f7bff', medalla: '#ffd36a', porra: '#5ef0d0', espia: '#8f7bff', radio: '#ff6ad5', apuesta: '#ffd36a', termo: '#5ef0d0' };
 const PUERTO = 8139;
 (async () => {
   const servidor = spawn('node', [path.join(__dirname, 'servidor.js'), String(PUERTO)], { stdio: ['ignore', 'pipe', 'inherit'] });
@@ -14,6 +12,7 @@ const PUERTO = 8139;
   try {
     const p = await (await nav.newContext({ viewport: { width: 200, height: 200 }, deviceScaleFactor: 3 })).newPage();
     await p.goto('http://localhost:' + PUERTO + '/index.html#nada');
+    const COLORES = await p.evaluate(async () => (await import('/app/dibujos.js')).COLOR_ICONO);
     for (const [ic, color] of Object.entries(COLORES)) {
       await p.evaluate(async ([ic, color]) => {
         const { icono } = await import('/app/dibujos.js');

@@ -1,5 +1,7 @@
 // Arranque: lee el enlace con el que se entra, decide la pantalla y pone en marcha el latido.
-import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPestanas, esc } from './base.js';
+import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPestanas, esc, alPintar } from './base.js';
+import { animarContadores } from './graficos.js';
+alPintar(animarContadores);
 import './combate.js';
 import './mando.js';
 import './cronicas.js';
@@ -10,11 +12,11 @@ definirPestanas(() => {
   if (!e) return lista;
   const declarada = ['abierta', 'terminada', 'desfile', 'publicada'].indexOf(e.guerra.fase) >= 0;
   if (declarada && e.yo) {
-    lista.push({ ruta: '/batallas', texto: 'Batallas' });
-    if (e.guerra.extras.porra && e.yo.vota) lista.push({ ruta: '/porra', texto: 'Porra' });
+    lista.push({ ruta: '/batallas', texto: 'Batallas', ic: 'casco' });
+    if (e.guerra.extras.porra && e.yo.vota) lista.push({ ruta: '/porra', texto: 'Porra', ic: 'porra' });
   }
-  if (declarada) lista.push({ ruta: '/ordenanzas', texto: 'Ordenanzas' }, { ruta: '/cronicas', texto: 'Crónicas' });
-  if (S.mando) lista.push({ ruta: '/cuartel', texto: 'Cuartel general', corto: 'Cuartel' });
+  if (declarada) lista.push({ ruta: '/ordenanzas', texto: 'Ordenanzas', ic: 'reglas' }, { ruta: '/cronicas', texto: 'Crónicas', ic: 'archivo' });
+  if (S.mando) lista.push({ ruta: '/cuartel', texto: 'Cuartel general', corto: 'Cuartel', ic: 'cuartel' });
   return lista;
 });
 

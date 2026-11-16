@@ -122,8 +122,9 @@ const texto = (p) => p.locator('#app').innerText();
         await foto(ma, '02a-batalla-del-dia');
         aposte = true;
       }
-      await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(150);
+      await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(900);
     }
+    await ma.waitForTimeout(900);
     const propia = est.batallas.find((b) => b.delDia && b.of === 1 && !b.mia);
     assert.ok(aposte || propia, 'o apuesta al votar o la batalla del día es suya');
     if (propia) {

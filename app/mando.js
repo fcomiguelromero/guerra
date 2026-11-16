@@ -4,6 +4,7 @@ import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, or
 import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
 import { botonCartel } from './carteles.js';
 import { icono, ILU } from './dibujos.js';
+import { frente, filaRezagados } from './graficos.js';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -609,7 +610,7 @@ registrar('/cuartel', () => {
   const errores = m.correos.filter((c) => c.error || !c.correo);
   return marco(`${volver('/guerras', 'Tus guerras')}${cab(tituloGuerra(e.guerra), 'Cuartel general')}
     <section class="caja ${abierta ? '' : 'teal'}"><div class="fila entre"><h2 class="h2">${abierta ? 'Conflicto en curso' : NOMBRE_FASE[fase]}</h2><span class="peq t2">Abierta el ${fecha(e.guerra.declarada)}</span></div>
-      <div class="fila entre med"><span>Votos emitidos</span><strong>${pr.emitidos} de ${pr.total}</strong></div><div class="medidor"><i style="width:${pct(pr.emitidos, pr.total)}%"></i></div>
+      <span class="sobre">La línea del frente</span>${frente(pr.emitidos, pr.total, 'votos emitidos')}
       ${e.porra ? `<div class="fila entre med"><span>Porras recibidas</span><strong>${e.porra.recibidas} de ${e.porra.de}</strong></div><div class="medidor"><i style="width:${pct(e.porra.recibidas, e.porra.de)}%"></i></div>` : ''}</section>
     ${abierta && e.parte ? `<section class="caja oro"><h2 class="h2 oro">Parte de mitad de contienda</h2><p class="med t3">Listo desde que se libraron ${Math.ceil(pr.total / 2)} de las ${pr.total} batallas. Enseña quién va en vanguardia y quién en retaguardia, sin desvelar resultados.</p>
       ${botonCartel('parte', ico('wasap') + 'Compartir el parte', 'btn oro medio')}</section>` : ''}
@@ -622,8 +623,8 @@ registrar('/cuartel', () => {
       <p class="med t2">La ronda se cierra sola cuando vota todo el mundo. Si alguien se retrasa, puedes cerrarla ya: los votos que falten no cuentan.</p>
       <div class="fila" style="flex-wrap:wrap"><button class="btn linea medio crece" data-a="ir" data-v="/cuadro">Ver el cuadro</button><button class="btn medio crece ${S.ui.confirmaRonda ? 'peligro' : 'linea'}" data-a="cerrarRonda">${S.ui.confirmaRonda ? 'Confirmar: cerrar la ronda' : 'Cerrar la ronda ya'}</button></div></section>` : ''}
     ${abierta ? `<section class="caja"><div class="fila entre"><h2 class="h2">Rezagados</h2><span class="peq t2">${plural(pr.rezagados.length, 'persona', 'personas')}</span></div>
-      ${pr.rezagados.length ? `<ul class="col g12">${pr.rezagados.map((r) => `<li class="col g4"><div class="fila">${avatar(G[r.id])}<strong class="crece">${esc(G[r.id].nombre)}</strong><span class="med t2">${plural(r.faltan, 'batalla', 'batallas')}</span></div>
-        <div class="medidor"><i style="width:${pct(r.de - r.faltan, r.de)}%"></i></div></li>`).join('')}</ul>
+      ${pr.rezagados.length ? `${filaRezagados(pr.rezagados.map((r) => Object.assign({ nombre: G[r.id].nombre }, r)), (r) => avatar(G[r.id]))}
+      <p class="peq t2">Encima de cada uno, las batallas que le faltan.</p>
       <div class="fila entre"><span class="med t2">${m.proximaDiana ? 'Próximo toque de diana: ' + diaHora(m.proximaDiana) : 'Toque de diana automático desactivado'}</span><button class="btn chico" data-a="tocarDiana">Tocar diana</button></div>`
         : '<p class="med t2">Ya ha votado todo el mundo. La guerra se cierra sola en unos segundos.</p>'}</section>` : ''}
     ${abierta ? `<section class="caja"><h2 class="h2">Cartel de la guerra</h2><p class="med t2">Para el grupo de WhatsApp: todos los combatientes, el nombre de la guerra y la pregunta.</p>${botonCartel('guerra', ico('wasap') + 'Compartir el cartel')}</section>` : ''}
@@ -724,9 +725,11 @@ registrar('/informe', () => {
       : `<button class="btn" data-a="publicar">Publicar el parte de guerra</button><p class="peq t2 centro">Sale todo de golpe para todos.${r.empate ? ' Hay empate en el primer puesto: después se votará el duelo final.' : ''}</p>`;
   } else orden = `<p class="med teal centro">${fase === 'desfile' ? 'El desfile está en marcha.' : 'Parte de guerra publicado.'}</p>${fase === 'desfile' ? '<button class="btn" data-a="ir" data-v="/cuartel">Ir al mando del desfile</button>' : ''}`;
   return marco(`${volver('/cuartel', 'Cuartel general')}
-    ${cab(tituloGuerra(inf.guerra), 'Informe clasificado', '<span class="bc rosa" style="transform:rotate(4deg);padding:2px 8px 4px;border:3px solid #ff6ad5;border-radius:8px;font-weight:800;font-size:18px;letter-spacing:.06em">Alto secreto</span>')}
-    <p class="t3">Sólo para tus ojos: los combatientes nunca verán quién votó a quién.</p>${orden}
-    <div class="cols-pc"><div class="col g12">
+    <div class="carpeta"><span class="pestana-carpeta">Expediente ${esc(String(inf.guerra.id || '').slice(-4).toUpperCase())}</span>
+      <div class="col g4"><span class="maquina peq">MINISTERIO DE LA NORMALIDAD · ARCHIVO DEL ALTO MANDO</span><h1 class="h1 maquina-t">Informe clasificado</h1><span class="maquina med">${esc(tituloGuerra(inf.guerra))}</span></div>
+      <span class="sello-conf" aria-hidden="true">Confidencial</span>
+      <p class="maquina med">Sólo para tus ojos: los combatientes nunca verán quién votó a quién.</p></div>${orden}
+    <div class="cols-pc dossier"><div class="col g12">
       <section class="caja"><h2 class="h2">Parte de guerra</h2>${tablaFinal(r)}
         ${r.empate ? `<p class="med oro">Empate a puntos en el primer puesto entre ${enumerar(r.empate.map((id) => G[id].nombre))}: lo decide el duelo final. El orden de arriba es provisional.</p>` : ''}</section>
       ${r.porra.lista.length ? `<section class="caja"><h2 class="h2">La porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>

@@ -3,6 +3,8 @@ import { botonCartel } from './carteles.js';
 import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
 import { icono, ILU, piezas } from './dibujos.js';
+import { escena } from './monigotes.js';
+import { frente, filaRezagados, confeti } from './graficos.js';
 import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
@@ -85,11 +87,10 @@ function rezagados() {
 }
 function cajaConflicto(clase) {
   const G = gente(), lista = rezagados();
-  const filas = lista.map((r) => `<li class="fila" style="gap:8px">${avatar(G[r.id], '', true)}<span class="col" style="gap:0;min-width:0">
-    <span style="font-weight:600;font-size:14px;line-height:1.2">${esc(nombreDe(G[r.id]))}</span><span class="peq t2" style="line-height:1.2">${plural(r.faltan, 'batalla', 'batallas')}</span></span></li>`).join('');
+  const filas = filaRezagados(lista.map((r) => Object.assign({ nombre: nombreDe(G[r.id]) }, r)), (r) => avatar(G[r.id], '', true));
   return `<section class="caja ${clase}" style="gap:8px">
     <div class="fila entre" style="align-items:baseline"><h2 class="h2">Conflicto en curso</h2><span class="peq t2">${lista.length ? 'Rezagados' : ''}</span></div>
-    ${lista.length ? `<ul class="${clase === 'solo-movil' ? 'rejilla3' : 'col'}">${filas}</ul>` : '<p class="med t2">Ya ha votado todo el mundo.</p>'}
+    ${lista.length ? `${filas}<p class="peq t2">Encima, las batallas que le faltan a cada uno.</p>` : '<p class="med t2">Ya ha votado todo el mundo.</p>'}
   </section>`;
 }
 function ultimaPulla() { const r = S.est.radio; return r && r.antena.length ? '«' + r.antena[0].texto + '»' : 'Silencio en las ondas. Lanza la primera pulla.'; }
@@ -154,11 +155,13 @@ function pantallaAbierta() {
   const v = votables();
   if (!v.length) S.ui.repaso = false;
   const hechas = m.filter((b) => b.voto).length, ab = e.guerra.abiertas || e.guerra.ofensivas;
-  if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso) {
+  const recien = S.ui.recien && Date.now() < S.ui.recien.hasta + 400 ? S.ui.recien : null;
+  if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso && !recien) {
     const c = e.guerra.cuadro, ronda = nombreRonda(c.actual, c.R);
     return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
+          ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
           <div class="enorme teal" style="font-size:40px">¡${c.actual === c.R ? 'Final votada' : 'Ronda cumplida'}!</div>
           <p class="t3">Has votado ${v.filter((b) => b.of === c.actual).length ? 'todos los cruces de ' + (ronda === 'Final' ? 'la final' : ronda === 'Semifinales' ? 'las semifinales' : 'los ' + ronda.toLowerCase()) : 'lo que te tocaba'}.</p>
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">${c.actual === c.R ? 'El campeón se sabrá en el desfile' : 'La siguiente ronda se abre cuando vote todo el mundo'}</p>
@@ -167,23 +170,25 @@ function pantallaAbierta() {
         </div>${apuestasPropias()}${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
-  if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso) {
+  if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso && !recien) {
     return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
+          ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
           <div class="enorme teal" style="font-size:40px">¡Cumplido por hoy!</div>
-          <p class="t3">Has librado todas las batallas abiertas: llevas ${hechas} de ${m.length}.</p>
+          <p class="t3">Has librado todas las batallas abiertas.</p>${frente(hechas, m.length, 'batallas libradas')}
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">La ofensiva ${ab + 1} de ${e.guerra.ofensivas} se abre ${e.guerra.proxima ? cuando(e.guerra.proxima) : 'mañana'}</p>
           <p class="med t2">Te avisaremos por correo.</p>${resumenTermo()}
           <button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
         </div>${apuestasPropias()}${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
-  if (hechas === m.length && !S.ui.repaso) {
+  if (hechas === m.length && !S.ui.repaso && !recien) {
     const faltan = rezagados();
     return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
+          ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
           <div class="enorme teal" style="font-size:40px">¡Misión cumplida!</div>
           <p class="t3">Has librado tus ${m.length} batallas. ${faltan.length ? 'La guerra sigue en pausa hasta que voten los rezagados.' : 'Ya ha votado todo el mundo: alto el fuego inminente.'}</p>
           ${e.porra ? `<button class="btn ancho" data-a="ir" data-v="/porra">${e.porra.mia ? 'Retocar mi porra' : 'Hacer la porra'}</button>` : ''}
@@ -199,7 +204,7 @@ function pantallaAbierta() {
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col" style="flex:1;justify-content:center;gap:10px">
-      <div class="duelo">${carta(a, { clase: b.voto === a.id ? '' : b.voto ? 'gris' : '' })}${carta(c, { clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' : '') })}<div class="vs" aria-hidden="true">VS</div></div>
+      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs" aria-hidden="true">VS</div></div>
       ${votada}${barraRetirada()}${apuestasPropias()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
@@ -209,6 +214,7 @@ accion('mover', (paso) => {
   const lista = S.est.guerra.fase === 'abierta' ? votables() : S.est.batallas;
   const clave = S.est.guerra.fase === 'abierta' ? 'cursor' : 'cursorEspia';
   S.ui[clave] = Math.min(lista.length - 1, Math.max(0, (S.ui[clave] || 0) + Number(paso)));
+  S.ui.dir = Number(paso) < 0 ? -1 : 1;
   S.ui.confirmaEspia = false;
   pintar();
 });
@@ -220,9 +226,17 @@ accion('votar', (lado) => {
   b.voto = elegido; b.ts = Date.now();
   S.ui.proclama = '';
   S.ui.retirada = { batalla: b.id, elegido, hasta: Date.now() + GRACIA };
-  const sig = m.findIndex((x) => !x.voto);
-  S.ui.cursor = sig < 0 ? null : sig;
+  // El sello de «Votado» cae sobre la carta elegida y el rival se aparta; luego entra la batalla siguiente.
+  S.ui.recien = { id: b.id, hasta: Date.now() + 750 };
   pintar(); cuentaAtras();
+  setTimeout(() => {
+    if (!S.ui.recien || S.ui.recien.id !== b.id) return;
+    S.ui.recien = null;
+    const lista = votables(), sig = lista.findIndex((x) => !x.voto);
+    S.ui.cursor = sig < 0 ? null : sig; S.ui.dir = 1;
+    pintar();
+    if (sig < 0 && b.voto) confeti();
+  }, 750);
   encolar(async () => {
     try { await llamar('votar', { batalla: b.id, elegido, proclama }, 2); if (S.est.guerra.extras.termometro) avisoTermo(b.id); } catch (err) {
       b.voto = null;
@@ -253,7 +267,7 @@ accion('retirar', () => {
   const r = S.ui.retirada;
   if (!r) return;
   const b = mias().find((x) => x.id === r.batalla);
-  S.ui.retirada = null;
+  S.ui.retirada = null; S.ui.recien = null;
   encolar(async () => {
     try {
       await llamar('retirar', { batalla: r.batalla });
@@ -284,13 +298,16 @@ function pantallaTerminada() {
     const i = S.ui.cursorEspia, b = lista[i], aqui = usado && usado.batalla === b.id;
     const sello = (id) => !aqui ? {} : usado.gana === 'empate' ? { sello: 'Empate', selloClase: 'teal' } : usado.gana === id ? { sello: 'Gana', selloClase: 'teal' } : { clase: 'gris' };
     const sa = sello(b.a), sb = sello(b.b);
-    espia = `${navegador(lista, i, '')}
+    espia = `<section class="col g8"><div class="fila" style="gap:12px;align-items:center"><div style="width:120px;flex:none">${escena('periodico', 'Un espía escondido tras un periódico', 70)}</div>
+      <div class="col g4"><h2 class="h2">Tu espía</h2><p class="med t3">${usado ? 'Ya ha vuelto con su chivatazo.' : 'Elige un combate y descubre quién lo ganó. Sólo uno.'}</p></div></div></section>
+      ${navegador(lista, i, '')}
       <div class="duelo">${carta(G[b.a], sa)}${carta(G[b.b], Object.assign({}, sb, { clase: 'izq ' + (sb.clase || '') }))}<div class="vs" aria-hidden="true">VS</div></div>
       ${usado ? `<div class="estado-voto" style="padding:0 12px"><span><strong class="teal">${usado.gana === 'empate' ? 'Empate' : 'Gana ' + esc(G[usado.gana].nombre)}</strong> en ${esc(G[lista.find((x) => x.id === usado.batalla).a].nombre)} contra ${esc(G[lista.find((x) => x.id === usado.batalla).b].nombre)}. Espía gastado: los puntos, en el desfile.</span></div>`
         : `<button class="btn ${S.ui.confirmaEspia ? 'oro' : ''}" data-a="espiar">${S.ui.confirmaEspia ? '¿Seguro? Sólo tienes un espía · Confirmar' : 'Mandar al espía a este combate'}</button>`}`;
   }
   const porra = e.porra && e.porra.abierta ? `<div class="caja oro"><strong>Aún puedes hacer la porra.</strong><span class="med t2">Sólo un intento${puedeEspiar ? ', y antes de mandar al espía: si espías, la pierdes' : ''}.</span><button class="btn oro medio" data-a="ir" data-v="/porra">Hacer la porra</button></div>` : '';
   return marco(`${tickerRadio()}${cabecera('Alto el fuego')}
+    ${escena('firma', 'Los dos soldados firman el alto el fuego')}
     <p class="t3">Ya ha votado todo el mundo. ${puedeEspiar ? 'Antes del desfile puedes mandar al espía a descubrir quién ganó un combate: sólo uno, y sin ver los puntos.' : e.guerra.extras.desfile ? 'El parte de guerra se revelará en el desfile.' : 'El alto mando publicará el parte de guerra.'}</p>
     ${porra}${espia}
     <section class="caja"><h2 class="h2">${e.guerra.extras.desfile ? 'El desfile de la victoria' : 'El parte de guerra'}</h2><p class="med teal">Todos han votado</p>
@@ -469,7 +486,7 @@ function pantallaDesfile(vista, ensayo) {
     <button class="btn claro" data-a="desfile" data-v="${d.ultimo ? 'terminar' : 'siguiente'}">${etiquetaSiguiente(d.siguiente)}</button></div>` : '';
   if (a.t === 'duelo' && !ensayo) setTimeout(latidoDuelo, 0);
   return marco(`${ensayo || ''}${cabecera('Desfile de la victoria', ensayo ? '<span class="chapa">Ensayo</span>' : '<span class="chapa">En directo</span>')}
-    <div class="cols-pc"><main class="col g12" style="justify-content:center">${centro}</main>
+    <div class="cols-pc"><main class="col g12 escenario" style="justify-content:center"><div class="focos" aria-hidden="true"><i></i><i></i><i></i></div>${centro}<div class="tablas" aria-hidden="true"></div></main>
     <div class="col g12">${porraEnVivo(d)}${parteEnVivo(d)}</div></div>${control}`, { ancha: true });
 }
 
@@ -600,7 +617,7 @@ accion('porraEnviar', async () => {
 // Ordenanzas como manual de campaña: cada regla con su icono y una frase corta; el detalle, al desplegar.
 // Las reglas vienen del motor (o del alto mando, si las personalizó); aquí sólo se visten.
 const MANUAL = {
-  'El combate': ['vs', 'Dos cartas, una pregunta: tú decides', '#5ef0d0', 'vs'],
+  'El combate': ['casco', 'Dos cartas, una pregunta: tú decides', '#5ef0d0', 'vs'],
   'Secreto y sin vuelta atrás': ['candado', 'Votas tú, en secreto', '#8f7bff'],
   'Todas las ofensivas, de golpe': ['rayo', 'Todas las batallas, desde ya', '#ffd36a', 'golpe'],
   'Una ofensiva al día': ['sol', 'Una ofensiva cada mañana', '#ffd36a', 'dia'],
@@ -663,8 +680,13 @@ registrar('/radio', () => {
   if (!r) return marco(`${cabecera('Radio Macuto')}<div class="caja"><p>En esta guerra no hay Radio Macuto.</p></div>`, { fondo: 'a' });
   const abierta = S.est.guerra.fase === 'abierta' || S.est.guerra.fase === 'terminada';
   return marco(`<button class="btn linea chico" style="align-self:flex-start" data-a="ir" data-v="/batallas">${ico('izq', 14)}Batallas</button>
-    ${cabecera('Radio Macuto', '<span class="chapa">En antena</span>')}
-    <p class="t3">Pullas anónimas desde las trincheras.</p>
+    <section class="radio-vieja" aria-label="Radio Macuto, en antena">
+      <div class="radio-cab"><span class="piloto" aria-hidden="true"></span><span class="bc">Radio Macuto</span><span class="peq">En antena</span></div>
+      <div class="radio-cuerpo"><div class="rejilla-altavoz" aria-hidden="true"></div>
+        <div class="col g8" style="flex:1;min-width:0"><div class="dial" aria-hidden="true"><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><i class="aguja"></i></div>
+          <p class="peq radio-lema">Pullas anónimas desde las trincheras</p></div></div>
+      <div class="radio-pie" aria-hidden="true"><i></i><i></i></div></section>
+    ${escena('altavoz', 'Un soldado lanza una pulla con un megáfono', 110)}
     ${abierta && S.est.yo ? `<section class="caja rosa"><label class="campo"><span>Tu pulla</span>
       <textarea id="pulla" maxlength="140" data-m="pulla" data-cuenta="cuenta-pulla" placeholder="Dispara: saldrá en antena sin firma">${esc(S.ui.pulla || '')}</textarea></label>
       <div class="fila entre"><span class="peq t2" id="cuenta-pulla">${(S.ui.pulla || '').length}/140</span><button class="btn rosa medio" data-a="emitir">Emitir</button></div>

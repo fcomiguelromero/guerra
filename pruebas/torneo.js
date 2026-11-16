@@ -63,7 +63,7 @@ async function votarRonda(tok, menos) {
     assert.ok(/Cuartos de final/i.test(await texto(ma)), 'nombre de la ronda');
     const suyas = est.batallas.filter((b) => b.mia && b.of === 1).length;
     for (let k = 0; k < suyas; k++) { await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(200); }
-    await ma.waitForLoadState('networkidle');
+    await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(900);
     assert.ok(/Ronda cumplida/i.test(await texto(ma)), 'ronda cumplida');
     await ma.screenshot({ path: path.join(SALIDA, '2-ronda-cumplida.png'), fullPage: true });
     await ma.getByRole('button', { name: 'Ver el cuadro' }).first().click(); await ma.waitForTimeout(300);

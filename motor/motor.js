@@ -613,7 +613,7 @@ function ordenanzasAuto(doc) {
 function resumenJuego(doc) {
   var x = doc.extras, cosas = doc.modo === 'cosas', l = [];
   var nc = doc.gente.filter(function (g) { return g.combate; }).length, nb = nc * (nc - 1) / 2, lp = preguntas(doc);
-  l.push({ ic: 'vs', t: 'Dos cartas, una pregunta', x: cosas
+  l.push({ ic: 'casco', t: 'Dos cartas, una pregunta', x: cosas
     ? 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana. No vale el empate.'
     : 'Cada batalla enfrenta a dos combatientes y eliges a uno. No vale el empate, y en tus propios combates no votas.' });
   if (lp.length > 1) l.push({ ic: 'preguntas', t: lp.length + ' preguntas', x: 'Se turnan por ofensiva: «' + lp.join('», «') + '». Cada una tiene su campeón; el de la guerra suma todo.' });
@@ -637,7 +637,7 @@ function resumenJuego(doc) {
   return l;
 }
 // Las piezas, como filas con icono (imágenes PNG alojadas en la web: los correos no muestran SVG).
-var COLOR_ICONO = { vs: '#5ef0d0', preguntas: '#8f7bff', cuadro: '#8f7bff', calendario: '#8f7bff', sol: '#ffd36a', rayo: '#ffd36a', candado: '#ff6ad5',
+var COLOR_ICONO = { casco: '#5ef0d0', corneta: '#ffd36a', proclama: '#ffd36a', grados: '#8f7bff', micro: '#8f7bff', diana: '#ff6ad5', vs: '#5ef0d0', preguntas: '#8f7bff', cuadro: '#8f7bff', calendario: '#8f7bff', sol: '#ffd36a', rayo: '#ffd36a', candado: '#ff6ad5',
   desfile: '#ff6ad5', parte: '#8f7bff', medalla: '#ffd36a', porra: '#5ef0d0', espia: '#8f7bff', radio: '#ff6ad5', apuesta: '#ffd36a', termo: '#5ef0d0' };
 function listaCorreo(items, base) {
   return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px">' + items.map(function (p) {
@@ -667,6 +667,7 @@ function marcoCorreo(doc, cuerpo, pie, o) {
     // Portada: nombre de la guerra y rótulo, directamente sobre el fondo.
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">' +
     '<tr><td style="padding:0 8px;text-align:center;font-size:13px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#5ef0d0;text-shadow:0 1px 6px #0d0b1a">' + esc(doc.nombre + (doc.campo ? ' · ' + doc.campo : '')) + '</td></tr>' +
+    (o.ic ? '<tr><td style="padding:14px 0 0;text-align:center"><img src="' + (o.fondo ? o.fondo.slice(0, o.fondo.indexOf('assets/')) : '') + 'assets/correo/ic-' + o.ic + '.png" width="56" height="56" alt="" style="display:inline-block;border:0"></td></tr>' : '') +
     (o.titulo ? '<tr><td style="padding:10px 8px 0;text-align:center;' + condensada + ';font-size:44px;line-height:1;color:#ffffff;text-shadow:0 2px 14px #0d0b1a">' + esc(o.titulo) + '</td></tr>' : '') +
     '<tr><td style="padding:14px 0 26px;text-align:center"><span style="display:inline-block;width:64px;height:4px;border-radius:2px;background-color:#ff6ad5;background-image:linear-gradient(90deg,#5ef0d0,#8f7bff,#ff6ad5,#ffd36a)"></span></td></tr>' +
     '</table>' +
@@ -855,7 +856,7 @@ function crearMotor(env) {
           html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', hay batallas nuevas.</p>' +
             '<p style="margin:0 0 14px;color:#cdc8e6">Se ha abierto la ofensiva ' + n + ' de ' + total + '. Tienes ' + plural(debe, 'batalla', 'batallas') + ' por votar' + (n < total ? '; mañana a las ' + HORA_OFENSIVA + ':00, la siguiente.' : ': es la última ofensiva.') + '</p>' +
             botonCorreo(enlacePersonal(g), 'A las trincheras') + pieFirma(doc),
-            'Recibirás un aviso cada día mientras se abran ofensivas.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Ofensiva ' + n + ' de ' + total }),
+            'Recibirás un aviso cada día mientras se abran ofensivas.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Ofensiva ' + n + ' de ' + total, ic: 'sol' }),
           texto: g.nombre + ', se ha abierto la ofensiva ' + n + ' de ' + total + '. A votar: ' + enlacePersonal(g)
         });
         enviados++;
@@ -877,7 +878,7 @@ function crearMotor(env) {
             (x.espia ? '<p style="margin:0 0 14px;color:#cdc8e6">Mientras tanto, puedes mandar a tu espía a descubrir quién ganó un combate. Sólo uno.</p>' : '') +
             (doc.desfileTs ? '<p style="margin:0 0 18px"><a href="' + esc(enlaceGoogleCalendar(doc, enlacePersonal(g))) + '" style="color:#5ef0d0;font-weight:bold;text-decoration:underline">Añadir a Google Calendar</a><br><span style="font-size:13px;color:#b3aecf">Para otro calendario, abre el archivo desfile.ics adjunto.</span></p>' : '') +
             botonCorreo(enlacePersonal(g), x.espia ? 'Mandar al espía' : 'Entrar') + pieFirma(doc),
-            '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Alto el fuego' }),
+            '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Alto el fuego', ic: 'proclama' }),
           texto: g.nombre + ', la guerra ha terminado. ' + textoDesfile(doc) + ' ' + enlacePersonal(g),
           adjuntos: doc.desfileTs ? [{ nombre: 'desfile.ics', tipo: 'text/calendar', texto: icsDesfile(doc, enlacePersonal(g)) }] : []
         });
@@ -1640,7 +1641,7 @@ function crearMotor(env) {
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
-      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización' }),
+      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización', ic: 'casco' }),
       texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlace + (c.remate ? '\n\n' + c.remate : '')
     };
   }
@@ -1671,7 +1672,7 @@ function crearMotor(env) {
       '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: '¡Llamamiento a filas! Se avecina la ' + doc.nombre,
-      html: marcoCorreo(doc, cuerpo, 'Responde antes del cierre del alistamiento.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: '¡Llamamiento a filas!' }),
+      html: marcoCorreo(doc, cuerpo, 'Responde antes del cierre del alistamiento.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: '¡Llamamiento a filas!', ic: 'corneta' }),
       texto: 'El alto mando prepara la ' + doc.nombre + ': ' + preguntas(doc).join(' / ') + '\n\n' + textoResumen(resumenJuego(doc)) + '\n\n¿Te alistas? Responde aquí: ' + url
     };
   }
@@ -1826,7 +1827,7 @@ function crearMotor(env) {
             '<p style="margin:0 0 14px;font-size:19px;font-style:italic">«' + esc(texto) + '»</p>' +
             '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(enlacePersonal(m) + '&ir=cuartel') + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#ff6ad5;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Ir a la censura</a></p>' +
             '<p style="margin:0;font-size:13px;color:#b3aecf">Hasta que no pulses «Emitir», no sale en antena.</p>',
-            'Sólo tú recibes este aviso y sólo tú ves quién escribe cada pulla.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto' }),
+            'Sólo tú recibes este aviso y sólo tú ves quién escribe cada pulla.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto', ic: 'radio' }),
           texto: yo.nombre + ' quiere emitir por Radio Macuto: «' + texto + '». Censura: ' + enlacePersonal(m) + '&ir=cuartel'
         });
       } catch (e) { /* el aviso es opcional */ }
@@ -1851,7 +1852,7 @@ function crearMotor(env) {
               '<p style="margin:0 0 14px;font-size:19px;font-style:italic">«' + esc(pl.texto) + '»</p>' +
               '<p style="margin:24px 0 8px;text-align:center"><a href="' + esc(enlacePersonal(g) + '&ir=radio') + '" style="display:inline-block;padding:14px 28px;border-radius:12px;background:#ff6ad5;color:#0d0b1a;font-size:17px;font-weight:bold;text-decoration:none;text-transform:uppercase">Responder con otra pulla</a></p>' +
               '<p style="margin:0;font-size:13px;color:#b3aecf">Las pullas salen en antena sin firma. Este enlace es sólo tuyo: no lo reenvíes.</p>',
-              'Radio Macuto: pullas anónimas desde las trincheras.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto' }),
+              'Radio Macuto: pullas anónimas desde las trincheras.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Radio Macuto', ic: 'radio' }),
             texto: 'Alguien ha dicho por Radio Macuto: «' + pl.texto + '». Responde: ' + enlacePersonal(g) + '&ir=radio'
           });
           avisados++;
@@ -1886,7 +1887,7 @@ function crearMotor(env) {
         env.correo({
           para: g.correo, nombre: nombreMando(doc),
           asunto: doc.nombre + ': toque de diana, te ' + (r.faltan === 1 ? 'queda 1 batalla' : 'quedan ' + r.faltan + ' batallas'),
-          html: marcoCorreo(doc, cuerpo, doc.diana.activa ? 'Te tocarán diana cada ' + plural(doc.diana.cadaDias, 'día', 'días') + ' mientras te queden batallas.' : 'Toque de diana del alto mando.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Toque de diana' }),
+          html: marcoCorreo(doc, cuerpo, doc.diana.activa ? 'Te tocarán diana cada ' + plural(doc.diana.cadaDias, 'día', 'días') + ' mientras te queden batallas.' : 'Toque de diana del alto mando.', { fondo: urlApp() + 'assets/correo-mapa.jpg', mosaico: true, titulo: 'Toque de diana', ic: 'diana' }),
           texto: frase + '\n\nVuelve a la guerra con tu enlace personal: ' + enlacePersonal(g)
         });
         enviados++;

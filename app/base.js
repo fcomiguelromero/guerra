@@ -1,4 +1,5 @@
 // Cimientos de las pantallas: conexión con el motor, memoria local, piezas comunes y pintado.
+import { ICONOS as FAMILIA } from './dibujos.js';
 import { API } from './config.js';
 
 const mem = {
@@ -154,7 +155,7 @@ const ICONOS = {
   termo: '<path d="M10 14.5V5a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 9v7"/>'
 };
 export function ico(nombre, tam = 18, extra = '') {
-  return `<svg aria-hidden="true" width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" ${extra}>${ICONOS[nombre]}</svg>`;
+  return `<svg aria-hidden="true" width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" ${extra}>${ICONOS[nombre] || FAMILIA[nombre] || ''}</svg>`;
 }
 
 export const GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
@@ -213,7 +214,7 @@ export function definirPestanas(fn) { pestanas = fn; }
 
 export function marco(cuerpo, o = {}) {
   const lista = o.sinNav ? [] : pestanas();
-  const nav = (corto) => lista.map((p) => `<button data-a="ir" data-v="${p.ruta}" ${S.ruta.indexOf(p.ruta) === 0 ? 'aria-current="page"' : ''}>${corto && p.corto ? p.corto : p.texto}</button>`).join('');
+  const nav = (corto) => lista.map((p) => `<button data-a="ir" data-v="${p.ruta}" ${S.ruta.indexOf(p.ruta) === 0 ? 'aria-current="page"' : ''}>${p.ic ? `<svg class="nav-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FAMILIA[p.ic] || ''}</svg>` : ''}<span>${corto && p.corto ? p.corto : p.texto}</span></button>`).join('');
   const marca = o.marca || (S.est ? S.est.guerra.nombre : '') || 'Guerra de la Normalidad';
   return `<div class="marco fondo-${o.fondo || 'b'}">
     <aside class="lateral"><div class="marca">${esc(marca)}</div><nav aria-label="Secciones">${nav(false)}</nav><div class="abajo">${o.lateral || ''}</div></aside>
@@ -241,7 +242,11 @@ export function pintar() {
     if (el) { el.focus(); try { if (ini != null) el.setSelectionRange(ini, fin); } catch (e) { /* nada */ } }
   }
   window.scrollTo(0, y);
+  despues.forEach((f) => { try { f(raiz); } catch (e) { console.error(e); } });
 }
+// Funciones que se ejecutan tras cada repintado (animaciones, contadores).
+const despues = [];
+export function alPintar(f) { despues.push(f); }
 
 export function ir(ruta, reemplazar, sinTocarEnlace) {
   S.ruta = ruta;
