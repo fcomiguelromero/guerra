@@ -298,3 +298,21 @@ ul, ol { padding: 0; list-style: none; }
 .pieza-ico { width: 40px; height: 40px; flex: none; border-radius: 12px; background: color-mix(in srgb, var(--c, #5ef0d0) 14%, transparent); color: var(--c, #5ef0d0); display: flex; align-items: center; justify-content: center; }
 .pieza-t { font-size: 18px; line-height: 1.05; text-transform: uppercase; color: var(--c, #5ef0d0); }
 @media (max-width: 420px) { .regla-cuerpo { padding-left: 14px; } }
+
+/* Presentación de la guerra: pasos y propinas con icono; el detalle, en «Leer más». */
+.pasos-pres { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.paso-pres { display: flex; gap: 14px; align-items: flex-start; padding: 14px; border: 1px solid #2a2648; border-left: 3px solid var(--c); border-radius: 16px; background: rgba(22,19,43,.94); }
+.paso-ico { position: relative; width: 52px; height: 52px; flex: none; border-radius: 15px; background: color-mix(in srgb, var(--c) 15%, transparent); color: var(--c); display: flex; align-items: center; justify-content: center; }
+.paso-ico b { position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; border-radius: 50%; background: var(--c); color: #0d0b1a; font-family: var(--bc); font-size: 14px; display: flex; align-items: center; justify-content: center; }
+.paso-ico.chico { width: 42px; height: 42px; border-radius: 13px; }
+.paso-t { font-size: 22px; line-height: 1.02; text-transform: uppercase; color: #fff; }
+.paso-corta { font-size: 16px; line-height: 1.35; color: var(--txt2, #d9d5f2); }
+.leer-mas summary { cursor: pointer; list-style: none; font-size: 13px; font-weight: 700; color: var(--c, #5ef0d0); padding: 4px 0; }
+.leer-mas summary::-webkit-details-marker { display: none; }
+.leer-mas summary::after { content: ' ▾'; }
+.leer-mas[open] summary::after { content: ' ▴'; }
+.leer-mas p { margin: 4px 0 0; }
+.propinas { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.propinas li { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 1px solid #2a2648; border-radius: 16px; background: rgba(22,19,43,.94); }
+.propinas .paso-t { font-size: 19px; }
+@media (min-width: 760px) { .propinas { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

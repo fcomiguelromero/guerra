@@ -1,6 +1,7 @@
 // Presentación de la guerra: una página sólo para leer, que explica el juego y anima a participar.
 // Se abre con #p=ID.CLAVE. No tiene botones, ni cartas, ni nombres de nadie: quien quiera alistarse avisa al alto mando.
 import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js';
+import { icono } from './dibujos.js';
 
 // Los dos monigotes de la batalla de ejemplo: un soldado americano y uno prusiano de la Gran Guerra,
 // dibujados sobre la misma silueta y con los mismos tintes que el resto de las cartas.
@@ -50,32 +51,38 @@ registrar('/presentacion', () => {
   if (S.ui.presError) return marco(`<div class="caja"><p>${esc(S.ui.presError)}</p></div>`, { sinNav: true });
   if (!d) return marco(cargando('Desplegando el mapa'), { sinNav: true });
   const x = d.extras, cosas = d.modo === 'cosas', nombre = d.nombre || 'La guerra';
-  const paso = (n, t, txt) => `<li class="caja" style="flex-direction:row;gap:12px;align-items:flex-start"><b class="bc teal" style="font-size:34px;font-weight:800;line-height:.9;min-width:22px">${n}</b>
-    <span class="col g4"><strong class="bc" style="font-size:22px;line-height:1.05;color:#fff;text-transform:uppercase">${t}</strong><span class="med t3">${txt}</span></span></li>`;
+  // Cada pieza: [icono, color, titular, frase corta, detalle]. El detalle queda en un «Leer más» desplegable.
+  const T = '#5ef0d0', V = '#8f7bff', R = '#ff6ad5', O = '#ffd36a';
+  const leerMas = (det) => det ? `<details class="leer-mas"><summary>Leer más</summary><p class="med t3">${esc(det)}</p></details>` : '';
+  const paso = ([ic, c, t, corta, det], n) => `<li class="paso-pres" style="--c:${c}"><span class="paso-ico">${icono(ic, 26, 1.8)}<b>${n}</b></span>
+    <span class="col g4" style="min-width:0"><strong class="bc paso-t">${esc(t)}</strong><span class="paso-corta">${esc(corta)}</span>${leerMas(det)}</span></li>`;
   const torneo = d.formato === 'torneo';
   const pasos = torneo ? [
-    ['Torneo por eliminatorias', 'Cruces de uno contra uno: los demás votan quién pasa y sólo pasa uno. Ronda a ronda, hasta la final. Hay que mojarse: no vale el empate.' + (cosas ? '' : ' En tus propios cruces no votas.')],
-    ['Votas desde el móvil', 'Cada ronda se abre cuando se cierra la anterior, y te avisamos por correo. La votas en un minuto, cuando te venga bien. Sin instalar nada: entras con un enlace que es sólo tuyo.'],
-    ['En secreto', 'Nadie sabrá a quién has votado. Al cerrarse cada ronda se sabe quién pasa, pero no por cuántos votos.'],
-    x.desfile ? ['La final, en el desfile', 'El campeón no se sabe hasta el desfile de la victoria, donde se revelan todos los votos' + (x.narrador ? ', con un narrador con retranca que comenta cada puesto' : '') + '.'] : ['El parte de guerra', 'Al acabar la final se publica todo: el cuadro con los votos de cada cruce.']
+    ['cuadro', V, 'Torneo por eliminatorias', 'Cruces de uno contra uno: sólo pasa uno.', 'Los demás votan quién pasa, ronda a ronda, hasta la final. Hay que mojarse: no vale el empate.' + (cosas ? '' : ' En tus propios cruces no votas.')],
+    ['tropa', T, 'Votas desde el móvil', 'Un minuto por ronda, sin instalar nada.', 'Cada ronda se abre cuando se cierra la anterior, y te avisamos por correo. Entras con un enlace que es sólo tuyo.'],
+    ['candado', R, 'En secreto', 'Nadie sabrá a quién has votado.', 'Al cerrarse cada ronda se sabe quién pasa, pero no por cuántos votos.'],
+    x.desfile ? ['desfile', O, 'La final, en el desfile', 'El campeón se descubre en directo.', 'En el desfile de la victoria se revelan todos los votos' + (x.narrador ? ', con un narrador con retranca que comenta cada puesto' : '') + '.']
+      : ['parte', O, 'El parte de guerra', 'Al acabar, se publica todo.', 'El cuadro completo, con los votos de cada cruce.']
   ] : [
-    cosas ? ['Dos contendientes, una pregunta', 'Cada batalla enfrenta a dos contendientes y tú eliges cuál gana. Hay que mojarse: no vale el empate.']
-      : ['Todos contra todos', 'Cada batalla enfrenta a dos de nosotros y los demás eligen a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.'],
-    ['Votas desde el móvil', (d.ritmo === 'diaria' ? `Cada mañana, a las ${d.hora}:00, se abre una ofensiva nueva con unas pocas batallas, y te avisamos por correo. Las votas en un par de minutos, cuando te venga bien.` : 'Todas las batallas se abren a la vez y las votas a tu ritmo, cuando te venga bien.') + ' Sin instalar nada: entras con un enlace que es sólo tuyo.'],
-    ['En secreto', 'Los demás combatientes nunca sabrán a quién has votado. Y nadie ve cómo va la clasificación hasta el final: sólo se sabe quién se está retrasando.'],
-    [d.puntuacion === 'votos' ? 'Cada voto cuenta' : 'Puntos, como en el fútbol', d.puntuacion === 'votos' ? 'Cada voto que recibe un contendiente le da puntos. Gana quien más sume al acabar todas las batallas.' : 'Ganar una batalla da 3 puntos; empatarla, 1; perderla, 0. Gana quien más sume al acabar todas las batallas.'],
-    x.desfile ? ['El desfile de la victoria', 'El gran final: el parte de guerra se revela en directo, del último puesto al primero' + (x.corneta ? ', con redoble de tambor' : '') + (x.narrador ? ' y un narrador con retranca que comenta cada puesto' : '') + '. Hasta entonces, nadie sabe nada.']
-      : ['El parte de guerra', 'Cuando vota el último, se publica la clasificación completa, de golpe.']
+    cosas ? ['vs', T, 'Dos contendientes, una pregunta', 'Eliges cuál gana. No vale el empate.', 'Cada batalla enfrenta a dos contendientes y tú decides cuál responde mejor a la pregunta.']
+      : ['vs', T, 'Todos contra todos', 'Dos de nosotros, una pregunta: eliges a uno.', 'Cada batalla enfrenta a dos combatientes y los demás eligen a uno según la pregunta. Hay que mojarse: no vale el empate. En tus propios combates no votas.'],
+    [d.ritmo === 'diaria' ? 'sol' : 'rayo', O, 'Votas desde el móvil', d.ritmo === 'diaria' ? `Unas pocas batallas cada mañana, a las ${d.hora}:00.` : 'Todo abierto desde el primer día, a tu ritmo.',
+      (d.ritmo === 'diaria' ? 'Cada mañana se abre una ofensiva nueva y te avisamos por correo. La votas en un par de minutos, cuando te venga bien.' : 'Todas las batallas se abren a la vez y las votas cuando te venga bien.') + ' Sin instalar nada: entras con un enlace que es sólo tuyo.'],
+    ['candado', R, 'En secreto', 'Nadie sabrá a quién has votado.', 'Tampoco se ve la clasificación hasta el final: sólo se sabe quién se está retrasando.'],
+    d.puntuacion === 'votos' ? ['tropa', V, 'Cada voto cuenta', 'Cada voto recibido suma puntos.', 'Gana quien más sume al acabar todas las batallas.']
+      : ['diana', V, 'Puntos, como en el fútbol', 'Ganar, 3; empatar, 1; perder, 0.', 'Una batalla acaba en empate si los votos quedan igualados. Gana quien más puntos sume al acabar todas las batallas.'],
+    x.desfile ? ['desfile', O, 'El desfile de la victoria', 'La clasificación, en directo, del último al primero.', 'Es el gran final: hasta entonces nadie sabe nada' + (x.corneta ? '. Con redoble de tambor' : '') + (x.narrador ? (x.corneta ? ' y' : '. Con') + ' un narrador con retranca que comenta cada puesto' : '') + '.']
+      : ['parte', O, 'El parte de guerra', 'Cuando vota el último, la clasificación completa.', 'Se publica de golpe, para todos a la vez.']
   ];
   const propinas = [
-    x.porra ? ['La porra', 'Ordena a todos del primero al último. Gana quien más se acerque al resultado' + (d.botin ? ', y se lleva el botín: ' + esc(d.botin) : '') + '.'] : null,
-    x.radio ? ['Radio Macuto', 'Pullas anónimas desde las trincheras, para calentar el ambiente.'] : null,
-    x.espia ? ['El espía', 'Un solo uso: descubre quién ganó un combate antes que nadie.'] : null,
-    x.proclamas ? ['Proclamas anónimas', 'Explica tu voto, si te atreves. Las mejores se leen al final, sin firma.'] : null,
-    x.condecoraciones ? ['Condecoraciones', 'Medallas al más rebelde, al más borrego y al más tardón.'] : null,
-    x.apuestas ? [d.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', 'En cada ofensiva, apuesta quién ganará una batalla elegida para todos. Quien más acierte, se lleva el título de «El adivino».'] : null,
-    x.termometro ? ['El termómetro', 'Después de votar, sabrás si vas con la mayoría o contra ella. Sin cifras, que esto es secreto.'] : null,
-    ['Galones', 'Cada guerra terminada cuenta: se asciende de recluta a general. Y hay consejo de guerra para los desertores.']
+    x.porra ? ['porra', T, 'La porra', 'Adivina la clasificación final.', 'Ordena a todos del primero al último. Gana quien más se acerque' + (d.botin ? ', y se lleva el botín: ' + d.botin : '') + '.'] : null,
+    x.radio ? ['radio', R, 'Radio Macuto', 'Pullas anónimas desde las trincheras.', ''] : null,
+    x.espia ? ['espia', V, 'El espía', 'Descubre un combate antes que nadie.', 'Tiene un solo uso: elige bien el combate.'] : null,
+    x.proclamas ? ['proclama', O, 'Proclamas', 'Explica tu voto, sin firma.', 'Las mejores se leen al final, de forma anónima.'] : null,
+    x.condecoraciones ? ['medalla', O, 'Medallas', 'Al rebelde, al borrego y al tardón.', ''] : null,
+    x.apuestas ? ['apuesta', O, d.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', 'Apuesta quién la gana.', 'En cada ofensiva hay una batalla elegida para todos. Quien más acierte se lleva el título de «El adivino».'] : null,
+    x.termometro ? ['termo', T, 'El termómetro', '¿Vas con la mayoría?', 'Lo sabrás después de votar. Sin cifras, que esto es secreto.'] : null,
+    ['grados', V, 'Galones', 'De recluta a general.', 'Cada guerra terminada te asciende un grado. Y hay consejo de guerra para los desertores.']
   ].filter(Boolean);
   const demo = cosas ? '' : `<section class="col g4"><div class="duelo">${carta({ id: 'c1', nombre: 'Tú', frase: 'Aquí irá tu grito de guerra' }, { figura: soldado('usa') })}${carta({ id: 'c2', nombre: 'Tu rival', frase: 'Y aquí, el suyo' }, { clase: 'izq', figura: soldado('prusia') })}<div class="vs" aria-hidden="true">VS</div></div>
     <p class="peq t2 centro">Así es una batalla: dos cartas, una pregunta y un voto.</p></section>`;
@@ -89,10 +96,10 @@ registrar('/presentacion', () => {
     </header>
     ${demo}
     ${d.pitch ? `<section class="caja rosa"><p style="font-style:italic;white-space:pre-line">«${esc(d.pitch)}»</p><span class="peq t2">${esc(d.firma)}, alto mando</span></section>` : ''}
-    <section class="col"><h2 class="h2">Cómo funciona</h2><ol class="col g12">${pasos.map(([t, txt], k) => paso(k + 1, esc(t), esc(txt))).join('')}</ol></section>
-    <section class="caja"><h2 class="h2">Y de propina</h2>
-      ${propinas.map(([t, txt]) => `<p class="med"><strong class="teal">${t}.</strong> <span class="t3">${txt}</span></p>`).join('')}</section>
-    ${d.premio ? `<section class="caja oro centro" style="align-items:center"><span class="sobre oro">El premio</span><strong class="bc" style="font-size:28px;line-height:1.05;color:#fff">${esc(d.premio)}</strong></section>` : ''}
+    <section class="col g8"><h2 class="h2">Cómo funciona</h2><ol class="pasos-pres">${pasos.map((q, k) => paso(q, k + 1)).join('')}</ol></section>
+    <section class="col g8"><h2 class="h2">Y de propina</h2><ul class="propinas">${propinas.map(([ic, c, t, corta, det]) => `<li style="--c:${c}"><span class="paso-ico chico">${icono(ic, 22, 1.8)}</span>
+      <strong class="bc paso-t">${esc(t)}</strong><span class="peq t3">${esc(corta)}</span>${leerMas(det)}</li>`).join('')}</ul></section>
+    ${d.premio ? `<section class="caja oro centro" style="align-items:center"><span class="oro">${icono('medalla', 34, 1.8)}</span><span class="sobre oro">El premio</span><strong class="bc" style="font-size:28px;line-height:1.05;color:#fff">${esc(d.premio)}</strong></section>` : ''}
     <section class="caja teal centro" style="align-items:center;padding:20px 14px">
       <div class="enorme teal" style="font-size:40px">${d.enMarcha ? 'Esta guerra ya ha empezado' : '¿Te alistas?'}</div>
       <p style="font-size:17px">${d.enMarcha ? `Si quieres entrar en la próxima, díselo a <strong>${esc(d.firma)}</strong>.` : `Díselo a <strong>${esc(d.firma)}</strong> y te meterá en la guerra.`}</p>

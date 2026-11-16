@@ -148,8 +148,15 @@ function seccionPresentacion() {
   const p = S.ui.plan;
   if (!p.presenta) return `<section class="caja"><h2 class="h2">Presentación de la guerra</h2><p class="med t2">Una página que explica el juego para animar a la gente a participar. Guarda el plan para obtener su enlace.</p></section>`;
   const url = enlaceApp() + '#p=' + p.presenta, nombre = tituloGuerra(p) || 'una guerra';
-  const texto = `Se avecina la ${nombre}${p.pregunta ? ': «' + p.pregunta + '»' : ''}. Mira de qué va y, si te alistas, avísame y te meto en la guerra: ${url}`;
-  const correo = 'mailto:?subject=' + encodeURIComponent('Se avecina la ' + nombre) + '&body=' + encodeURIComponent(texto + '\n\n' + (p.firma || ''));
+  // El correo y el WhatsApp van en texto plano: lo esencial en líneas cortas con emoji, y el resto en la página.
+  const lineas = [
+    p.modo === 'cosas' ? '⚔️ Dos contendientes, una pregunta: eliges cuál gana.' : '⚔️ Todos contra todos: dos de nosotros, una pregunta, y eliges a uno.',
+    p.ritmo === 'diaria' ? '📱 Unas pocas batallas cada mañana, desde el móvil y sin instalar nada.' : '📱 Votas desde el móvil, a tu ritmo y sin instalar nada.',
+    '🤫 En secreto: nadie sabrá a quién has votado.',
+    p.extras && p.extras.desfile ? '🥁 Y al final, el desfile de la victoria: la clasificación, en directo.' : '📜 Al final, el parte de guerra con la clasificación.'
+  ].concat(p.premio ? ['🏆 Premio: ' + p.premio] : []);
+  const texto = `Se avecina la ${nombre}${p.pregunta ? ': «' + p.pregunta + '»' : ''}\n\n${lineas.join('\n')}\n\n👉 Mira de qué va: ${url}\n\nSi te alistas, avísame y te meto en la guerra.`;
+  const correo = 'mailto:?subject=' + encodeURIComponent('Se avecina la ' + nombre) + '&body=' + encodeURIComponent(texto + (p.firma ? '\n\n' + p.firma : ''));
   return `<section class="caja oro"><h2 class="h2">Presentación de la guerra</h2>
     <p class="med t2">Una página que explica de qué va el juego, para animar a la gente. Es sólo para leer: no tiene botones, ni cartas, ni nombres. Quien quiera participar te avisa a ti y tú lo reclutas aquí.</p>
     <label class="campo"><span>Tu mensaje (opcional)</span><textarea id="p-pitch" maxlength="600" data-m="plan.pitch" placeholder="Compañeros: ha llegado la hora de saber quién es quién.">${esc(p.pitch || '')}</textarea></label>
