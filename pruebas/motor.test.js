@@ -508,6 +508,18 @@ prueba('orden de movilización: un correo por combatiente con su enlace personal
   assert.ok(c.html.includes('Así es esta guerra'), 'sin llamamiento, la orden explica el juego');
 });
 
+prueba('orden de movilización: la tropa dibujada va dentro del correo', () => {
+  const w = mundo(41);
+  const id = crearGuerra(w, {});
+  const tropa = 'data:image/jpeg;base64,' + 'A'.repeat(4000);
+  w.mando('declarar', { guerra: id, tropa });
+  const c = w.correos.find((m) => /Comienza/.test(m.asunto));
+  assert.ok(c.html.includes('cid:tropa') && c.imagenes.length === 1 && c.imagenes[0].datos === tropa);
+  const w2 = mundo(42), id2 = crearGuerra(w2, {});
+  w2.mando('declarar', { guerra: id2, tropa: 'javascript:alert(1)' });
+  assert.ok(!w2.correos[0].html.includes('cid:tropa'), 'sin una imagen válida, el correo sale sin ella');
+});
+
 prueba('votar: no en combates propios, sin repetir, con retirada sólo en los 10 segundos', () => {
   const w = mundo(5);
   const g = declarar(w, crearGuerra(w));

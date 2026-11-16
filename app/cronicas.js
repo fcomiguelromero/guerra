@@ -1,7 +1,7 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
 import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir } from './base.js';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js';
 
 const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón', adivino: 'Medalla al adivino' };
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
@@ -197,8 +197,15 @@ function pestanaMedallero() {
   }).join('');
   const dato = (n, t) => `<div class="caja centro" style="gap:2px;padding:10px 6px"><b class="bc" style="font-size:28px;color:#fff;line-height:1;text-transform:none">${n}</b><span class="peq t2">${t}</span></div>`;
   const yoMismo = mias.length ? mias[0].yo : null;
-  return `<section class="caja" style="flex-direction:row;align-items:center;gap:12px">${yoMismo ? circulo(yoMismo, 'grande') : ''}
-      <span class="col g4"><strong class="bc" style="font-size:24px;color:#fff">Tu medallero</strong><span class="med t2">${plural(mias.length, 'guerra jugada', 'guerras jugadas')}</span></span></section>
+  // Tu retrato en grande: la foto de la guerra en la que estás o, si no, la última que tengas en las crónicas.
+  const actual = S.est && S.est.yo ? (S.est.gente || []).find((g) => g.id === S.est.yo.id) : null;
+  const conFoto = [actual].concat(mias.slice().reverse().map((m) => m.yo)).find((g) => g && g.foto && S.fotos[g.foto]);
+  const nomYo = (actual || yoMismo || {}).nombre || '';
+  const frase = (actual && actual.frase) || (yoMismo && yoMismo.frase) || '';
+  return `<section class="retrato-yo"><div class="retrato-marco"><div class="retrato-foto" style="background:${tinte(actual ? actual.id : 'c0')[0]}">${conFoto ? `<img src="${S.fotos[conFoto.foto]}" alt="Tu foto">` : `<b>${esc(nomYo.charAt(0).toUpperCase())}</b>`}</div>
+      ${gr ? `<span class="retrato-insignia" aria-hidden="true">${insignia(gr, 26)}</span>` : ''}</div>
+      <div class="col g4" style="align-items:center;text-align:center"><span class="sobre">Tu medallero</span><strong class="bc retrato-nombre">${esc(nomYo)}</strong>
+        <span class="yo-grado">${GRADOS[gr]} · ${plural(mias.length, 'guerra jugada', 'guerras jugadas')}</span>${frase ? `<em class="med t3">«${esc(frase)}»</em>` : ''}</div></section>
     <section class="caja oro"><div class="fila g12"><span class="oro" style="display:inline-flex">${insignia(gr, 52)}</span>
       <span class="col g4"><span class="sobre oro">Tu grado</span><strong class="bc" style="font-size:30px;color:#fff">${GRADOS[gr]}</strong>
       <span class="med t2">${plural(terminadas, 'guerra terminada', 'guerras terminadas')}${gr < GRADOS.length - 1 ? ' · ' + GRADOS[gr + 1].toLowerCase() + ' en la próxima' : ' · lo más alto del escalafón'}</span></span></div>

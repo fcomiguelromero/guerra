@@ -460,3 +460,13 @@ ul, ol { padding: 0; list-style: none; }
   .yo-lateral em { font-size: 12px; line-height: 1.3; color: var(--txt3); }
   .yo-lateral:hover { border-color: var(--teal); }
 }
+
+/* Medallero: tu retrato en grande */
+.retrato-yo { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 8px 0 4px; }
+.retrato-marco { position: relative; width: 220px; height: 220px; padding: 5px; border-radius: 50%; background: var(--holo); box-shadow: 0 0 50px rgba(143,123,255,.35), 0 16px 30px rgba(0,0,0,.55); }
+.retrato-foto { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 4px solid var(--fondo); }
+.retrato-foto img { width: 100%; height: 100%; object-fit: cover; }
+.retrato-foto b { font-family: var(--bc); font-weight: 800; font-size: 96px; color: #fff; }
+.retrato-insignia { position: absolute; right: 10px; bottom: 10px; width: 52px; height: 52px; border-radius: 50%; background: var(--oro); color: #0d0b1a; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px var(--fondo); }
+.retrato-nombre { font-size: 40px; line-height: 1; text-transform: uppercase; color: #fff; }
+@media (min-width: 900px) { .retrato-marco { width: 260px; height: 260px; } }

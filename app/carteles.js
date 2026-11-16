@@ -366,6 +366,37 @@ accion('cerrarCartel', () => { if (S.ui.cartel) URL.revokeObjectURL(S.ui.cartel.
 export function botonCartel(tipo, texto, clase = 'btn linea medio') {
   return `<button class="${clase}" data-a="cartel" data-v="${tipo}">${texto}</button>`;
 }
+// La tropa para el correo de la orden de movilización: las cartas de todos alrededor de la banda con el nombre
+// de la guerra, sobre el mismo color que la tarjeta del correo, para que se funda con ella. 1040 px de ancho.
+export async function imagenTropa(e) {
+  await fuentes();
+  const AN = 1040, cs = e.gente.filter((g) => g.combate), n = cs.length;
+  const porFila = n <= 4 ? n : n <= 8 ? Math.ceil(n / 2) : Math.min(6, Math.ceil(n / 3)), filas = Math.ceil(n / porFila);
+  const mg = 40, gap = 16, cw = Math.min(220, (AN - 2 * mg - gap * (porFila - 1)) / porFila), nomT = cw > 180 ? 32 : cw > 140 ? 28 : 22, fotoH = cw * 1.02;
+  const cartaH = fotoH + nomT * 1.05 + 26, banda = 110, arriba = Math.ceil(filas / 2);
+  const AL = Math.round(40 + filas * cartaH + (filas - 1) * 18 + banda + 36 + 40);
+  const c = document.createElement('canvas'); c.width = AN; c.height = AL;
+  const x = c.getContext('2d');
+  x.fillStyle = '#17142c'; x.fillRect(0, 0, AN, AL);
+  [[0.12, 0.1, 'rgba(94,240,208,0.20)'], [0.9, 0.9, 'rgba(255,106,213,0.20)'], [0.5, 0.5, 'rgba(143,123,255,0.12)']].forEach(([cx, cy, col]) => {
+    const g = x.createRadialGradient(cx * AN, cy * AL, 0, cx * AN, cy * AL, 0.55 * AN); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0, 0, AN, AL);
+  });
+  let y = 40;
+  const fila = async (lista, k0) => {
+    const off = (AN - (lista.length * cw + (lista.length - 1) * gap)) / 2;
+    for (let k = 0; k < lista.length; k++) await cartita(x, Object.assign({ id: 'c' + (k0 + k) }, lista[k]), off + k * (cw + gap), y, cw, fotoH, nomT);
+    y += cartaH + 18;
+  };
+  for (let f = 0; f < arriba; f++) await fila(cs.slice(f * porFila, (f + 1) * porFila), f * porFila);
+  y += 0;
+  x.fillStyle = holo(x, 0, y, AN, banda); x.fillRect(0, y, AN, banda);
+  x.fillStyle = '#0d0b1a'; x.fillRect(0, y + 3, AN, banda - 6);
+  const tam = lineas(x, may(e.guerra.nombre), `800 72px ${BC}`, AN - 2 * mg).length > 1 ? 48 : 72;
+  parrafo(x, e.guerra.nombre, AN / 2, y + banda / 2 + tam * 0.33 - (lineas(x, may(e.guerra.nombre), `800 ${tam}px ${BC}`, AN - 2 * mg).length - 1) * tam * 0.48, { font: `800 ${tam}px ${BC}`, may: true, align: 'center', max: AN - 2 * mg, alto: tam * 0.95, maxLineas: 2 });
+  y += banda + 36;
+  for (let f = arriba; f < filas; f++) await fila(cs.slice(f * porFila, (f + 1) * porFila), f * porFila);
+  return c.toDataURL('image/jpeg', 0.82);
+}
 export { cartelGuerra, cartelParte, cartelPodio, diploma, fuentes };
 // Herramientas de dibujo, para el álbum de la guerra.
 export const dibujo = { W, M, C, BC, IN, may, imagen, fuentes, caja, holo, texto, lineas, parrafo, retrato, cartita, sello };

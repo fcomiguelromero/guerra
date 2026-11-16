@@ -118,7 +118,8 @@ function png() {
     await m.waitForFunction(() => location.hash === '#/cuartel');
     const correos = (await api('_prueba', {})).correos.filter((c) => /Comienza/.test(c.asunto));
     assert.strictEqual(correos.length, 4);
-    fs.writeFileSync(path.join(SALIDA, 'correo-orden.html'), correos[0].html);
+    assert.ok(correos[0].html.includes('cid:tropa') && correos[0].imagenes.length, 'la tropa va dentro de la orden');
+    fs.writeFileSync(path.join(SALIDA, 'correo-orden.html'), correos[0].html.replace('cid:tropa', correos[0].imagenes[0].datos));
     const tok = {};
     correos.forEach((c) => { tok[NOMBRES[Number(c.para[1])]] = /#t=([\w.]+)/.exec(c.html)[1]; });
     // Con cuatro combatientes cada batalla tiene dos votos: todos votan «a» y «b» alternando para empatar todo.

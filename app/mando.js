@@ -2,7 +2,7 @@
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
 import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
-import { botonCartel } from './carteles.js';
+import { botonCartel, imagenTropa } from './carteles.js';
 import { icono, ILU } from './dibujos.js';
 import { frente, filaRezagados } from './graficos.js';
 
@@ -584,7 +584,14 @@ accion('declarar', async () => {
 });
 accion('declararYa', async () => {
   S.velo = '';
-  const r = await llamar('declarar');
+  // La tropa, dibujada aquí con las fotos, para lucirla en la orden de movilización.
+  let tropa = null;
+  try {
+    const p = S.ui.plan, entra = (g) => !p.llamamiento.activo || !p.llamamiento.soloAlistados || !g.vota || g.alistado === true;
+    tropa = await imagenTropa({ gente: p.gente.filter(entra), guerra: { nombre: p.nombre } });
+    if (tropa.length > 700000) tropa = null;
+  } catch (err) { tropa = null; }
+  const r = await llamar('declarar', tropa ? { tropa } : {});
   const lista = (await llamar('cuartel', {}, 1)).guerras, g = lista.find((x) => x.id === S.guerra);
   if (g && g.token) S.sesiones[S.guerra] = g.token;
   recordar();

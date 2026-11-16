@@ -229,7 +229,8 @@ function fichaPropia(o) {
   if (o.sinNav || o.sinFicha || !S.est || !S.est.yo) return null;
   const g = (S.est.gente || []).find((x) => x.id === S.est.yo.id);
   if (!g) return null;
-  const foto = g.foto && S.fotos[g.foto], gr = Math.min(S.est.yo.grado || 0, GRADOS.length - 1);
+  const c = S.ui.cronicas, deCronicas = c && S.est.yo.persona && c.grados ? c.grados[S.est.yo.persona] || 0 : 0;
+  const foto = g.foto && S.fotos[g.foto], gr = Math.min(Math.max(S.est.yo.grado || 0, deCronicas), GRADOS.length - 1);
   const cara = (tam) => `<span class="yo-foto" style="width:${tam}px;height:${tam}px;background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="">` : `<b style="font-size:${Math.round(tam * 0.45)}px">${esc(String(g.nombre).charAt(0).toUpperCase())}</b>`}</span>`;
   const grado = `<span class="yo-grado">${gr ? insignia(gr, 12) : ''}${GRADOS[gr]}</span>`;
   return {

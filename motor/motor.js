@@ -671,7 +671,8 @@ function marcoCorreo(doc, cuerpo, pie, o) {
     (o.titulo ? '<tr><td style="padding:10px 8px 0;text-align:center;' + condensada + ';font-size:44px;line-height:1;color:#ffffff;text-shadow:0 2px 14px #0d0b1a">' + esc(o.titulo) + '</td></tr>' : '') +
     '<tr><td style="padding:14px 0 26px;text-align:center"><span style="display:inline-block;width:64px;height:4px;border-radius:2px;background-color:#ff6ad5;background-image:linear-gradient(90deg,#5ef0d0,#8f7bff,#ff6ad5,#ffd36a)"></span></td></tr>' +
     '</table>' +
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background-color:#16132b;background-color:rgba(22,19,43,0.82);border:1px solid #3a3566;border-radius:16px">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background-color:#16132b;background-color:rgba(22,19,43,0.82);border:1px solid #3a3566;border-radius:16px;overflow:hidden">' +
+    (o.cabecera ? '<tr><td style="padding:0">' + o.cabecera + '</td></tr>' : '') +
     '<tr><td style="padding:24px 24px 24px;font-size:16px;line-height:1.55;color:#f2f0ff">' + cuerpo + '</td></tr>' +
     '<tr><td style="padding:16px 24px 24px;border-top:1px solid #2a2648;font-size:12px;line-height:1.5;color:#8d88ab">' + pie + '</td></tr>' +
     '</table>' +
@@ -1566,8 +1567,9 @@ function crearMotor(env) {
     return {};
   });
 
-  definir('declarar', { escribe: true, quien: 'mando' }, function (ctx) {
+  definir('declarar', { escribe: true, quien: 'mando' }, function (ctx, p) {
     var doc = ctx.doc, t = ctx.ahora;
+    p = p || {};
     exigir(doc.fase === 'borrador' || doc.fase === 'llamamiento', 'fase', 'La guerra ya está declarada.');
     exigir(doc.nombre && doc.pregunta, 'plan', 'Faltan el nombre o la pregunta de la guerra.');
     if (doc.llamamiento.activo && doc.llamamiento.soloAlistados) {
@@ -1609,6 +1611,10 @@ function crearMotor(env) {
     doc.declarada = t;
     doc.avisadas = 1; doc.finAvisado = null;
     doc.diana.ultimo = null;
+    // La tropa dibujada por el alto mando (las cartas con sus fotos) va en la orden de movilización.
+    if (typeof p.tropa === 'string' && p.tropa.length <= 700000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.tropa)) {
+      env.escribirFoto('tropa:' + doc.id, p.tropa); doc.tropa = true;
+    }
     guardar(doc);                       // primero se guarda la guerra; los correos no pueden dejarla a medias
     anotar(doc, 'mando', 'declarar', cs.length + ' contendientes, ' + doc.batallas.length + ' batallas');
     var enviados = 0;
@@ -1626,6 +1632,7 @@ function crearMotor(env) {
   }
   function componerOrden(doc, g, enlace) {
     var k = cuentasDe(doc, g), mias = k.mias, of = k.of;
+    var tropa = doc.tropa ? env.leerFoto('tropa:' + doc.id) : null;
     var c = doc.correo || {};
     var lp = preguntas(doc);
     var cuerpo = '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', la patria te reclama.</p>' + parrafos(c.apertura) +
@@ -1641,7 +1648,10 @@ function crearMotor(env) {
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
-      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización', ic: 'casco' }),
+      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización', ic: 'casco',
+        cabecera: tropa ? '<img src="cid:tropa" width="520" alt="Los combatientes de la ' + esc(doc.nombre) + '" style="display:block;width:100%;max-width:520px;height:auto;border:0;border-radius:15px 15px 0 0">' +
+          '<div style="padding:10px 24px 0;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf;text-align:center">' + plural(doc.gente.filter(function (x) { return x.combate; }).length, 'combatiente', 'combatientes') + ' · ¡que empiece el combate!</div>' : '' }),
+      imagenes: tropa ? [{ cid: 'tropa', datos: tropa }] : [],
       texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlace + (c.remate ? '\n\n' + c.remate : '')
     };
   }
@@ -2180,6 +2190,14 @@ function gas(cfg) {
     correo: function (m) {
       var o = { to: m.para, subject: m.asunto, htmlBody: m.html, body: m.texto, name: m.nombre };
       if (m.adjuntos && m.adjuntos.length) o.attachments = m.adjuntos.map(function (a) { return Utilities.newBlob(a.texto, a.tipo, a.nombre); });
+      // Imágenes dentro del correo (cid:…), como la tropa de la orden de movilización.
+      if (m.imagenes && m.imagenes.length) {
+        o.inlineImages = {};
+        m.imagenes.forEach(function (im) {
+          var b64 = String(im.datos).split(',')[1] || '', tipo = (/^data:([^;]+);/.exec(im.datos) || [])[1] || 'image/jpeg';
+          o.inlineImages[im.cid] = Utilities.newBlob(Utilities.base64Decode(b64), tipo, im.cid + '.jpg');
+        });
+      }
       MailApp.sendEmail(o);
     },
     ajuste: function (k) { return props.getProperty(k); }
