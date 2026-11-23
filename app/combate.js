@@ -4,6 +4,7 @@ import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
 import { icono, ILU, piezas } from './dibujos.js';
 import { escena } from './monigotes.js';
+import { campoBatalla } from './fondo-batalla.js';
 import { frente, filaRezagados, confeti } from './graficos.js';
 import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
@@ -202,7 +203,8 @@ function pantallaAbierta() {
   return marco(`${tickerRadio()}
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
-    <main class="col" style="flex:1;justify-content:center;gap:10px">
+    <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
+      ${campoBatalla()}
       <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs" aria-hidden="true">VS</div></div>
       ${votada}${barraRetirada()}${apuestasPropias()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
