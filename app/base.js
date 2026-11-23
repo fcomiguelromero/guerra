@@ -219,11 +219,15 @@ export function marco(cuerpo, o = {}) {
   const nav = (corto) => lista.map((p) => `<button data-a="ir" data-v="${p.ruta}" ${S.ruta.indexOf(p.ruta) === 0 ? 'aria-current="page"' : ''}>${p.ic ? `<svg class="nav-ico" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${FAMILIA[p.ic] || ''}</svg>` : ''}<span>${corto && p.corto ? p.corto : p.texto}</span></button>`).join('');
   const marca = o.marca || (S.est ? S.est.guerra.nombre : '') || 'Guerra de la Normalidad';
   const yo = fichaPropia(o);
-  return `<div class="marco fondo-${o.fondo || 'b'}">
+  return `<div class="marco fondo-${o.fondo || 'b'}"><div class="cielo cielo-${franjaDelDia()}" aria-hidden="true"><i class="estrellas-cielo"></i></div>
     <aside class="lateral"><div class="marca">${esc(marca)}</div><nav aria-label="Secciones">${nav(false)}</nav>${yo ? yo.lateral : ''}<div class="abajo">${o.lateral || ''}</div></aside>
     <div class="pantalla ${o.ancha ? 'ancha' : ''}">${yo ? yo.movil : ''}${cuerpo}</div>
     ${lista.length ? `<nav class="barra ${lista.length > 4 ? 'cinco' : ''}" aria-label="Secciones">${nav(true)}</nav>` : ''}
   </div>`;
+}
+// El cielo del fondo sigue la hora real: amanecer, día, atardecer o noche.
+export function franjaDelDia(h = new Date().getHours()) {
+  return h >= 7 && h < 10 ? 'amanecer' : h >= 10 && h < 18 ? 'dia' : h >= 18 && h < 21 ? 'atardecer' : 'noche';
 }
 // Tu propia ficha: foto, nombre y grado. En el ordenador, en el lateral bajo el menú; en el móvil, una franja arriba.
 // Al tocarla se abre tu medallero.

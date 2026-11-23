@@ -5,8 +5,8 @@ import { botonAlbum } from './album.js';
 import { icono, ILU, piezas } from './dibujos.js';
 import { escena } from './monigotes.js';
 import { campoBatalla, campoDescanso } from './fondo-batalla.js';
-import { frente, filaRezagados, confeti } from './graficos.js';
-import { nombreRonda } from './base.js';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js';
+import { nombreRonda, preferencia } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
   ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js';
 
@@ -32,23 +32,26 @@ function resumenTermo() {
 // Con varias preguntas, cada ofensiva tiene la suya, por turnos.
 const preguntaDe = (of) => { const l = S.est.guerra.preguntas || [S.est.guerra.pregunta]; return l.length ? l[(of - 1) % l.length] : S.est.guerra.pregunta; };
 const nombreDelDia = () => (S.est.guerra.ritmo === 'diaria' ? 'Batalla del día' : 'Batalla estrella');
-function cajaApuesta(b, nota = '') {
+// La apuesta, en una sola línea bajo las cartas: estrella, pregunta corta y los dos nombres.
+function chipApuesta(b) {
   const G = gente(), a = G[b.a], c = G[b.b];
-  if (b.voto) return b.apuesta ? `<span class="peq oro">${nombreDelDia()}: apostaste por ${esc(nombreDe(G[b.apuesta]))}.</span>` : '';
-  const boton = (id, lado) => `<button class="btn chico ${b.apuesta === id ? 'oro' : 'linea'} crece" aria-pressed="${b.apuesta === id}" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[id]))}</button>`;
-  return `<div class="caja oro" style="gap:8px;padding:10px 12px"><div class="fila entre"><strong class="bc oro" style="font-size:18px;text-transform:uppercase">${nombreDelDia()}</strong><span class="peq t2">Apuesta opcional</span></div>
-    ${b.motivo ? `<span class="med" style="color:#fff">${esc(b.motivo)}</span>` : ''}
-    <span class="med t3">${nota}${b.apuesta ? 'Puedes cambiarla hasta que votes esta batalla.' : '¿Quién crees que ganará? No tiene por qué coincidir con tu voto.'}</span>
-    <div class="fila" style="gap:8px">${boton(a.id, 'a')}${boton(c.id, 'b')}</div></div>`;
+  if (b.voto) return b.apuesta ? `<span class="peq oro centro">★ Apostaste por ${esc(nombreDe(G[b.apuesta]))}.</span>` : '';
+  const boton = (id, lado) => `<button class="pildora-apuesta ${b.apuesta === id ? 'elegida' : ''}" aria-pressed="${b.apuesta === id}" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[id]))}</button>`;
+  return `<div class="chip-apuesta" role="group" aria-label="${nombreDelDia()}: apuesta opcional">${b.motivo ? `<span class="chip-motivo">${esc(b.motivo)}</span>` : ''}
+    <span class="chip-t"><b class="oro">★ ${nombreDelDia()}</b> · ${b.apuesta ? 'Tu apuesta (puedes cambiarla):' : 'Apuesta, si quieres: ¿quién gana?'}</span>
+    <span class="fila" style="gap:6px">${boton(a.id, 'a')}${boton(c.id, 'b')}</span></div>`;
 }
-// Batallas del día en las que combato yo: no las voto, pero puedo apostar.
-function apuestasPropias() {
+// Batallas del día en las que combato yo: no las voto, pero puedo apostar. Va arriba, como aviso, para que no se pase.
+function avisoEstrellaPropia() {
   const e = S.est, ab = e.guerra.abiertas || e.guerra.ofensivas, id = yo().id;
   if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return '';
-  // Una cada vez: la primera de sus batallas del día en la que aún no ha apostado.
   return e.batallas.filter((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id) && !b.apuesta).slice(0, 1).map((b) => {
     const G = gente(), rival = G[b.a === id ? b.b : b.a];
-    return cajaApuesta(b, `En esta combates tú, contra ${esc(rival.nombre)}. `);
+    const boton = (gid, lado) => `<button class="pildora-apuesta" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[gid]))}</button>`;
+    return `<section class="aviso-estrella" role="note"><span class="aviso-estrella-ico" aria-hidden="true">★</span>
+      <div class="col" style="gap:6px;min-width:0"><strong>¡Combates en la ${nombreDelDia().toLowerCase()}${S.est.guerra.ofensivas > 1 ? ' de la ofensiva ' + b.of : ''}!</strong>
+        <span class="med t3">Contra ${esc(rival.nombre)}. No la votas, pero puedes apostar quién crees que ganará.</span>
+        <span class="fila" style="gap:6px">${boton(b.a, 'a')}${boton(b.b, 'b')}</span></div></section>`;
   }).join('');
 }
 function avisoTermo(id) {
@@ -120,16 +123,12 @@ function posicion() {
 function navegador(lista, i, llevas) {
   const b = lista[i], of = S.est.guerra.ofensivas;
   const enOf = lista.filter((x) => x.of === b.of);
-  const tramos = Array.from({ length: of }, (_, k) => {
-    const suyas = lista.filter((x) => x.of === k + 1);
-    return `<i class="${k + 1 === b.of ? 'ahora' : llevas && suyas.length && suyas.every((x) => x.voto) ? 'hecho' : ''}"></i>`;
-  }).join('');
   return `<div class="col" style="gap:6px"><div class="fila entre">
       <button class="cuadro" data-a="mover" data-v="-1" aria-label="Batalla anterior" ${i === 0 ? 'disabled' : ''}>${ico('izq')}</button>
       <div class="col g4" style="align-items:center"><div class="bc" style="font-weight:700;font-size:20px;color:#fff">${S.est.guerra.cuadro ? (b.tercero ? 'Por el 3.er puesto' : nombreRonda(b.of, of)) : `Ofensiva ${b.of} de ${of}`}</div>
         <div class="peq t2">Batalla ${enOf.indexOf(b) + 1} de ${enOf.length}${llevas ? ' · ' + llevas : ''}</div></div>
       <button class="cuadro" data-a="mover" data-v="1" aria-label="Batalla siguiente" ${i === lista.length - 1 ? 'disabled' : ''}>${ico('der')}</button>
-    </div><div class="tramos" aria-hidden="true">${tramos}</div></div>`;
+    </div>${mapaCampana(of, b.of, (k) => { const suyas = lista.filter((x) => x.of === k); return !!llevas && suyas.length > 0 && suyas.every((x) => x.voto); }, (k) => S.est.guerra.cuadro ? nombreRonda(k, of) : 'Ofensiva ' + k)}</div>`;
 }
 function barraRetirada() {
   const r = S.ui.retirada;
@@ -159,7 +158,7 @@ function pantallaAbierta() {
   const recien = S.ui.recien && Date.now() < S.ui.recien.hasta + 400 ? S.ui.recien : null;
   if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso && !recien) {
     const c = e.guerra.cuadro, ronda = nombreRonda(c.actual, c.R);
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -168,11 +167,11 @@ function pantallaAbierta() {
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">${c.actual === c.R ? 'El campeón se sabrá en el desfile' : 'La siguiente ronda se abre cuando vote todo el mundo'}</p>
           <p class="med t2">${c.actual === c.R ? 'Cuando vote todo el mundo, se acaba el torneo.' : 'Te avisaremos por correo, con quién pasa.'}</p>${resumenTermo()}
           <div class="fila" style="gap:8px;width:100%"><button class="btn linea medio crece" data-a="ir" data-v="/cuadro">Ver el cuadro</button><button class="btn linea medio crece" data-a="repaso">Repasar mis votos</button></div>
-        </div>${apuestasPropias()}${barraRetirada()}
+        </div>${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso && !recien) {
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -181,12 +180,12 @@ function pantallaAbierta() {
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">La ofensiva ${ab + 1} de ${e.guerra.ofensivas} se abre ${e.guerra.proxima ? cuando(e.guerra.proxima) : 'mañana'}</p>
           <p class="med t2">Te avisaremos por correo.</p>${resumenTermo()}
           <button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
-        </div>${apuestasPropias()}${barraRetirada()}
+        </div>${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (hechas === m.length && !S.ui.repaso && !recien) {
     const faltan = rezagados();
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -194,18 +193,18 @@ function pantallaAbierta() {
           <p class="t3">Has librado tus ${m.length} batallas. ${faltan.length ? 'La guerra sigue en pausa hasta que voten los rezagados.' : 'Ya ha votado todo el mundo: alto el fuego inminente.'}</p>
           ${e.porra ? `<button class="btn ancho" data-a="ir" data-v="/porra">${e.porra.mia ? 'Retocar mi porra' : 'Hacer la porra'}</button>` : ''}
           ${resumenTermo()}<button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
-        </div>${apuestasPropias()}${barraRetirada()}
+        </div>${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   const i = posicion(), b = v[i], a = G[b.a], c = G[b.b];
-  const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}${b.delDia ? cajaApuesta(b) : ''}</div>` : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien elijas</p>${b.delDia ? cajaApuesta(b) : ''}
+  const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}${b.delDia ? chipApuesta(b) : ''}</div>` : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien elijas</p>${b.delDia ? chipApuesta(b) : ''}
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional: escríbela antes de tocar la foto)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}`;
   return marco(`${campoBatalla()}${tickerRadio()}
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
-    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
+    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${avisoEstrellaPropia()}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
-      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs" aria-hidden="true">VS</div></div>
-      ${votada}${barraRetirada()}${apuestasPropias()}
+      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs${b.delDia ? ' estrella' : ''}" aria-hidden="true">VS</div></div>${b.delDia ? `<span class="sr-only">${nombreDelDia()}</span>` : ''}
+      ${votada}${barraRetirada()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
 }
@@ -543,11 +542,39 @@ function pantallaPublicada() {
 registrar('/batallas', () => {
   if (!S.est) return marco(cargando('Entrando en combate'), { sinNav: true });
   const fase = S.est.guerra.fase;
-  if (fase === 'abierta') return pantallaAbierta();
+  if (fase === 'abierta') return pantallaBienvenida() || pantallaAbierta();
   if (fase === 'terminada') return pantallaTerminada();
   if (fase === 'desfile') return pantallaDesfile();
   if (fase === 'publicada') return pantallaPublicada();
   return marco(`${cabecera('Guerra en preparación')}<div class="caja"><p>El alto mando aún no ha declarado la guerra. Cuando lo haga, te llegará tu orden de movilización por correo.</p></div>`, { sinNav: true });
+});
+
+// Bienvenida de cada ofensiva (ritmo diario o torneo): la primera vez que entras tras abrirse una nueva,
+// una pantalla de un vistazo con lo que te toca hoy y un solo botón. Se ve una vez por ofensiva en cada dispositivo.
+function pantallaBienvenida() {
+  const e = S.est, g = e.guerra, ab = g.abiertas;
+  if (!(g.ritmo === 'diaria' || g.cuadro) || !ab || S.ui.repaso) return '';
+  const vistas = preferencia.leer('bienvenida', {});
+  if (vistas[g.id] === ab) return '';
+  const hoy = votables().filter((b) => b.of === ab), faltan = hoy.filter((b) => !b.voto).length;
+  if (!faltan) return '';
+  const total = votables().length, hechas = votables().filter((b) => b.voto).length;
+  const titulo = g.cuadro ? nombreRonda(ab, g.ofensivas) : `Ofensiva ${ab} de ${g.ofensivas}`;
+  return marco(`${campoBatalla()}<main class="col" style="gap:14px"><section class="caja teal bienvenida col">
+      <span class="sobre teal">${esc(tituloGuerra(g))}</span>
+      ${escena('asalto', 'Los dos soldados saltan fuera de la trinchera al amanecer', 150)}
+      <h1 class="h1" style="margin:0">¡${esc(titulo)}!</h1>
+      <p class="t3" style="margin:0">${g.cuadro ? 'Se abre la ronda: a votar quién pasa.' : 'Se ha abierto la ofensiva de hoy.'}</p>
+      <div class="cifras"><div><b>${hoy.length}</b><span class="peq t2">${hoy.length === 1 ? 'batalla hoy' : 'batallas hoy'}</span></div>
+        <div><b class="teal">${faltan}</b><span class="peq t2">${faltan === 1 ? 'te falta' : 'te faltan'}</span></div>
+        <div><b>${hechas}<small class="t2" style="font-size:20px">/${total}</small></b><span class="peq t2">en toda la guerra</span></div></div>
+      ${avisoEstrellaPropia()}
+      <button class="btn ancho" data-a="alCombate">¡Al combate!</button></section></main>`, { lateral: lateral() });
+}
+accion('alCombate', () => {
+  const g = S.est.guerra, vistas = preferencia.leer('bienvenida', {});
+  vistas[g.id] = g.abiertas; preferencia.poner('bienvenida', vistas);
+  S.ui.dir = 1; pintar(); window.scrollTo(0, 0);
 });
 
 // ---------------------------------------------------------------- porra

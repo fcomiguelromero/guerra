@@ -53,6 +53,14 @@ const ESCENAS = {
     <path d="M0 112 Q20 96 44 104 Q70 92 98 104 Q124 94 150 104 Q178 92 204 104 Q226 96 240 106 V140 H0 Z" fill="#3a3166"/>
     <g fill="#4a4080" stroke="#2a2648" stroke-width="1.2">${[12, 52, 92, 132, 172, 212].map((x) => `<rect x="${x}" y="${110 + (x % 3)}" width="36" height="14" rx="7"/>`).join('')}${[32, 72, 112, 152, 192].map((x) => `<rect x="${x}" y="122" width="36" height="14" rx="7"/>`).join('')}</g>
     <g class="zetas" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" fill="#8f7bff"><text x="98" y="52" font-size="14">z</text><text x="108" y="38" font-size="18">z</text><text x="120" y="22" font-size="22">Z</text></g>`,
+  // Bienvenida de la ofensiva: los dos saltan fuera de la trinchera, con la bandera al viento y el sol saliendo.
+  asalto: () => `
+    <g class="sol-sale"><circle cx="120" cy="30" r="26" fill="#ffd36a" opacity=".18"/><circle cx="120" cy="30" r="13" fill="#ffd36a" opacity=".9"/></g>
+    <g class="salta"><g>${en('usa', 30, 6, 92, { mira: .8 }, -6)}</g></g>
+    <g class="salta salta-2"><g>${en('prusia', 118, 8, 92, { mira: -.8 }, 7)}</g></g>
+    <g class="bandera-asalto"><path d="M206 108 L206 34" stroke="#b3aecf" stroke-width="3" stroke-linecap="round"/><path d="M206 36 h30 l-7 9 7 9 h-30z" fill="#5ef0d0"><animate attributeName="d" values="M206 36 h30 l-7 9 7 9 h-30z;M206 36 q16 -5 30 2 l-7 9 7 9 q-14 -6 -30 -2z;M206 36 h30 l-7 9 7 9 h-30z" dur="1.2s" repeatCount="indefinite"/></path></g>
+    <path d="M0 112 Q20 98 44 106 Q70 94 98 106 Q124 96 150 106 Q178 94 204 106 Q226 98 240 108 V140 H0 Z" fill="#3a3166"/>
+    <g fill="#4a4080" stroke="#2a2648" stroke-width="1.2">${[12, 52, 92, 132, 172, 212].map((x) => `<rect x="${x}" y="${110 + (x % 3)}" width="36" height="14" rx="7"/>`).join('')}${[32, 72, 112, 152, 192].map((x) => `<rect x="${x}" y="122" width="36" height="14" rx="7"/>`).join('')}</g>`,
   // Alto el fuego: firmando el armisticio sobre una mesa.
   firma: () => `
     ${en('usa', 20, 22, 92, { sinFusil: true, mira: 1 })}

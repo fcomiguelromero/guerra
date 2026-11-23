@@ -34,6 +34,8 @@ async function votarRonda(tok, menos) {
     const p = await (await nav.newContext({ viewport: { width: ancho, height: alto } })).newPage();
     p.on('pageerror', (e) => errores.push(e.message));
     p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push(m.text()); });
+    // La bienvenida de cada ofensiva se despacha sola antes de cualquier acción.
+    await p.addLocatorHandler(p.locator('[data-a="alCombate"]'), async (b) => { await b.click(); });
     await p.goto(BASE + hash); await p.waitForLoadState('networkidle');
     return p;
   };

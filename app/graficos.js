@@ -101,3 +101,20 @@ export function confeti() {
   document.body.appendChild(capa);
   setTimeout(() => capa.remove(), 3200);
 }
+
+// Mapa de campaña: las ofensivas como un camino serpenteante con banderas. Las hechas, con bandera turquesa;
+// la de ahora, con el casco latiendo; las que faltan, como puntos. etiqueta(k) da el texto para lectores de pantalla.
+// El camino es un SVG estirado; los hitos, elementos HTML encima, para que no se deformen.
+export function mapaCampana(total, actual, hecha, etiqueta = (k) => 'Ofensiva ' + k) {
+  const px = (k) => (total > 1 ? 3 + 94 * (k - 1) / (total - 1) : 50), py = (k) => (k % 2 ? 24 : 12);
+  const linea = (n) => Array.from({ length: n }, (_, i) => `${i ? 'L' : 'M'}${px(i + 1).toFixed(2)} ${py(i + 1)}`).join(' ');
+  const hechas = Array.from({ length: total }, (_, i) => i + 1).filter((k) => hecha(k)).length;
+  const hitos = Array.from({ length: total }, (_, i) => {
+    const k = i + 1, est = k === actual ? 'ahora' : hecha(k) ? 'hecha' : 'falta';
+    return `<span class="hito-mapa ${est}" style="left:${px(k).toFixed(2)}%;top:${py(k)}px"></span>`;
+  }).join('');
+  return `<div class="mapa-campana" role="img" aria-label="${esc(etiqueta(actual))} de ${total}; ${hechas} completadas">
+    <svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%" height="36" aria-hidden="true">
+      <path d="${linea(total)}" fill="none" stroke="#3a3566" stroke-width="2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
+      <path d="${linea(Math.max(1, actual))}" fill="none" stroke="#5ef0d0" stroke-width="2.4" vector-effect="non-scaling-stroke" opacity=".7"/></svg>${hitos}</div>`;
+}

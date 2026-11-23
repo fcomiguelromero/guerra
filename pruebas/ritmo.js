@@ -24,6 +24,8 @@ async function pagina(navegador, ancho, alto, hash) {
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errores.push('[' + hash.slice(0, 12) + '] ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push('[' + hash.slice(0, 12) + '] ' + m.text()); });
+  // La bienvenida de cada ofensiva se despacha sola antes de cualquier acción.
+  await p.addLocatorHandler(p.locator('[data-a="alCombate"]'), async (b) => { await b.click(); });
   await p.goto(BASE + hash);
   await p.waitForLoadState('networkidle');
   return p;
@@ -130,7 +132,7 @@ const texto = (p) => p.locator('#app').innerText();
     // Si ya apostó en su propia batalla del día mientras votaba, la caja ya no sale.
     const yaApostada = propia && (await api('estado', { token: tok['María'] })).batallas.some((b) => b.id === propia.id && b.apuesta);
     if (propia && !yaApostada) {
-      assert.ok(/En esta combates tú/.test(await texto(ma)), 'apuesta en su propia batalla del día');
+      assert.ok(/Combates en la batalla del día/i.test(await texto(ma)), 'apuesta en su propia batalla del día');
       if (!aposte) { await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300); }
       await foto(ma, '02b-propia', true);
     }
@@ -154,7 +156,14 @@ const texto = (p) => p.locator('#app').innerText();
     assert.ok(avisos.length >= 4 && avisos.every((c) => /se abre la ofensiva/.test(c.asunto)), 'aviso diario');
     fs.writeFileSync(path.join(SALIDA, 'correo-ofensiva.html'), avisos[0].html);
     await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle');
+    // Nueva ofensiva: primero, la bienvenida de un vistazo (una sola vez).
+    assert.ok(await ma.locator('[data-a="alCombate"]').count(), 'bienvenida de la ofensiva nueva');
+    assert.ok(/Ofensiva 2 de 5/i.test(await texto(ma)), 'la bienvenida dice qué ofensiva es');
+    await foto(ma, '03a-bienvenida', true);
+    await ma.evaluate(() => document.querySelector('[data-a="alCombate"]').click()); await ma.waitForTimeout(400);
     assert.ok(await ma.locator('[data-a="votar"]').count(), 'hay batallas nuevas');
+    await ma.reload(); await ma.waitForLoadState('networkidle');
+    assert.ok(!(await ma.locator('[data-a="alCombate"]').count()), 'la bienvenida no se repite en la misma ofensiva');
     assert.ok(/Ofensiva 2 de 5/i.test(await texto(ma)));
     await foto(ma, '04-ofensiva-2');
 
