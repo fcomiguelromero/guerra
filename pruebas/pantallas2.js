@@ -27,8 +27,12 @@ function png() {
   const crc = (b) => { let c, n = ~0; for (const x of b) { c = (n ^ x) & 255; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; n = (n >>> 8) ^ c; } return ~n >>> 0; };
   const trozo = (t, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t), d]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([l, td, c]); };
   const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(300, 0); ihdr.writeUInt32BE(200, 4); ihdr[8] = 8; ihdr[9] = 2;
-  const fila = Buffer.concat([Buffer.from([0]), Buffer.alloc(900, 0).map((_, i) => [200, 120, 60][i % 3])]);
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), trozo('IHDR', ihdr), trozo('IDAT', zlib.deflateSync(Buffer.concat(Array(200).fill(fila)))), trozo('IEND', Buffer.alloc(0))]);
+  // Un degradado con cuadros, para que se note el encuadre.
+  const filas = Array.from({ length: 200 }, (_, y) => Buffer.concat([Buffer.from([0]), Buffer.from(Array.from({ length: 900 }, (_, i) => {
+    const x = Math.floor(i / 3), c = i % 3, cuadro = ((x >> 5) + (y >> 5)) % 2;
+    return c === 0 ? Math.round(120 + x * 0.45) : c === 1 ? Math.round(60 + y * 0.6) : cuadro ? 200 : 70;
+  }))]));
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), trozo('IHDR', ihdr), trozo('IDAT', zlib.deflateSync(Buffer.concat(filas))), trozo('IEND', Buffer.alloc(0))]);
 }
 (async () => {
   fs.mkdirSync(SALIDA, { recursive: true });
@@ -45,7 +49,16 @@ function png() {
     fs.writeFileSync(path.join(SALIDA, 'foto.png'), png());
     await m.locator('[data-a="abrirFicha"][data-v="0"]').click();
     await m.locator('input[type=file][data-v="0"]').setInputFiles(path.join(SALIDA, 'foto.png'));
+    // Encuadre: se acerca con la barra, se arrastra la foto y se usa.
+    await m.waitForSelector('.recorte-marco img');
+    await m.locator('.recorte-zoom').fill('1.8');
+    const caja = await m.locator('.recorte-marco').boundingBox();
+    await m.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2); await m.mouse.down();
+    await m.mouse.move(caja.x + caja.width / 2 + 60, caja.y + caja.height / 2 + 30, { steps: 5 }); await m.mouse.up();
+    await foto(m, '00-encuadre');
+    await m.locator('.recorte-si').click();
     await m.waitForSelector('.retrato img');
+    assert.ok(await m.locator('[data-a="reencuadrar"][data-v="0"]').count(), 'con foto, se puede volver a encuadrar');
     await m.locator('.hoja [data-a="cerrarFicha"]').click();
     await plan.abrir(m, 'llamamiento');
     await pulsa(m, 'Abrir el llamamiento');

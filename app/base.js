@@ -193,7 +193,9 @@ export function nombreDe(g) { return S.est && S.est.yo && g.id === S.est.yo.id ?
 export function carta(g, o = {}) {
   const foto = g.foto && S.fotos[g.foto];
   const grado = g.grado ? `<span class="pildora grado">${insignia(g.grado)}${GRADOS[Math.min(g.grado, 9)]}</span>` : '';
-  return `<div class="carta ${o.clase || ''}"><div>
+  // o.votar: la carta entera es el botón de voto (data-v = lado «a» o «b»).
+  const voto = o.votar ? ` role="button" tabindex="0" data-a="votar" data-v="${o.votar}" aria-label="Votar por ${esc(g.nombre)}"` : '';
+  return `<div class="carta ${o.votar ? 'votable ' : ''}${o.clase || ''}"${voto}><div>
     <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : o.figura || silueta(g.id, 'height:82%')}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
     <div class="nombre">${esc(g.nombre)}</div><div class="raya" aria-hidden="true"></div>
     <p class="frase">${esc(g.frase || '')}</p>${o.pie || ''}
@@ -291,6 +293,11 @@ accion('ir', (ruta) => ir(ruta));
 accion('recargar', () => location.reload());
 accion('cerrarVelo', () => { S.velo = ''; pintar(); });
 
+// Lo que hace de botón sin serlo (como las cartas que se votan) responde también a Intro y espacio.
+document.addEventListener('keydown', (ev) => {
+  const el = ev.target;
+  if ((ev.key === 'Enter' || ev.key === ' ') && el.getAttribute && el.getAttribute('role') === 'button' && el.dataset.a) { ev.preventDefault(); el.click(); }
+});
 document.addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-a]');
   if (!el || el.disabled) return;

@@ -3,6 +3,7 @@ import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, or
   ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
 import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
 import { botonCartel, imagenTropa } from './carteles.js';
+import { recortarFoto } from './recorte.js';
 import { icono, ILU } from './dibujos.js';
 import { frente, filaRezagados } from './graficos.js';
 
@@ -96,7 +97,8 @@ function filaGente(g, i, cosa) {
   const foto = g.foto && S.fotos[g.foto], p = S.ui.plan;
   const estado = p.llamamiento.activo && g.vota ? `<span class="peq ${g.alistado === true ? 'teal' : g.alistado === false ? 'rosa' : 't2'}">${g.alistado === true ? 'En filas' : g.alistado === false ? 'Objetor' : 'Sin respuesta'}</span>` : '';
   return `<div class="gente-plan">
-    ${cosa || p.modo !== 'cosas' ? `<label class="retrato" title="Elegir foto"><input type="file" accept="image/*" hidden data-c="foto" data-v="${i}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : 'Elegir foto'}</label>` : ''}
+    ${cosa || p.modo !== 'cosas' ? `<div class="col" style="gap:6px;flex:none;align-items:center"><label class="retrato" title="${foto ? 'Cambiar la foto' : 'Elegir foto'}"><input type="file" accept="image/*" hidden data-c="foto" data-v="${i}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : 'Elegir foto'}</label>
+      ${foto ? `<button class="btn chico linea" data-a="reencuadrar" data-v="${i}">Encuadrar</button>` : ''}</div>` : ''}
     <div class="col crece" style="gap:6px">
       <input class="entrada" aria-label="Nombre" maxlength="40" placeholder="Nombre" data-m="plan.gente.${i}.nombre" id="gn-${i}" value="${esc(g.nombre)}">
       ${cosa ? '' : `<input class="entrada" type="email" aria-label="Correo" maxlength="120" placeholder="Correo, para su orden de movilización" data-m="plan.gente.${i}.correo" id="gc-${i}" value="${esc(g.correo)}">`}
@@ -487,32 +489,25 @@ accion('masGente', (tipo) => {
 accion('quitarGente', (i) => { S.ui.plan.gente.splice(Number(i), 1); S.ui.ficha = null; pintar(); });
 accion('soyYo', (i) => { S.ui.plan.gente.forEach((g, k) => { g.mando = k === Number(i) ? !g.mando : false; }); pintar(); });
 
-function reducirFoto(archivo) {
-  return new Promise((resolver, fallar) => {
-    const img = new Image(), url = URL.createObjectURL(archivo);
-    img.onload = () => {
-      const an = 400, al = 480, lienzo = document.createElement('canvas');
-      lienzo.width = an; lienzo.height = al;
-      const escala = Math.max(an / img.width, al / img.height), w = img.width * escala, h = img.height * escala;
-      lienzo.getContext('2d').drawImage(img, (an - w) / 2, (al - h) / 3, w, h);
-      URL.revokeObjectURL(url);
-      let q = 0.82, datos = lienzo.toDataURL('image/jpeg', q);
-      while (datos.length > 110000 && q > 0.3) { q -= 0.1; datos = lienzo.toDataURL('image/jpeg', q); }
-      resolver(datos);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); fallar(new Error('No se ha podido leer esa foto.')); };
-    img.src = url;
-  });
-}
-accion('foto', async (i, el) => {
-  const archivo = el.files && el.files[0];
-  if (!archivo) return;
+// Al elegir una foto se abre el encuadre; sólo se sube lo que queda dentro del marco.
+async function subirEncuadre(i, fuente) {
+  const datos = await recortarFoto(fuente);
+  if (!datos) return;
   aviso('Subiendo la foto…', true);
-  const datos = await reducirFoto(archivo);
   const r = await llamar('subirFoto', { datos });
   S.fotos[r.id] = datos;
   S.ui.plan.gente[Number(i)].foto = r.id;
+  pintar();
   aviso('Foto lista. Acuérdate de guardar.', true);
+}
+accion('foto', async (i, el) => {
+  const archivo = el.files && el.files[0];
+  el.value = '';
+  if (archivo) await subirEncuadre(i, archivo);
+});
+accion('reencuadrar', async (i) => {
+  const g = S.ui.plan.gente[Number(i)], foto = g && g.foto && S.fotos[g.foto];
+  if (foto) await subirEncuadre(i, foto);
 });
 
 async function guardarPlan() {

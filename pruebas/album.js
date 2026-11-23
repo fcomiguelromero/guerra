@@ -122,7 +122,7 @@ async function jugar(id, tok) {
     const plato = s2.batallas.find((b) => b.delDia && b.of === 1);
     assert.ok(plato && /^(Revancha|La gran rivalidad|Duelo en el escalafón)/.test(plato.motivo), 'plato fuerte con motivo');
     const m2 = await pagina('#t=' + tok2[NOMBRES.find((n) => { const g = s2.gente.find((x) => x.nombre === n); return g.id !== plato.a && g.id !== plato.b; })]);
-    for (let k = 0; k < 12 && !(await m2.locator('#app').innerText()).includes(plato.motivo); k++) { await m2.locator('[data-a="votar"][data-v="a"]').click(); await m2.waitForTimeout(200); }
+    for (let k = 0; k < 12 && !(await m2.locator('#app').innerText()).includes(plato.motivo); k++) { await m2.locator('[data-a="votar"][data-v="a"]').click(); await m2.waitForTimeout(900); }
     await m2.screenshot({ path: path.join(SALIDA, '4-plato-fuerte.png'), fullPage: true });
     assert.ok((await m2.locator('#app').innerText()).includes(plato.motivo), 'el motivo se ve en la app: ' + plato.motivo);
     await m2.screenshot({ path: path.join(SALIDA, '4-plato-fuerte.png'), fullPage: true });
