@@ -129,12 +129,12 @@ const texto = (p) => p.locator('#app').innerText();
     await ma.waitForTimeout(900);
     const propia = est.batallas.find((b) => b.delDia && b.of === 1 && !b.mia);
     assert.ok(aposte || propia, 'o apuesta al votar o la batalla del día es suya');
-    // Si ya apostó en su propia batalla del día mientras votaba, la caja ya no sale.
-    const yaApostada = propia && (await api('estado', { token: tok['María'] })).batallas.some((b) => b.id === propia.id && b.apuesta);
-    if (propia && !yaApostada) {
-      assert.ok(/Combates en la batalla del día/i.test(await texto(ma)), 'apuesta en su propia batalla del día');
-      if (!aposte) { await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300); }
+    // Su propia batalla del día: tarjeta de combate al final, con las dos fotos; se apuesta tocando una.
+    if (propia) {
+      assert.ok(/Combates tú, contra/i.test(await texto(ma)) && await ma.locator('.carta[data-a="apostar"]').count() === 2, 'tarjeta de su batalla del día');
       await foto(ma, '02b-propia', true);
+      await ma.locator('.carta[data-a="apostar"]').first().click(); await ma.waitForTimeout(1500);
+      assert.ok(/Cumplido por hoy/i.test(await texto(ma)), 'tras apostar, cumplido por hoy');
     }
     await ma.waitForLoadState('networkidle');
     assert.ok((await api('estado', { token: tok['María'] })).batallas.some((b) => b.delDia && b.of === 1 && b.apuesta), 'la apuesta llega al cuartel');

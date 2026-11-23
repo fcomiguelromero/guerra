@@ -41,19 +41,46 @@ function chipApuesta(b) {
     <span class="chip-t"><b class="oro">★ ${nombreDelDia()}</b> · ${b.apuesta ? 'Tu apuesta (puedes cambiarla):' : 'Apuesta, si quieres: ¿quién gana?'}</span>
     <span class="fila" style="gap:6px">${boton(a.id, 'a')}${boton(c.id, 'b')}</span></div>`;
 }
-// Batallas del día en las que combato yo: no las voto, pero puedo apostar. Va arriba, como aviso, para que no se pase.
-function avisoEstrellaPropia() {
+// Batalla estrella en la que combato yo: no la voto, pero puedo apostar. Tiene su propia tarjeta de combate,
+// al final de las batallas del día, con las dos fotos: se apuesta tocando una (como al votar).
+function estrellaPropia() {
   const e = S.est, ab = e.guerra.abiertas || e.guerra.ofensivas, id = yo().id;
-  if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return '';
-  return e.batallas.filter((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id) && !b.apuesta).slice(0, 1).map((b) => {
-    const G = gente(), rival = G[b.a === id ? b.b : b.a];
-    const boton = (gid, lado) => `<button class="pildora-apuesta" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[gid]))}</button>`;
-    return `<section class="aviso-estrella" role="note"><span class="aviso-estrella-ico" aria-hidden="true">★</span>
-      <div class="col" style="gap:6px;min-width:0"><strong>¡Combates en la ${nombreDelDia().toLowerCase()}${S.est.guerra.ofensivas > 1 ? ' de la ofensiva ' + b.of : ''}!</strong>
-        <span class="med t3">Contra ${esc(rival.nombre)}. No la votas, pero puedes apostar quién crees que ganará.</span>
-        <span class="fila" style="gap:6px">${boton(b.a, 'a')}${boton(b.b, 'b')}</span></div></section>`;
-  }).join('');
+  if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return null;
+  const rec = S.ui.recienApuesta && Date.now() < S.ui.recienApuesta.hasta ? S.ui.recienApuesta.id : null;
+  return e.batallas.find((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id) && (!b.apuesta || b.id === rec)) || null;
 }
+const saltadas = () => preferencia.leer('estrellasSaltadas', {});
+function estrellaPendiente() {
+  const b = estrellaPropia();
+  return b && !saltadas()[S.est.guerra.id + ':' + b.id] ? b : null;
+}
+function pantallaEstrella(b) {
+  const e = S.est, G = gente(), id = yo().id, rival = G[b.a === id ? b.b : b.a];
+  const rec = S.ui.recienApuesta && S.ui.recienApuesta.id === b.id && Date.now() < S.ui.recienApuesta.hasta;
+  const opciones = (lado) => {
+    const g = G[b[lado]], elegida = b.apuesta === g.id;
+    return Object.assign({ clase: (lado === 'b' ? 'izq ' : '') + (rec && !elegida ? 'gris' : '') },
+      rec ? (elegida ? { sello: 'Apostado', selloClase: 'teal cae' } : {}) : { votar: lado, accion: 'apostar', valor: b.id + ':' + lado, etiqueta: 'Apostar por ' + (g.id === id ? 'ti' : g.nombre) });
+  };
+  return marco(`${campoBatalla()}${tickerRadio()}
+    <header class="col g4"><div class="sobre oro">★ ${esc(nombreDelDia())}${e.guerra.ofensivas > 1 ? ' · ' + (e.guerra.cuadro ? esc(nombreRonda(b.of, e.guerra.ofensivas)) : 'ofensiva ' + b.of) : ''}</div>
+      <h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
+    <main class="col combate-main" style="gap:10px">
+      <div class="aviso-tarjeta-estrella"><b>¡Combates tú, contra ${esc(rival.nombre)}!</b> No la votas, pero puedes apostar quién crees que ganará.</div>
+      ${b.motivo ? `<p class="peq centro" style="color:#fff;margin:0">${esc(b.motivo)}</p>` : ''}
+      <div class="duelo anima entra-der" data-anim="estrella:${b.id}">${carta(G[b.a], opciones('a'))}${carta(G[b.b], opciones('b'))}<div class="vs estrella" aria-hidden="true">VS</div></div>
+      ${rec ? '' : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien creas que ganará</p>
+      <button class="btn linea medio" style="align-self:center" data-a="saltarEstrella" data-v="${b.id}">Ahora no</button>`}
+    </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
+}
+// En «Cumplido por hoy», si pasaste de apostar, un botón para volver a la tarjeta.
+function botonEstrellaSaltada() {
+  const b = estrellaPropia();
+  if (!b || !saltadas()[S.est.guerra.id + ':' + b.id]) return '';
+  return `<button class="chip-apuesta" style="border-radius:14px" data-a="verEstrella" data-v="${b.id}"><span class="chip-t"><b class="oro">★ ${esc(nombreDelDia())}</b> · Combates tú: aún puedes apostar ›</span></button>`;
+}
+accion('saltarEstrella', (bid) => { const m = saltadas(); m[S.est.guerra.id + ':' + bid] = true; preferencia.poner('estrellasSaltadas', m); pintar(); });
+accion('verEstrella', (bid) => { const m = saltadas(); delete m[S.est.guerra.id + ':' + bid]; preferencia.poner('estrellasSaltadas', m); pintar(); });
 function avisoTermo(id) {
   setTimeout(async () => {
     try {
@@ -156,9 +183,11 @@ function pantallaAbierta() {
   if (!v.length) S.ui.repaso = false;
   const hechas = m.filter((b) => b.voto).length, ab = e.guerra.abiertas || e.guerra.ofensivas;
   const recien = S.ui.recien && Date.now() < S.ui.recien.hasta + 400 ? S.ui.recien : null;
+  // Acabadas las batallas del día, la batalla estrella propia (si la hay) tiene su tarjeta antes de «Cumplido por hoy».
+  if (v.every((b) => b.voto) && !S.ui.repaso && !recien) { const est = estrellaPendiente(); if (est) return pantallaEstrella(est); }
   if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso && !recien) {
     const c = e.guerra.cuadro, ronda = nombreRonda(c.actual, c.R);
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${botonEstrellaSaltada()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -171,7 +200,7 @@ function pantallaAbierta() {
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso && !recien) {
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${botonEstrellaSaltada()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -185,7 +214,7 @@ function pantallaAbierta() {
   }
   if (hechas === m.length && !S.ui.repaso && !recien) {
     const faltan = rezagados();
-    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${avisoEstrellaPropia()}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}${botonEstrellaSaltada()}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -201,7 +230,7 @@ function pantallaAbierta() {
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional: escríbela antes de tocar la foto)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}`;
   return marco(`${campoBatalla()}${tickerRadio()}
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
-    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${avisoEstrellaPropia()}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
+    ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
       <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs${b.delDia ? ' estrella' : ''}" aria-hidden="true">VS</div></div>${b.delDia ? `<span class="sr-only">${nombreDelDia()}</span>` : ''}
       ${votada}${barraRetirada()}
@@ -252,7 +281,10 @@ accion('apostar', (v) => {
   if (!b || b.voto) return;
   const antes = b.apuesta, elegido = b[lado];
   if (antes === elegido) return;
-  b.apuesta = elegido; pintar();
+  b.apuesta = elegido;
+  const propiaYo = b.a === yo().id || b.b === yo().id;
+  if (propiaYo) { S.ui.recienApuesta = { id: b.id, hasta: Date.now() + 1100 }; setTimeout(() => { S.ui.recienApuesta = null; pintar(); }, 1150); }
+  pintar();
   encolar(async () => {
     try {
       await llamar('apostar', { batalla: b.id, elegido }, 2);
@@ -568,7 +600,7 @@ function pantallaBienvenida() {
       <div class="cifras"><div><b>${hoy.length}</b><span class="peq t2">${hoy.length === 1 ? 'batalla hoy' : 'batallas hoy'}</span></div>
         <div><b class="teal">${faltan}</b><span class="peq t2">${faltan === 1 ? 'te falta' : 'te faltan'}</span></div>
         <div><b>${hechas}<small class="t2" style="font-size:20px">/${total}</small></b><span class="peq t2">en toda la guerra</span></div></div>
-      ${avisoEstrellaPropia()}
+      ${estrellaPropia() ? `<p class="peq oro" style="margin:0">★ Hoy combates en la ${nombreDelDia().toLowerCase()}: al final de tus batallas podrás apostar.</p>` : ''}
       <button class="btn ancho" data-a="alCombate">¡Al combate!</button></section></main>`, { lateral: lateral() });
 }
 accion('alCombate', () => {

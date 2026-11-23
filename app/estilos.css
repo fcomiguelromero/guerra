@@ -561,3 +561,5 @@ ul, ol { padding: 0; list-style: none; }
 .bienvenida .cifras b { display: block; font-family: var(--bc); font-weight: 800; font-size: 40px; line-height: 1; color: #fff; }
 @media (prefers-reduced-motion: reduce) { .escena .salta > g, .escena .sol-sale { animation: none; } }
 .bienvenida .aviso-estrella { text-align: left; width: 100%; }
+.aviso-tarjeta-estrella { padding: 10px 14px; border: 1px solid var(--oro); border-radius: 14px; background: linear-gradient(135deg, rgba(255,211,106,.16), rgba(22,19,43,.9) 70%); color: var(--txt3); font-size: 15px; text-align: center; }
+.aviso-tarjeta-estrella b { color: var(--oro); }

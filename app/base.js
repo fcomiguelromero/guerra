@@ -194,7 +194,8 @@ export function carta(g, o = {}) {
   const foto = g.foto && S.fotos[g.foto];
   const grado = g.grado ? `<span class="pildora grado">${insignia(g.grado)}${GRADOS[Math.min(g.grado, 9)]}</span>` : '';
   // o.votar: la carta entera es el botón de voto (data-v = lado «a» o «b»).
-  const voto = o.votar ? ` role="button" tabindex="0" data-a="votar" data-v="${o.votar}" aria-label="Votar por ${esc(g.nombre)}"` : '';
+  // o.accion / o.valor / o.etiqueta: la misma carta-botón para otra cosa (p. ej., apostar en la batalla estrella).
+  const voto = o.votar ? ` role="button" tabindex="0" data-a="${o.accion || 'votar'}" data-v="${esc(o.valor || o.votar)}" aria-label="${esc(o.etiqueta || 'Votar por ' + g.nombre)}"` : '';
   return `<div class="carta ${o.votar ? 'votable ' : ''}${o.clase || ''}"${voto}><div>
     <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : o.figura || silueta(g.id, 'height:82%')}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
     <div class="nombre">${esc(g.nombre)}</div><div class="raya" aria-hidden="true"></div>
