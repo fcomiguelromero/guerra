@@ -127,7 +127,9 @@ const texto = (p) => p.locator('#app').innerText();
     await ma.waitForTimeout(900);
     const propia = est.batallas.find((b) => b.delDia && b.of === 1 && !b.mia);
     assert.ok(aposte || propia, 'o apuesta al votar o la batalla del día es suya');
-    if (propia) {
+    // Si ya apostó en su propia batalla del día mientras votaba, la caja ya no sale.
+    const yaApostada = propia && (await api('estado', { token: tok['María'] })).batallas.some((b) => b.id === propia.id && b.apuesta);
+    if (propia && !yaApostada) {
       assert.ok(/En esta combates tú/.test(await texto(ma)), 'apuesta en su propia batalla del día');
       if (!aposte) { await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300); }
       await foto(ma, '02b-propia', true);
