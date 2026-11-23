@@ -92,8 +92,8 @@ const pulsa = async (p, texto) => { await p.getByRole('button', { name: texto, e
     // --- combatiente en el ordenador
     const e = await pagina(navegador, 1280, 860, '#t=' + tok['Elena']);
     await foto(e, '08-batalla-pc');
-    await e.setViewportSize({ width: 1600, height: 1300 }); await e.waitForTimeout(2500);
-    assert.ok((await e.locator('.campo-fondo').boundingBox()).height > 300, 'en pantalla alta, el campo de batalla se ve de fondo');
+    await e.setViewportSize({ width: 2400, height: 1150 }); await e.waitForTimeout(9000);
+    assert.ok((await e.locator('.campo-fondo').boundingBox()).height > 300, 'el campo de batalla se ve de fondo');
     await e.screenshot({ path: path.join(SALIDA, '08b-batalla-pc-alta.png') });
     await e.setViewportSize({ width: 1280, height: 860 });
 
