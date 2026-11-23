@@ -22,6 +22,8 @@ async function pagina(navegador, ancho, alto, hash) {
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errores.push('[' + hash.slice(0, 12) + '] ' + e.message));
   p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push('[' + hash.slice(0, 12) + '] ' + m.text()); });
+  // Si sale la tarjeta de su batalla estrella, se pasa («Ahora no») antes de cualquier acción.
+  await p.addLocatorHandler(p.locator('[data-a="saltarEstrella"]'), async (b) => { await b.click(); });
   await p.goto(BASE + hash);
   await p.waitForLoadState('networkidle');
   return p;

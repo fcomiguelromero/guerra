@@ -36,6 +36,8 @@ async function votarRonda(tok, menos) {
     p.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errores.push(m.text()); });
     // La bienvenida de cada ofensiva se despacha sola antes de cualquier acción.
     await p.addLocatorHandler(p.locator('[data-a="alCombate"]'), async (b) => { await b.click(); });
+    // Si sale la tarjeta de su batalla estrella, se pasa («Ahora no») antes de cualquier acción.
+    await p.addLocatorHandler(p.locator('[data-a="saltarEstrella"]'), async (b) => { await b.click(); });
     await p.goto(BASE + hash); await p.waitForLoadState('networkidle');
     return p;
   };
@@ -66,6 +68,7 @@ async function votarRonda(tok, menos) {
     const suyas = est.batallas.filter((b) => b.mia && b.of === 1).length;
     for (let k = 0; k < suyas; k++) { await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(200); }
     await ma.waitForLoadState('networkidle'); await ma.waitForTimeout(900);
+    await ma.evaluate(() => { const b = document.querySelector('[data-a="saltarEstrella"]'); if (b) b.click(); }); await ma.waitForTimeout(200);
     assert.ok(/Ronda cumplida/i.test(await texto(ma)), 'ronda cumplida');
     await ma.screenshot({ path: path.join(SALIDA, '2-ronda-cumplida.png'), fullPage: true });
     await ma.getByRole('button', { name: 'Ver el cuadro' }).first().click(); await ma.waitForTimeout(300);
