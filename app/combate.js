@@ -4,7 +4,7 @@ import { botonesCalendario } from './calendario.js';
 import { botonAlbum } from './album.js';
 import { icono, ILU, piezas } from './dibujos.js';
 import { escena } from './monigotes.js';
-import { campoBatalla } from './fondo-batalla.js';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js';
 import { frente, filaRezagados, confeti } from './graficos.js';
 import { nombreRonda } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
@@ -159,7 +159,7 @@ function pantallaAbierta() {
   const recien = S.ui.recien && Date.now() < S.ui.recien.hasta + 400 ? S.ui.recien : null;
   if (e.guerra.cuadro && v.every((b) => b.voto) && !S.ui.repaso && !recien) {
     const c = e.guerra.cuadro, ronda = nombreRonda(c.actual, c.R);
-    return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -172,7 +172,7 @@ function pantallaAbierta() {
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (v.every((b) => b.voto) && hechas < m.length && !S.ui.repaso && !recien) {
-    return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}
@@ -186,7 +186,7 @@ function pantallaAbierta() {
   }
   if (hechas === m.length && !S.ui.repaso && !recien) {
     const faltan = rezagados();
-    return marco(`${tickerRadio()}${cabecera(e.guerra.pregunta)}
+    return marco(`${campoDescanso()}${tickerRadio()}${cabecera(e.guerra.pregunta)}
       <main class="col g12" style="flex:1;justify-content:center">
         <div class="caja teal centro" style="align-items:center;padding:20px 14px">
           ${escena('trinchera', 'Los dos soldados duermen en la trinchera')}

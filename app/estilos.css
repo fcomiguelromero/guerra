@@ -499,5 +499,6 @@ ul, ol { padding: 0; list-style: none; }
   .pantalla:has(.campo-fondo) { position: relative; justify-content: center; }
   .pantalla:has(.campo-fondo) > *:not(.campo-fondo) { position: relative; z-index: 1; }
   .combate-main { justify-content: flex-start !important; flex: none !important; }
+  .pantalla:has(.campo-fondo) > main { flex: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { .campo-fondo { display: none; } }
