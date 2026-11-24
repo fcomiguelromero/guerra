@@ -207,7 +207,7 @@ prueba('termómetro: sale al cerrarse la retirada y dice si vas con la mayoría,
   const w = mundo(29);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5) });
   const g = declarar(w, id);
-  const b = w.do('estado', { token: g.tok['María'] }).batallas.find((x) => x.mia && x.a !== g.id['Andrés'] && x.b !== g.id['Andrés']);
+  const b = w.do('estado', { token: g.tok['María'] }).batallas.find((x) => x.mia && !x.delDia && x.a !== g.id['Andrés'] && x.b !== g.id['Andrés']);
   w.do('votar', { token: g.tok['María'], batalla: b.id, elegido: b.a });
   const fila = () => w.do('estado', { token: g.tok['María'] }).batallas.find((x) => x.id === b.id);
   assert.strictEqual(fila().termo, undefined, 'durante la retirada no hay termómetro');
@@ -225,7 +225,24 @@ prueba('termómetro: sale al cerrarse la retirada y dice si vas con la mayoría,
   assert.strictEqual(w.do('estado', { token: g.tok['Andrés'] }).batallas.find((x) => x.id === b.id).termo, 'con');
 });
 
-prueba('batalla del día: apuesta antes de votar, privada, y el adivino sale en el desfile', () => {
+prueba('batalla del día: se puede apostar después de votarla; el termómetro espera a la apuesta', () => {
+  const w = mundo(33);
+  const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { ritmo: 'diaria' } });
+  const g = declarar(w, id);
+  const est = w.do('estado', { token: g.tok['María'] });
+  const hoy = est.batallas.find((b) => b.delDia && b.of === 1);
+  const n = NOMBRES.slice(0, 5).find((x) => g.id[x] !== hoy.a && g.id[x] !== hoy.b);
+  NOMBRES.slice(0, 5).filter((x) => g.id[x] !== hoy.a && g.id[x] !== hoy.b).forEach((x) => w.do('votar', { token: g.tok[x], batalla: hoy.id, elegido: hoy.a }));
+  w.pasa(60000);
+  let fila = w.do('estado', { token: g.tok[n] }).batallas.find((b) => b.id === hoy.id);
+  assert.ok(!fila.termo && fila.termoEspera, 'sin apostar, el termómetro de la batalla del día no se ve');
+  w.do('apostar', { token: g.tok[n], batalla: hoy.id, elegido: hoy.b });
+  fila = w.do('estado', { token: g.tok[n] }).batallas.find((b) => b.id === hoy.id);
+  assert.ok(fila.termo && fila.apuesta === hoy.b, 'tras apostar, aparece');
+  w.falla('apostada', () => w.do('apostar', { token: g.tok[n], batalla: hoy.id, elegido: hoy.a }));
+});
+
+prueba('batalla del día: apuesta privada, y el adivino sale en el desfile', () => {
   const w = mundo(31);
   const id = crearGuerra(w, { nombres: NOMBRES.slice(0, 5), plan: { ritmo: 'diaria' } });
   const g = declarar(w, id);
@@ -246,7 +263,7 @@ prueba('batalla del día: apuesta antes de votar, privada, y el adivino sale en 
   assert.ok(!JSON.stringify(w.do('estado', { token: g.tok['Andrés'] })).includes(g.id['María'] + '":{'), 'nadie ve las apuestas de los demás');
   const votante = NOMBRES.slice(0, 5).find((n) => g.id[n] !== hoy.a && g.id[n] !== hoy.b && n !== 'María');
   w.do('votar', { token: g.tok[votante], batalla: hoy.id, elegido: hoy.b });
-  w.falla('votada', () => w.do('apostar', { token: g.tok[votante], batalla: hoy.id, elegido: hoy.a }));
+  w.falla('apostada', () => w.do('apostar', { token: g.tok[votante], batalla: hoy.id, elegido: hoy.a }), 'votada y apostada, no se cambia');
   // Se juega la guerra entera: todos votan siempre al de la izquierda del reparto.
   for (let d = 0; d < 6; d++) { w.pasa(24 * 3600000); w.motor.reloj(); }
   NOMBRES.slice(0, 5).forEach((n) => votarTodo(w, g, n));

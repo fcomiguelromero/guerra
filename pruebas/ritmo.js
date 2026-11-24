@@ -114,28 +114,18 @@ const texto = (p) => p.locator('#app').innerText();
     const ma = await pagina(navegador, 390, 844, '#t=' + tok['María']);
     let est = await api('estado', { token: tok['María'] });
     const hoy = est.batallas.filter((b) => b.mia && b.of === 1).length;
-    let aposte = false;
     for (let k = 0; k < hoy; k++) {
-      if (await ma.locator('[data-a="apostar"]').count() && !aposte) {
-        assert.ok(/Batalla del día/i.test(await texto(ma)), 'la batalla del día se anuncia');
-        await ma.locator('[data-a="apostar"]').first().click(); await ma.waitForTimeout(300);
-        await ma.waitForLoadState('networkidle');
-        assert.ok((await api('estado', { token: tok['María'] })).batallas.some((b) => b.delDia && b.apuesta), 'la apuesta queda hecha');
-        await foto(ma, '02a-batalla-del-dia');
-        aposte = true;
-      }
+      assert.ok(!(await ma.locator('[data-a="apostar"]').count()), 'en las batallas normales no se apuesta');
       await ma.locator('[data-a="votar"][data-v="a"]').click(); await ma.waitForTimeout(900);
     }
     await ma.waitForTimeout(900);
+    // Al final, la carta extra de la batalla del día, con marco dorado: se apuesta tocando una foto.
     const propia = est.batallas.find((b) => b.delDia && b.of === 1 && !b.mia);
-    assert.ok(aposte || propia, 'o apuesta al votar o la batalla del día es suya');
-    // Su propia batalla del día: tarjeta de combate al final, con las dos fotos; se apuesta tocando una.
-    if (propia) {
-      assert.ok(/Combates tú, contra/i.test(await texto(ma)) && await ma.locator('.carta[data-a="apostar"]').count() === 2, 'tarjeta de su batalla del día');
-      await foto(ma, '02b-propia', true);
-      await ma.locator('.carta[data-a="apostar"]').first().click(); await ma.waitForTimeout(1500);
-      assert.ok(/Cumplido por hoy/i.test(await texto(ma)), 'tras apostar, cumplido por hoy');
-    }
+    assert.ok(await ma.locator('.carta.dorada[data-a="apostar"]').count() === 2, 'carta extra de la batalla del día');
+    assert.ok(propia ? /Combates tú, contra/i.test(await texto(ma)) : /Ya la votaste/i.test(await texto(ma)), 'el texto de la carta extra');
+    await foto(ma, propia ? '02b-propia' : '02a-batalla-del-dia', true);
+    await ma.locator('.carta.dorada[data-a="apostar"]').first().click(); await ma.waitForTimeout(1500);
+    assert.ok(/Cumplido por hoy/i.test(await texto(ma)), 'tras apostar, cumplido por hoy');
     await ma.waitForLoadState('networkidle');
     assert.ok((await api('estado', { token: tok['María'] })).batallas.some((b) => b.delDia && b.of === 1 && b.apuesta), 'la apuesta llega al cuartel');
     // Termómetro: aparece al cerrarse la retirada del último voto.

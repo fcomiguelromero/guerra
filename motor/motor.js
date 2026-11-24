@@ -1131,7 +1131,10 @@ function crearMotor(env) {
         if (b.tercero) fila.tercero = true;
         if (yo && puedeVotar(yo, b)) {
           var v = votoDe(doc, b, yo.id); fila.mia = true; fila.voto = v ? v[0] : null; fila.ts = v ? v[1] : null;
-          if (v && doc.extras.termometro && doc.fase === 'abierta' && t - v[1] > GRACIA + MARGEN) fila.termo = termometro(doc, b, yo.id);
+          // En la batalla del día, el termómetro espera a la apuesta: si no, chivaría hacia dónde va la mayoría.
+          var sinApostar = doc.extras.apuestas && esDelDia(doc, b) && !((doc.apuestas || {})[yo.id] || {})[b.id];
+          if (v && doc.extras.termometro && doc.fase === 'abierta' && t - v[1] > GRACIA + MARGEN && !sinApostar) fila.termo = termometro(doc, b, yo.id);
+          if (v && doc.extras.termometro && sinApostar) fila.termoEspera = true;
         }
         if (esDelDia(doc, b)) { fila.delDia = true; if (doc.platos && doc.platos[b.of]) fila.motivo = doc.platos[b.of].motivo; if (yo && doc.apuestas && doc.apuestas[yo.id] && doc.apuestas[yo.id][b.id]) fila.apuesta = doc.apuestas[yo.id][b.id]; }
         return fila;
@@ -1787,7 +1790,10 @@ function crearMotor(env) {
     var b = batallasVivas(doc).filter(function (x) { return x.id === Number(p.batalla); })[0];
     exigir(b && esDelDia(doc, b), 'noexiste', 'Sólo se apuesta en la batalla del día.');
     exigir(b.of <= abiertas(doc, ctx.ahora), 'cerrada', 'Esa ofensiva aún no se ha abierto.');
-    exigir(!votoDe(doc, b, yo.id), 'votada', 'Ya has votado esa batalla: la apuesta se hace antes de votarla.');
+    // La apuesta va en su propia carta, al final de las batallas del día (después de votarlas). Una vez votada
+    // la batalla y hecha la apuesta, ya no se cambia: con el termómetro a la vista sería hacer trampa.
+    var previa = ((doc.apuestas || {})[yo.id] || {})[b.id];
+    exigir(!(previa && votoDe(doc, b, yo.id)), 'apostada', 'Ya apostaste en esa batalla.');
     exigir(p.elegido === b.a || p.elegido === b.b, 'apuesta', 'Hay que apostar por uno de los dos.');
     doc.apuestas = doc.apuestas || {};
     (doc.apuestas[yo.id] = doc.apuestas[yo.id] || {})[b.id] = p.elegido;

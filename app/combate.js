@@ -5,6 +5,7 @@ import { botonAlbum } from './album.js';
 import { icono, ILU, piezas } from './dibujos.js';
 import { escena } from './monigotes.js';
 import { campoBatalla, campoDescanso } from './fondo-batalla.js';
+import { enfadar } from './caras.js';
 import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js';
 import { nombreRonda, preferencia } from './base.js';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
@@ -17,6 +18,7 @@ const mias = () => S.est.batallas.filter((b) => b.mia);
 // ---- termómetro y batalla del día
 const TERMO = { con: ['teal', 'Vas con la mayoría'], contra: ['rosa', 'Vas contra la mayoría'], empate: ['', 'De momento, empate'], solo: ['', 'Eres el primero en votarla'] };
 function lineaTermo(b) {
+  if (b.termoEspera) return `<span class="peq t2">El termómetro de la ${nombreDelDia().toLowerCase()} sale cuando apuestes, al final de las batallas.</span>`;
   if (!b.termo) return S.est.guerra.extras.termometro && b.voto ? '<span class="peq t2">El termómetro sale cuando pasen los 10 segundos de cortesía.</span>' : '';
   const [color, texto] = TERMO[b.termo];
   return `<span class="fila termo ${color}">${ico('termo', 16)}<strong>Termómetro:</strong> ${texto}.</span>`;
@@ -32,22 +34,14 @@ function resumenTermo() {
 // Con varias preguntas, cada ofensiva tiene la suya, por turnos.
 const preguntaDe = (of) => { const l = S.est.guerra.preguntas || [S.est.guerra.pregunta]; return l.length ? l[(of - 1) % l.length] : S.est.guerra.pregunta; };
 const nombreDelDia = () => (S.est.guerra.ritmo === 'diaria' ? 'Batalla del día' : 'Batalla estrella');
-// La apuesta, en una sola línea bajo las cartas: estrella, pregunta corta y los dos nombres.
-function chipApuesta(b) {
-  const G = gente(), a = G[b.a], c = G[b.b];
-  if (b.voto) return b.apuesta ? `<span class="peq oro centro">★ Apostaste por ${esc(nombreDe(G[b.apuesta]))}.</span>` : '';
-  const boton = (id, lado) => `<button class="pildora-apuesta ${b.apuesta === id ? 'elegida' : ''}" aria-pressed="${b.apuesta === id}" data-a="apostar" data-v="${b.id}:${lado}">${esc(nombreDe(G[id]))}</button>`;
-  return `<div class="chip-apuesta" role="group" aria-label="${nombreDelDia()}: apuesta opcional">${b.motivo ? `<span class="chip-motivo">${esc(b.motivo)}</span>` : ''}
-    <span class="chip-t"><b class="oro">★ ${nombreDelDia()}</b> · ${b.apuesta ? 'Tu apuesta (puedes cambiarla):' : 'Apuesta, si quieres: ¿quién gana?'}</span>
-    <span class="fila" style="gap:6px">${boton(a.id, 'a')}${boton(c.id, 'b')}</span></div>`;
-}
 // Batalla estrella en la que combato yo: no la voto, pero puedo apostar. Tiene su propia tarjeta de combate,
 // al final de las batallas del día, con las dos fotos: se apuesta tocando una (como al votar).
 function estrellaPropia() {
   const e = S.est, ab = e.guerra.abiertas || e.guerra.ofensivas, id = yo().id;
   if (!e.guerra.extras.apuestas || e.guerra.fase !== 'abierta' || !yo().vota) return null;
   const rec = S.ui.recienApuesta && Date.now() < S.ui.recienApuesta.hasta ? S.ui.recienApuesta.id : null;
-  return e.batallas.find((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id) && (!b.apuesta || b.id === rec)) || null;
+  // La batalla del día tiene su propia carta al final: en la tuya, porque no la votas; en las demás, una vez votada.
+  return e.batallas.find((b) => b.delDia && b.of <= ab && (b.a === id || b.b === id || b.voto) && (!b.apuesta || b.id === rec)) || null;
 }
 const saltadas = () => preferencia.leer('estrellasSaltadas', {});
 function estrellaPendiente() {
@@ -55,18 +49,20 @@ function estrellaPendiente() {
   return b && !saltadas()[S.est.guerra.id + ':' + b.id] ? b : null;
 }
 function pantallaEstrella(b) {
-  const e = S.est, G = gente(), id = yo().id, rival = G[b.a === id ? b.b : b.a];
+  const e = S.est, G = gente(), id = yo().id, mia = b.a === id || b.b === id, rival = G[b.a === id ? b.b : b.a];
   const rec = S.ui.recienApuesta && S.ui.recienApuesta.id === b.id && Date.now() < S.ui.recienApuesta.hasta;
   const opciones = (lado) => {
-    const g = G[b[lado]], elegida = b.apuesta === g.id;
-    return Object.assign({ clase: (lado === 'b' ? 'izq ' : '') + (rec && !elegida ? 'gris' : '') },
+    const g = G[b[lado]], elegida = b.apuesta === g.id, foto = g.foto && S.fotos[g.foto];
+    return Object.assign({ clase: 'dorada ' + (lado === 'b' ? 'izq ' : '') + (rec && !elegida ? 'gris' : ''), capa: enfadar(g.foto, foto, lado === 'a' ? 1 : -1, () => { if (S.ruta === '/batallas') pintar(); }) },
       rec ? (elegida ? { sello: 'Apostado', selloClase: 'teal cae' } : {}) : { votar: lado, accion: 'apostar', valor: b.id + ':' + lado, etiqueta: 'Apostar por ' + (g.id === id ? 'ti' : g.nombre) });
   };
+  const tramo = e.guerra.ofensivas > 1 ? ' · ' + (e.guerra.cuadro ? esc(nombreRonda(b.of, e.guerra.ofensivas)) : 'ofensiva ' + b.of) : '';
   return marco(`${campoBatalla()}${tickerRadio()}
-    <header class="col g4"><div class="sobre oro">★ ${esc(nombreDelDia())}${e.guerra.ofensivas > 1 ? ' · ' + (e.guerra.cuadro ? esc(nombreRonda(b.of, e.guerra.ofensivas)) : 'ofensiva ' + b.of) : ''}</div>
+    <header class="col g4"><div class="sobre oro centrado-pc">★ ${esc(nombreDelDia())}${tramo} · carta extra</div>
       <h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     <main class="col combate-main" style="gap:10px">
-      <div class="aviso-tarjeta-estrella"><b>¡Combates tú, contra ${esc(rival.nombre)}!</b> No la votas, pero puedes apostar quién crees que ganará.</div>
+      <div class="aviso-tarjeta-estrella">${mia ? `<b>¡Combates tú, contra ${esc(rival.nombre)}!</b> No la votas, pero puedes apostar quién crees que ganará.`
+        : `<b>Ya la votaste.</b> Ahora, la apuesta: ¿quién crees que ganará cuando vote todo el mundo?`}</div>
       ${b.motivo ? `<p class="peq centro" style="color:#fff;margin:0">${esc(b.motivo)}</p>` : ''}
       <div class="duelo anima entra-der" data-anim="estrella:${b.id}">${carta(G[b.a], opciones('a'))}${carta(G[b.b], opciones('b'))}<div class="vs estrella" aria-hidden="true">VS</div></div>
       ${rec ? '' : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien creas que ganará</p>
@@ -77,7 +73,7 @@ function pantallaEstrella(b) {
 function botonEstrellaSaltada() {
   const b = estrellaPropia();
   if (!b || !saltadas()[S.est.guerra.id + ':' + b.id]) return '';
-  return `<button class="chip-apuesta" style="border-radius:14px" data-a="verEstrella" data-v="${b.id}"><span class="chip-t"><b class="oro">★ ${esc(nombreDelDia())}</b> · Combates tú: aún puedes apostar ›</span></button>`;
+  return `<button class="chip-apuesta" style="border-radius:14px" data-a="verEstrella" data-v="${b.id}"><span class="chip-t"><b class="oro">★ ${esc(nombreDelDia())}</b> · ${b.a === yo().id || b.b === yo().id ? 'Combates tú' : 'Carta extra'}: aún puedes apostar ›</span></button>`;
 }
 accion('saltarEstrella', (bid) => { const m = saltadas(); m[S.est.guerra.id + ':' + bid] = true; preferencia.poner('estrellasSaltadas', m); pintar(); });
 accion('verEstrella', (bid) => { const m = saltadas(); delete m[S.est.guerra.id + ':' + bid]; preferencia.poner('estrellasSaltadas', m); pintar(); });
@@ -226,13 +222,13 @@ function pantallaAbierta() {
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   const i = posicion(), b = v[i], a = G[b.a], c = G[b.b];
-  const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}${b.delDia ? chipApuesta(b) : ''}</div>` : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien elijas</p>${b.delDia ? chipApuesta(b) : ''}
+  const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}</div>` : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien elijas</p>
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional: escríbela antes de tocar la foto)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}`;
   return marco(`${campoBatalla()}${tickerRadio()}
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
-      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs${b.delDia ? ' estrella' : ''}" aria-hidden="true">VS</div></div>${b.delDia ? `<span class="sr-only">${nombreDelDia()}</span>` : ''}
+      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs" aria-hidden="true">VS</div></div>
       ${votada}${barraRetirada()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
@@ -278,18 +274,19 @@ accion('votar', (lado) => {
 });
 accion('apostar', (v) => {
   const [id, lado] = v.split(':'), b = S.est.batallas.find((x) => x.id === Number(id));
-  if (!b || b.voto) return;
+  if (!b || (b.voto && b.apuesta)) return;
   const antes = b.apuesta, elegido = b[lado];
   if (antes === elegido) return;
   b.apuesta = elegido;
-  const propiaYo = b.a === yo().id || b.b === yo().id;
-  if (propiaYo) { S.ui.recienApuesta = { id: b.id, hasta: Date.now() + 1100 }; setTimeout(() => { S.ui.recienApuesta = null; pintar(); }, 1150); }
+  // Cae el sello de «Apostado» sobre la carta elegida y, al poco, sigue la guerra.
+  S.ui.recienApuesta = { id: b.id, hasta: Date.now() + 1100 }; setTimeout(() => { S.ui.recienApuesta = null; pintar(); }, 1150);
   pintar();
   encolar(async () => {
     try {
       await llamar('apostar', { batalla: b.id, elegido }, 2);
-      const G = gente(), propia = b.a === yo().id || b.b === yo().id;
-      if (propia) aviso(`Apuesta hecha: ${elegido === yo().id ? 'por ti' : 'por ' + G[elegido].nombre}.`, true);
+      const G = gente();
+      aviso(`Apuesta hecha: ${elegido === yo().id ? 'por ti' : 'por ' + G[elegido].nombre}.`, true);
+      refrescar();   // con la apuesta hecha, llega su termómetro (si lo hay)
     }
     catch (err) { b.apuesta = antes; aviso(err.codigo === 'red' ? 'Tu apuesta no ha llegado al cuartel general. Vuelve a intentarlo.' : err.message); pintar(); }
   });
@@ -600,7 +597,7 @@ function pantallaBienvenida() {
       <div class="cifras"><div><b>${hoy.length}</b><span class="peq t2">${hoy.length === 1 ? 'batalla hoy' : 'batallas hoy'}</span></div>
         <div><b class="teal">${faltan}</b><span class="peq t2">${faltan === 1 ? 'te falta' : 'te faltan'}</span></div>
         <div><b>${hechas}<small class="t2" style="font-size:20px">/${total}</small></b><span class="peq t2">en toda la guerra</span></div></div>
-      ${estrellaPropia() ? `<p class="peq oro" style="margin:0">★ Hoy combates en la ${nombreDelDia().toLowerCase()}: al final de tus batallas podrás apostar.</p>` : ''}
+      ${e.guerra.extras.apuestas ? `<p class="peq oro" style="margin:0">★ Y al final, una carta extra: la ${nombreDelDia().toLowerCase()}, para apostar quién gana.</p>` : ''}
       <button class="btn ancho" data-a="alCombate">¡Al combate!</button></section></main>`, { lateral: lateral() });
 }
 accion('alCombate', () => {

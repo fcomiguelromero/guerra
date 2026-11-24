@@ -563,3 +563,14 @@ ul, ol { padding: 0; list-style: none; }
 .bienvenida .aviso-estrella { text-align: left; width: 100%; }
 .aviso-tarjeta-estrella { padding: 10px 14px; border: 1px solid var(--oro); border-radius: 14px; background: linear-gradient(135deg, rgba(255,211,106,.16), rgba(22,19,43,.9) 70%); color: var(--txt3); font-size: 15px; text-align: center; }
 .aviso-tarjeta-estrella b { color: var(--oro); }
+
+/* Batalla estrella: cartas con marco dorado y caras enfadadas mirándose */
+.carta.dorada { background: linear-gradient(135deg, #fff3c4, #ffd36a 30%, #c99a2e 55%, #ffe9a8 75%, #b8862a) !important; box-shadow: 0 0 0 1px rgba(255,211,106,.4), 0 0 34px rgba(255,211,106,.35), 0 14px 28px rgba(0,0,0,.5); }
+.carta.dorada .raya { background: var(--oro) !important; }
+.cara-enfadada { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.cara-enfadada .ceja { animation: ceja 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes ceja { 50% { transform: translateY(-6%) rotate(-3deg); } }
+.cara-enfadada .pupila { animation: pupila 2.4s ease-in-out infinite; transform-box: fill-box; }
+@keyframes pupila { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(12%); } }
+@media (prefers-reduced-motion: reduce) { .cara-enfadada * { animation: none !important; } }
+.cabecera-estrella { display: flex; align-items: center; justify-content: center; gap: 8px; }
