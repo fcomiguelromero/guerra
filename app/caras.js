@@ -64,7 +64,7 @@ export function capaEnfadada(c, mira) {
   };
   // Boca: mueca de rabia, con los dientes apretados.
   const bw = Math.max(c.anchoBoca * 1.3, d * 0.85) / 2, bh = bw * 0.55;
-  const boca = `<g><path d="M${xb - bw} ${yb + bh * 0.35} Q${xb} ${yb - bh * 0.9} ${xb + bw} ${yb + bh * 0.35} Q${xb} ${yb + bh * 0.2} ${xb - bw} ${yb + bh * 0.35} Z" fill="#5a0f1e" stroke="#1a0f12" stroke-width="${r * 0.16}" stroke-linejoin="round"/>
+  const boca = `<g class="boca"><path d="M${xb - bw} ${yb + bh * 0.35} Q${xb} ${yb - bh * 0.9} ${xb + bw} ${yb + bh * 0.35} Q${xb} ${yb + bh * 0.2} ${xb - bw} ${yb + bh * 0.35} Z" fill="#5a0f1e" stroke="#1a0f12" stroke-width="${r * 0.16}" stroke-linejoin="round"/>
     <path d="M${xb - bw * 0.72} ${yb + bh * 0.05} Q${xb} ${yb - bh * 0.6} ${xb + bw * 0.72} ${yb + bh * 0.05}" fill="none" stroke="#fff" stroke-width="${bh * 0.32}" stroke-linecap="round"/>
     ${[-0.36, 0, 0.36].map((k) => `<path d="M${xb + bw * k} ${yb - bh * 0.42 + Math.abs(k) * bh * 0.5} v${bh * 0.32}" stroke="#1a0f12" stroke-width="${r * 0.08}"/>`).join('')}</g>`;
   return `<svg class="cara-enfadada" viewBox="0 0 ${c.w} ${c.h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
