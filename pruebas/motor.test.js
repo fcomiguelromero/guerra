@@ -591,6 +591,12 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
   w.do('porra', { token: g.tok['Rafa'], orden: orden.slice().reverse() });
   w.falla('porra', () => w.do('porra', { token: g.tok['Lola'], orden }));
   w.falla('porra', () => w.do('porra', { token: g.tok['Elena'], orden: orden.slice(1) }));
+  // El alto mando ve quién falta por hacer la porra, y si ya puede (ha votado todo) o aún está votando.
+  const pend = w.do('estado', { token: g.tok['Fran'], mando: 'clave-mando' }).mando.porraPendiente;
+  const pn = pend.map((x) => g.nombre[x.id]);
+  assert.ok(!pn.includes('María') && !pn.includes('Rafa') && pn.includes('Elena'), 'faltan los que no la han hecho');
+  assert.strictEqual(pend.find((x) => g.nombre[x.id] === 'Lola').puede, false, 'Lola aún vota');
+  assert.ok(!JSON.stringify(w.do('estado', { token: g.tok['Rafa'] })).includes('porraPendiente'), 'los combatientes no lo ven');
   // Radio Macuto: la pulla espera en censura y sólo el alto mando ve de quién es.
   w.do('pulla', { token: g.tok['Rafa'], texto: 'Que alguien despierte a Paco.' });
   assert.strictEqual(w.do('estado', { token: g.tok['Rafa'] }).radio.enCensura, 1);

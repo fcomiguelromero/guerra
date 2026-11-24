@@ -580,3 +580,6 @@ ul, ol { padding: 0; list-style: none; }
 .carta.izq .cara-enfadada .boca { animation-delay: .55s; }
 @media (prefers-reduced-motion: reduce) { .cara-enfadada * { animation: none !important; } }
 .cabecera-estrella { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.fila-porra { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 12px; }
+.fila-porra li { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 60px; text-align: center; }
+.fila-porra li .peq { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

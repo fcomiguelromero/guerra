@@ -613,7 +613,10 @@ registrar('/cuartel', () => {
   return marco(`${volver('/guerras', 'Tus guerras')}${cab(tituloGuerra(e.guerra), 'Cuartel general')}
     <section class="caja ${abierta ? '' : 'teal'}"><div class="fila entre"><h2 class="h2">${abierta ? 'Conflicto en curso' : NOMBRE_FASE[fase]}</h2><span class="peq t2">Abierta el ${fecha(e.guerra.declarada)}</span></div>
       <span class="sobre">La línea del frente</span>${frente(pr.emitidos, pr.total, 'votos emitidos')}
-      ${e.porra ? `<div class="fila entre med"><span>Porras recibidas</span><strong>${e.porra.recibidas} de ${e.porra.de}</strong></div><div class="medidor"><i style="width:${pct(e.porra.recibidas, e.porra.de)}%"></i></div>` : ''}</section>
+      ${e.porra ? `<div class="fila entre med"><span>Porras recibidas</span><strong>${e.porra.recibidas} de ${e.porra.de}</strong></div><div class="medidor"><i style="width:${pct(e.porra.recibidas, e.porra.de)}%"></i></div>
+        ${(m.porraPendiente || []).length ? `<div class="col g4"><span class="peq t2">Faltan por hacer la porra:</span>
+          <ul class="fila-porra">${m.porraPendiente.map((x) => `<li title="${x.puede ? 'Ya puede hacerla' : 'Aún le quedan batallas por votar'}">${avatar(G[x.id])}<span class="peq">${esc(G[x.id].nombre)}</span>${x.puede ? '' : '<span class="peq t2">votando</span>'}</li>`).join('')}</ul>
+          <p class="peq t2">«Votando»: aún le quedan batallas; la porra se abre al votarlas todas.</p></div>` : '<p class="peq teal">Ya ha hecho la porra todo el mundo.</p>'}` : ''}</section>
     ${abierta && e.parte ? `<section class="caja oro"><h2 class="h2 oro">Parte de mitad de contienda</h2><p class="med t3">Listo desde que se libraron ${Math.ceil(pr.total / 2)} de las ${pr.total} batallas. Enseña quién va en vanguardia y quién en retaguardia, sin desvelar resultados.</p>
       ${botonCartel('parte', ico('wasap') + 'Compartir el parte', 'btn oro medio')}</section>` : ''}
     ${m.pullas.length || m.emitidas ? `<section class="caja rosa"><div class="fila entre"><h2 class="h2">Censura de Radio Macuto</h2><span class="peq rosa" style="font-weight:600">${m.pullas.length} esperando · ${m.emitidas} emitidas</span></div>
