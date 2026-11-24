@@ -1115,7 +1115,8 @@ function crearMotor(env) {
       voluntarios: (doc.llamamiento && doc.llamamiento.voluntarios) || [],
       fuera: doc.fuera || [],
       // Quién falta por hacer la porra (sólo lo ve el alto mando). «puede»: ya ha votado todo y la tiene abierta.
-      porraPendiente: doc.extras.porra ? votantes(doc).filter(function (v) { return v.estado === 'activo' && !(doc.porras || {})[v.id]; })
+      // Tras el alto el fuego, quien ya usó su espía no puede hacerla: no se cuenta.
+      porraPendiente: doc.extras.porra ? votantes(doc).filter(function (v) { return v.estado === 'activo' && !(doc.porras || {})[v.id] && !(doc.fase !== 'abierta' && (doc.espias || {})[v.id]); })
         .map(function (v) { return { id: v.id, puede: faltan(doc, v) === 0 }; }) : []
     };
   }

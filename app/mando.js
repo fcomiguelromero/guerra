@@ -1,11 +1,11 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js';
-import { botonCartel, imagenTropa } from './carteles.js';
-import { recortarFoto } from './recorte.js';
-import { icono, ILU } from './dibujos.js';
-import { frente, filaRezagados } from './graficos.js';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=36';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta } from './combate.js?v=36';
+import { botonCartel, imagenTropa } from './carteles.js?v=36';
+import { recortarFoto } from './recorte.js?v=36';
+import { icono, ILU } from './dibujos.js?v=36';
+import { frente, filaRezagados } from './graficos.js?v=36';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -616,7 +616,8 @@ registrar('/cuartel', () => {
       ${e.porra ? `<div class="fila entre med"><span>Porras recibidas</span><strong>${e.porra.recibidas} de ${e.porra.de}</strong></div><div class="medidor"><i style="width:${pct(e.porra.recibidas, e.porra.de)}%"></i></div>
         ${(m.porraPendiente || []).length ? `<div class="col g4"><span class="peq t2">Faltan por hacer la porra:</span>
           <ul class="fila-porra">${m.porraPendiente.map((x) => `<li title="${x.puede ? 'Ya puede hacerla' : 'Aún le quedan batallas por votar'}">${avatar(G[x.id])}<span class="peq">${esc(G[x.id].nombre)}</span>${x.puede ? '' : '<span class="peq t2">votando</span>'}</li>`).join('')}</ul>
-          <p class="peq t2">«Votando»: aún le quedan batallas; la porra se abre al votarlas todas.</p></div>` : '<p class="peq teal">Ya ha hecho la porra todo el mundo.</p>'}` : ''}</section>
+          ${m.porraPendiente.some((x) => !x.puede) ? '<p class="peq t2">«Votando»: aún le quedan batallas; la porra se abre al votarlas todas.</p>' : ''}</div>`
+          : m.porraPendiente ? '<p class="peq teal">Ya ha hecho la porra todo el mundo.</p>' : ''}` : ''}</section>
     ${abierta && e.parte ? `<section class="caja oro"><h2 class="h2 oro">Parte de mitad de contienda</h2><p class="med t3">Listo desde que se libraron ${Math.ceil(pr.total / 2)} de las ${pr.total} batallas. Enseña quién va en vanguardia y quién en retaguardia, sin desvelar resultados.</p>
       ${botonCartel('parte', ico('wasap') + 'Compartir el parte', 'btn oro medio')}</section>` : ''}
     ${m.pullas.length || m.emitidas ? `<section class="caja rosa"><div class="fila entre"><h2 class="h2">Censura de Radio Macuto</h2><span class="peq rosa" style="font-weight:600">${m.pullas.length} esperando · ${m.emitidas} emitidas</span></div>
