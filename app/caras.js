@@ -58,8 +58,8 @@ export function capaEnfadada(c, mira) {
     const pupila = r * 0.5 * mira;
     // Ceja: alta por fuera y baja hacia el entrecejo (lado -1 el ojo izquierdo de la foto, +1 el derecho).
     const x1 = x + r * 1.25 * lado, x2 = x - r * 1.05 * lado;
-    return `<g><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * 0.78}" fill="#fff" stroke="#1a0f12" stroke-width="${r * 0.16}"/>
-      <circle class="pupila" cx="${x + pupila}" cy="${y + r * 0.08}" r="${r * 0.4}" fill="#1a0f12"/><circle cx="${x + pupila + r * 0.14}" cy="${y - r * 0.1}" r="${r * 0.11}" fill="#fff"/>
+    return `<g><g class="ojo"><ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * 0.78}" fill="#fff" stroke="#1a0f12" stroke-width="${r * 0.16}"/>
+      <g class="pupila" style="--mira:${mira}"><circle cx="${x + pupila}" cy="${y + r * 0.08}" r="${r * 0.4}" fill="#1a0f12"/><circle cx="${x + pupila + r * 0.14}" cy="${y - r * 0.1}" r="${r * 0.11}" fill="#fff"/></g></g>
       <path class="ceja" d="M${x1} ${y - r * 1.45} L${x2} ${y - r * 0.72}" stroke="#1a0f12" stroke-width="${r * 0.42}" stroke-linecap="round"/></g>`;
   };
   // Boca: mueca de rabia, con los dientes apretados.
