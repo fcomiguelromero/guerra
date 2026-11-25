@@ -1,7 +1,8 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
-import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=42';
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=43';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=42';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=43';
+import { portada } from './expediente.js?v=43';
 
 const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón', adivino: 'Medalla al adivino' };
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
@@ -301,10 +302,16 @@ registrar('/cronicas', () => {
   const pest = S.ui.pestanaCronicas || 'guerras';
   const tabs = [['guerras', 'Guerras'], ['escalafon', 'Escalafón'], ['medallero', 'Medallero'], ['numeros', 'Números']];
   const cuerpo = pest === 'escalafon' ? pestanaEscalafon() : pest === 'medallero' ? pestanaMedallero() : pest === 'numeros' ? pestanaNumeros() : pestanaGuerras();
+  const yoNom = c.persona && S.est && S.est.yo ? (S.est.gente.find((g) => g.id === S.est.yo.id) || {}).nombre : '';
+  const series = c.series || [], fechas = c.guerras.map((x) => x.fecha).filter(Boolean);
+  const hoja = portada({ pestana: 'Archivo · Leg. ' + String(c.guerras.length).padStart(3, '0'), membrete: ['ESTADO MAYOR DE LA NORMALIDAD', 'SERVICIO HISTÓRICO Y ARCHIVO DE CAMPAÑAS'],
+    titulo: 'Crónicas', lineas: ['ASUNTO: palmarés, escalafón y hojas de servicio de todas las guerras.'],
+    ficha: [['Guerras archivadas', c.guerras.length], ['Escalafones', series.length], fechas.length ? ['Primera guerra', fecha(Math.min(...fechas))] : null, yoNom ? ['Consulta', yoNom] : null].filter(Boolean),
+    pie: c.persona ? 'SÓLO SE MUESTRAN LAS GUERRAS EN LAS QUE HA COMBATIDO EL CONSULTANTE.' : '', sello: 'Archivado', redondo: 'SERVICIO HISTÓRICO · ARCHIVO · ' });
   return marco(`<header class="col g4"><div class="sobre">Palmarés</div><h1 class="h1">Crónicas</h1></header>
-    <div class="opciones" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${pest === k}" aria-pressed="${pest === k}" data-a="pestanaCronicas" data-v="${k}">${t}</button>`).join('')}</div>
-    ${cuerpo}
-    ${pest === 'guerras' && c.persona ? '<p class="peq t2 centro">Sólo ves las guerras en las que has combatido.</p>' : ''}`, { fondo: 'a' });
+    <div class="expediente">${hoja}
+    <div class="opciones pestanas-archivo" role="tablist">${tabs.map(([k, t]) => `<button role="tab" aria-selected="${pest === k}" aria-pressed="${pest === k}" data-a="pestanaCronicas" data-v="${k}">${t}</button>`).join('')}</div>
+    <div class="col g12 dossier parte-final cronicas-papel">${cuerpo}</div></div>`, { fondo: 'a' });
 });
 accion('miMedallero', () => { S.ui.pestanaCronicas = 'medallero'; ir('/cronicas'); });
 accion('pestanaCronicas', (k) => { S.ui.pestanaCronicas = k; pintar(); window.scrollTo(0, 0); });

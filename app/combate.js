@@ -1,15 +1,16 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=42';
-import { botonesCalendario } from './calendario.js?v=42';
-import { botonAlbum } from './album.js?v=42';
-import { icono, ILU, piezas } from './dibujos.js?v=42';
-import { escena } from './monigotes.js?v=42';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=42';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=42';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=42';
-import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=42';
+import { botonCartel } from './carteles.js?v=43';
+import { botonesCalendario } from './calendario.js?v=43';
+import { botonAlbum } from './album.js?v=43';
+import { icono, ILU, piezas } from './dibujos.js?v=43';
+import { escena } from './monigotes.js?v=43';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=43';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=43';
+import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=43';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=43';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=43';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=42';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=43';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -568,15 +569,6 @@ function listaCuriosidades(r, G) {
   ].filter(Boolean);
 }
 // Parte de guerra final: un expediente de verdad, con carpeta, hojas mecanografiadas, sellos, clip y firma.
-const fechaParte = (ts) => (ts ? new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '—');
-const garabato = '<svg class="garabato" viewBox="0 0 160 46" aria-hidden="true"><path d="M6 32 C 18 6, 30 6, 26 30 S 40 40, 48 18 S 60 6, 62 26 S 74 40, 84 22 Q 92 10 98 24 T 118 22 Q 130 16 152 12" fill="none" stroke="#1d2a6b" stroke-width="2.2" stroke-linecap="round"/><path d="M40 40 Q 90 30 146 36" fill="none" stroke="#1d2a6b" stroke-width="1.4" stroke-linecap="round"/></svg>';
-const clip = '<svg class="clip-papel" viewBox="0 0 28 70" aria-hidden="true"><path d="M9 62 V14 a5 5 0 0 1 10 0 V56 a8 8 0 0 1 -16 0 V20" fill="none" stroke="#b9c0c8" stroke-width="3" stroke-linecap="round"/></svg>';
-function selloRedondo(texto) {
-  return `<svg class="sello-redondo" viewBox="0 0 120 120" aria-hidden="true"><defs><path id="circ-sello" d="M60 60 m-44 0 a44 44 0 1 1 88 0 a44 44 0 1 1 -88 0"/></defs>
-    <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="60" cy="60" r="34" fill="none" stroke="currentColor" stroke-width="1.6"/>
-    <text font-family="Courier New, monospace" font-weight="700" font-size="11.5" letter-spacing="2.2" fill="currentColor"><textPath href="#circ-sello">${esc(texto)}</textPath></text>
-    <path fill="currentColor" d="M60 44l4.2 9.4 10.2 1-7.7 6.8 2.3 10-9-5.3-9 5.3 2.3-10-7.7-6.8 10.2-1z"/></svg>`;
-}
 // Foto del vencedor como copia en papel sujeta al expediente: borde blanco, pie a máquina, celo y clip.
 function fotoInforme(g, pie) {
   const foto = g.foto && S.fotos[g.foto];
@@ -697,14 +689,13 @@ registrar('/porra', () => {
   const r = e.resultado;
   if (r && !(e.duelo && !e.duelo.cerrado)) {
     const gana = r.porra.gana.map((id) => nombreDe(G[id])), mia = r.porra.lista.find((x) => x.id === yo().id);
-    final = r.porra.lista.length ? `<section class="caja oro centro" style="align-items:center;padding:18px 14px">
+    final = r.porra.lista.length ? `<section class="caja oro centro" data-sello="GANADOR" style="align-items:center;padding:18px 14px">
         <div class="fila" style="justify-content:center;flex-wrap:wrap;gap:18px">${r.porra.gana.map((id) => `<span class="col g4" style="align-items:center">${avatar(G[id], 'gigante oro')}
           <strong class="bc" style="font-size:30px;line-height:1;color:#fff">${esc(nombreDe(G[id]))}</strong><span class="sobre oro">Ganador de la porra</span></span>`).join('')}</div>
         <span class="med t3">A ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ' · Botín: ' + esc(e.guerra.botin) : ''}</span>
         ${mia ? `<span class="med">Tú quedaste ${ordinal(mia.pos)}, a ${plural(mia.suma, 'puesto', 'puestos')}.</span>` : ''}</section>
-      <section class="caja"><h2 class="h2">Clasificación de la porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>
-        <ol class="lista-puestos">${r.porra.lista.map((x) => `<li class="${x.id === yo().id ? 'teal' : ''}"><b>${x.pos}</b>${avatar(G[x.id])}<span>${esc(nombreDe(G[x.id]))}</span><em>${x.suma}</em></li>`).join('')}</ol></section>
-      ${p.mia ? '<h2 class="h2">Tu porra</h2>' : ''}` : '<div class="caja"><p>Nadie hizo la porra en esta guerra.</p></div>';
+      <section class="caja" data-sello="ESCRUTADO"><h2 class="h2">Clasificación de la porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>
+        <ol class="lista-puestos">${r.porra.lista.map((x) => `<li class="${x.id === yo().id ? 'teal' : ''}"><b>${x.pos}</b>${avatar(G[x.id])}<span>${esc(nombreDe(G[x.id]))}</span><em>${x.suma}</em></li>`).join('')}</ol></section>` : '<div class="caja"><p>Nadie hizo la porra en esta guerra.</p></div>';
   }
   if (p.abierta) {
     const orden = ordenPorra();
@@ -730,13 +721,15 @@ registrar('/porra', () => {
       const id = mia[k], d = id ? Math.abs((real[id] || 0) - (k + 1)) : null;
       return `<tr><td class="bc t2">${k + 1}</td>
         <td>${id ? `<span class="fila" style="gap:8px">${avatar(G[id])}<span>${esc(nombreDe(G[id]))}</span></span>` : '—'}</td>
-        <td class="porra-dif ${d === 0 ? 'clavado' : d >= 3 ? 'lejos' : ''}">${d === null ? '' : d === 0 ? ico('visto', 16) : '±' + d}</td>
-        <td><span class="fila" style="gap:8px">${avatar(G[f.id])}<span>${esc(nombreDe(G[f.id]))}</span></span></td></tr>`;
+        <td class="porra-quedo">${id ? ordinal(real[id]) : ''}</td>
+        <td class="porra-dif ${d === 0 ? 'clavado' : d >= 3 ? 'lejos' : ''}">${d === null ? '' : d === 0 ? ico('visto', 16) : d}</td>
+        <td class="porra-real"><span class="fila" style="gap:8px">${avatar(G[f.id])}<span>${esc(nombreDe(G[f.id]))}</span></span></td></tr>`;
     }).join('');
     const aciertos = mia.filter((id, k) => real[id] === k + 1).length;
     cuerpo = `<p class="t3">Tu porra, al lado del parte final. ${yoEn ? `Te quedaste a <strong>${plural(yoEn.suma, 'puesto', 'puestos')}</strong> y ${aciertos === 1 ? 'clavaste <strong>1 puesto</strong>' : aciertos ? `clavaste <strong>${aciertos} puestos</strong>` : 'no clavaste ningún puesto'}.` : ''}</p>
       ${p.mia.pareja && p.pareja && G[p.pareja] ? `<p class="med rosa">${ico('diana2', 16)} Porra cruzada: dijiste que ${esc(nombreDe(G[p.pareja]))} quedaría ${ordinal(p.mia.pareja)}; quedó ${ordinal(real[p.pareja])}.</p>` : ''}
-      <div class="caja" style="padding:8px 10px"><table class="tabla porra-vs"><thead><tr><th>#</th><th>Tu porra</th><th title="Puestos de diferencia">Dif.</th><th>Parte final</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+      <table class="tabla porra-vs"><thead><tr><th>#</th><th>Tu porra</th><th title="Puesto real de quien pusiste">Quedó</th><th title="Puestos de diferencia">Dif.</th><th class="porra-real">Parte final</th></tr></thead><tbody>${filas}</tbody></table>
+      <p class="peq t2">«Quedó» es el puesto real de quien pusiste en cada línea, y «Dif.», los puestos que fallaste con él. La suma de esa columna es tu resultado.</p>`;
   } else if (p.mia) {
     cuerpo = `<p class="t3">Tu porra está entregada y sellada. ${e.guerra.fase === 'publicada' ? '' : 'Se puntuará con el parte final.'}</p>
       ${p.mia.pareja && p.pareja && G[p.pareja] ? `<p class="med rosa">${ico('diana2', 16)} Porra cruzada: ${esc(nombreDe(G[p.pareja]))}, ${ordinal(p.mia.pareja)} puesto.</p>` : ''}
@@ -747,7 +740,13 @@ registrar('/porra', () => {
   } else {
     cuerpo = `<div class="caja"><p>La porra está cerrada y no llegaste a entregar la tuya.</p></div>`;
   }
-  return marco(`${cabecera('La porra')}${final}${cuerpo}<p class="peq t2 centro">Porras recibidas: ${p.recibidas} de ${p.de}</p>`, { fondo: 'a' });
+  const estado = r && !(e.duelo && !e.duelo.cerrado) ? 'Escrutada' : p.abierta ? 'Abierta' : p.mia ? 'Sellada' : 'Cerrada';
+  const hoja = portada({ pestana: 'Porra n.º ' + String(e.guerra.id || '').slice(-4).toUpperCase(), membrete: ['ESTADO MAYOR DE LA NORMALIDAD', 'NEGOCIADO DE APUESTAS Y PRONÓSTICOS'],
+    titulo: 'La porra', lineas: [esc(tituloGuerra(e.guerra)), 'ASUNTO: adivinar el parte final, del primero al último.'],
+    ficha: [['Apostante', yo().nombre], ['Estado', estado], ['Porras recibidas', p.recibidas + ' de ' + p.de], e.guerra.botin ? ['Botín', e.guerra.botin] : null].filter(Boolean),
+    pie: 'GANA LA SUMA MÁS BAJA DE PUESTOS DE DIFERENCIA. SÓLO UN INTENTO POR CABEZA.', sello: estado, redondo: 'CASA DE APUESTAS · ALTO MANDO · ' });
+  return marco(`${cabecera('La porra')}<div class="expediente">${hoja}<div class="col g12 dossier parte-final">${final}
+    <section class="caja" data-sello="${p.mia ? 'TU COPIA' : ''}">${p.mia || p.abierta ? '<h2 class="h2">Tu porra</h2>' : ''}${cuerpo}</section></div></div>`, { fondo: 'a' });
 });
 accion('porraPareja', (v, el) => { S.ui.porraPareja = el.value ? Number(el.value) : null; });
 accion('porraMover', (v) => {

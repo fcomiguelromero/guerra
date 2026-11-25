@@ -1,6 +1,6 @@
 // Arranque: lee el enlace con el que se entra, decide la pantalla y pone en marcha el latido.
-import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPestanas, esc, alPintar } from './base.js?v=42';
-import { animarContadores } from './graficos.js?v=42';
+import { S, recordar, refrescar, latido, pintar, ir, marco, registrar, definirPestanas, esc, alPintar } from './base.js?v=43';
+import { animarContadores } from './graficos.js?v=43';
 alPintar(animarContadores);
 import './combate.js';
 import './mando.js';

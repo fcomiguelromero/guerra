@@ -697,3 +697,27 @@ ul, ol { padding: 0; list-style: none; }
 .porra-dif { width: 40px; text-align: center; font-family: var(--bc); font-weight: 800; font-size: 16px; color: var(--oro); }
 .porra-dif.clavado { color: var(--teal); } .porra-dif.lejos { color: var(--rosa); }
 .porra-vs .avatar { width: 26px; height: 26px; font-size: 13px; flex: none; }
+.parte-final .caja[data-sello=""]::after { display: none; }
+/* Pestañas de archivo (crónicas) */
+.pestanas-archivo { gap: 4px; padding: 0 6px; margin-bottom: -16px; position: relative; z-index: 1; border: 0; background: transparent; }
+.pestanas-archivo button { border-radius: 8px 8px 0 0 !important; background: #dccfa9 !important; color: #3b2f1c !important; font-family: 'Courier New', monospace !important; font-weight: 700; letter-spacing: .04em; border: 0 !important; box-shadow: inset 0 -3px 0 rgba(0,0,0,.08); }
+.pestanas-archivo button[aria-pressed="true"] { background: #f4eedd !important; box-shadow: none; transform: translateY(1px); }
+.cronicas-papel { padding-top: 6px; }
+.cronicas-papel .retrato-yo { padding: 16px; border-radius: 3px; background: #f4eedd; box-shadow: 0 2px 0 #d8cfb8, 0 8px 18px rgba(0,0,0,.45); }
+.cronicas-papel .retrato-nombre, .cronicas-papel .yo-grado { color: #2a2418 !important; }
+.cronicas-papel .linea-tiempo .ficha-archivo, .cronicas-papel .linea-tiempo li.abierta > section { background: #f4eedd; color: #2a2418; border-radius: 3px; padding: 14px; box-shadow: 0 2px 0 #d8cfb8, 0 8px 18px rgba(0,0,0,.45); font-family: 'Courier New', monospace; }
+.cronicas-papel .fecha-hito { color: #3b2f1c !important; font-family: 'Courier New', monospace; font-weight: 700; }
+.cronicas-papel .opciones:not(.pestanas-archivo) button { background: #e6dcc3; color: #2a2418; border-color: #b9ad8f; }
+.cronicas-papel label.campo > span { color: #3b2f1c !important; font-family: 'Courier New', monospace; }
+.cronicas-papel select, .dossier select { background: #fbf8f0; color: #2a2418; border-color: #b9ad8f; font-family: 'Courier New', monospace; }
+.cronicas-papel .leyenda-fija dt, .cronicas-papel .leyenda-fija dd { color: #2a2418 !important; }
+.dossier .btn.linea { color: #2a2418; border-color: #8a7a58; background: rgba(255,255,255,.35); }
+.porra-vs .porra-quedo { width: 46px; text-align: center; font-family: 'Courier New', monospace; font-weight: 700; font-size: 13px; }
+.porra-vs th.porra-real, .porra-vs td.porra-real { border-left: 2px dashed #b9ad8f; padding-left: 10px; }
+.dossier .porra-dif { color: #8a6512 !important; } .dossier .porra-dif.clavado, .dossier .porra-dif.clavado * { color: #0f7a63 !important; } .dossier .porra-dif.lejos { color: #b0287f !important; }
+.dossier .lista-puestos li { border-color: #d8cfb8 !important; background: transparent !important; }
+.dossier .chapa { background: #e6dcc3; color: #0f7a63 !important; border-color: #0f7a63; }
+.dossier .retrato-foto b { color: #fff !important; }
+.dossier .vitrina, .dossier .vitrina * { color: #f2f0ff !important; } .dossier .vitrina .t2 { color: #b3aecf !important; }
+.parte-hoja .sello-oficial.sello-arriba { top: 46px; }
+@media (min-width: 900px) { .parte-hoja .sello-oficial.sello-arriba { top: 60px; right: 180px; } }
