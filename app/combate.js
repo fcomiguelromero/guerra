@@ -1,15 +1,15 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=39';
-import { botonesCalendario } from './calendario.js?v=39';
-import { botonAlbum } from './album.js?v=39';
-import { icono, ILU, piezas } from './dibujos.js?v=39';
-import { escena } from './monigotes.js?v=39';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=39';
-import { enfadar } from './caras.js?v=39';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=39';
-import { nombreRonda, preferencia } from './base.js?v=39';
+import { botonCartel } from './carteles.js?v=40';
+import { botonesCalendario } from './calendario.js?v=40';
+import { botonAlbum } from './album.js?v=40';
+import { icono, ILU, piezas } from './dibujos.js?v=40';
+import { escena } from './monigotes.js?v=40';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=40';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=40';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=40';
+import { nombreRonda, preferencia } from './base.js?v=40';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=39';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=40';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -222,6 +222,9 @@ function pantallaAbierta() {
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   const i = posicion(), b = v[i], a = G[b.a], c = G[b.b];
+  // Duelo doméstico: marco rosa, ojos de corazón, morritos y corazones flotando.
+  const amor = (g, mira) => (b.casa ? { capa: enamorar(g.foto, g.foto && S.fotos[g.foto], mira, () => { if (S.ruta === '/batallas') pintar(); }), encima: corazonesFlotando() } : {});
+  const conAmor = (g, mira, o) => (b.casa ? Object.assign(o, amor(g, mira), { clase: 'amor ' + (o.clase || '') }) : o);
   const votada = b.voto ? `<div class="estado-voto col g4" style="align-items:center;padding:0 12px"><span class="fila">${ico('visto', 16, 'style="color:#5ef0d0"')}Tomaste partido por ${esc(G[b.voto].nombre)}. No hay vuelta atrás.</span>${lineaTermo(b)}</div>` : `<p class="pista-voto">${ico('arriba', 16)}Toca la foto de quien elijas</p>
       ${e.guerra.extras.proclamas ? `<label class="campo"><span>Tu proclama (opcional: escríbela antes de tocar la foto)</span><input id="proclama" type="text" maxlength="200" data-m="proclama" value="${esc(S.ui.proclama || '')}" placeholder="Se leerá en el desfile, sin tu nombre" autocomplete="off"></label>` : ''}`;
   return marco(`${campoBatalla()}${tickerRadio()}
@@ -229,7 +232,7 @@ function pantallaAbierta() {
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
       ${b.casa ? `<span class="casa-marca">${ico('roto', 16)}Duelo doméstico: pareja contra pareja</span>` : ''}
-      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs${b.casa ? ' casa' : ''}" aria-hidden="true">${b.casa ? '♥' : 'VS'}</div></div>
+      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, conAmor(a, 1, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {})))}${carta(c, conAmor(c, -1, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {})))}<div class="vs${b.casa ? ' casa' : ''}" aria-hidden="true">${b.casa ? '♥' : 'VS'}</div></div>
       ${votada}${barraRetirada()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });

@@ -1,6 +1,6 @@
 // Cimientos de las pantallas: conexión con el motor, memoria local, piezas comunes y pintado.
-import { ICONOS as FAMILIA } from './dibujos.js?v=39';
-import { API } from './config.js?v=39';
+import { ICONOS as FAMILIA } from './dibujos.js?v=40';
+import { API } from './config.js?v=40';
 
 const mem = {
   leer(k, d) { try { const v = localStorage.getItem('gn.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -197,7 +197,7 @@ export function carta(g, o = {}) {
   // o.accion / o.valor / o.etiqueta: la misma carta-botón para otra cosa (p. ej., apostar en la batalla estrella).
   const voto = o.votar ? ` role="button" tabindex="0" data-a="${o.accion || 'votar'}" data-v="${esc(o.valor || o.votar)}" aria-label="${esc(o.etiqueta || 'Votar por ' + g.nombre)}"` : '';
   return `<div class="carta ${o.votar ? 'votable ' : ''}${o.clase || ''}"${voto}><div>
-    <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">${o.capa || ''}` : o.figura || silueta(g.id, 'height:82%')}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
+    <div class="foto" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">${o.capa || ''}` : o.figura || silueta(g.id, 'height:82%')}${o.encima || ''}${grado}${o.sello ? `<span class="sello ${o.selloClase || ''}">${esc(o.sello)}</span>` : ''}</div>
     <div class="nombre">${esc(g.nombre)}</div><div class="raya" aria-hidden="true"></div>
     <p class="frase">${esc(g.frase || '')}</p>${o.pie || ''}
   </div></div>`;

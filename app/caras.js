@@ -78,3 +78,33 @@ export function enfadar(fotoId, datos, mira, repintar) {
   if (c === undefined) { buscarCara(fotoId, datos, repintar); return ''; }
   return capaEnfadada(c, mira);
 }
+
+// Cara enamorada para el duelo doméstico (batalla entre parejas): ojos de corazón y morritos de beso
+// hacia la pareja. Usa la misma cara encontrada que la batalla estrella.
+const corazon = (x, y, t) => `M${x} ${y + t * 0.35}c${-t * 0.5} ${-t * 0.62} ${-t * 1.45} ${-t * 0.27} ${-t * 1.2} ${t * 0.47}c${t * 0.18} ${t * 0.52} ${t * 1.2} ${t * 1.18} ${t * 1.2} ${t * 1.18}s${t * 1.02} ${-t * 0.66} ${t * 1.2} ${-t * 1.18}c${t * 0.25} ${-t * 0.74} ${-t * 0.7} ${-t * 1.09} ${-t * 1.2} ${-t * 0.47}z`;
+export function capaEnamorada(c, mira) {
+  if (!c) return '';
+  const [xi, yi] = c.ojoI, [xd, yd] = c.ojoD, [xb, yb] = c.boca;
+  const d = Math.hypot(xd - xi, yd - yi), giro = Math.atan2(yd - yi, xd - xi) * 180 / Math.PI;
+  const r = d * 0.3, cx = (xi + xd) / 2, cy = (yi + yd) / 2;
+  const ojo = (x, y) => `<g class="ojo-amor"><path d="${corazon(x, y - r * 0.45, r * 0.95)}" fill="#ff2e9a" stroke="#7a0f4a" stroke-width="${r * 0.12}" stroke-linejoin="round"/>
+    <ellipse cx="${x - r * 0.42}" cy="${y - r * 0.2}" rx="${r * 0.2}" ry="${r * 0.13}" fill="#fff" opacity=".85" transform="rotate(-35 ${x - r * 0.42} ${y - r * 0.2})"/></g>`;
+  // Morritos: fruncidos y un poco girados hacia la pareja.
+  const bw = Math.max(c.anchoBoca * 0.8, d * 0.5) / 2, bh = bw * 0.9, x = xb + mira * bw * 0.35;
+  const boca = `<g class="morro-foto"><path d="M${x - bw} ${yb} Q${x - bw * 0.5} ${yb - bh * 0.9} ${x} ${yb - bh * 0.25} Q${x + bw * 0.5} ${yb - bh * 0.9} ${x + bw} ${yb} Q${x} ${yb + bh * 1.2} ${x - bw} ${yb} Z" fill="#ff2e9a" stroke="#7a0f4a" stroke-width="${r * 0.13}" stroke-linejoin="round"/>
+    <path d="M${x - bw * 0.8} ${yb} Q${x} ${yb + bh * 0.35} ${x + bw * 0.8} ${yb}" fill="none" stroke="#7a0f4a" stroke-width="${r * 0.11}" stroke-linecap="round"/>
+    <ellipse cx="${x - bw * 0.35}" cy="${yb + bh * 0.42}" rx="${bw * 0.22}" ry="${bh * 0.12}" fill="#fff" opacity=".6"/></g>`;
+  return `<svg class="cara-amor" viewBox="0 0 ${c.w} ${c.h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g transform="rotate(${giro.toFixed(1)} ${cx} ${cy})">${ojo(xi, yi)}${ojo(xd, yd)}</g>${boca}</svg>`;
+}
+export function enamorar(fotoId, datos, mira, repintar) {
+  if (!fotoId || !datos) return '';
+  const c = caraDe(fotoId);
+  if (c === undefined) { buscarCara(fotoId, datos, repintar); return ''; }
+  return capaEnamorada(c, mira);
+}
+// Corazones que suben flotando por la carta (con foto o sin ella).
+export function corazonesFlotando() {
+  return `<span class="corazones-carta" aria-hidden="true">${[[12, 0, 1], [70, 0.9, 0.8], [38, 1.7, 1.15], [84, 2.5, 0.7], [24, 3.2, 0.9], [56, 3.9, 1]].map(([x, t, e]) =>
+    `<svg viewBox="0 0 24 24" style="left:${x}%;animation-delay:${t}s;--e:${e}"><path d="M12 20s-7-4.4-8.6-9A4.6 4.6 0 0 1 12 6.6 4.6 4.6 0 0 1 20.6 11C19 15.6 12 20 12 20z"/></svg>`).join('')}</span>`;
+}

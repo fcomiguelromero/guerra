@@ -37,6 +37,14 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     for (let i = 0; i < NOMBRES.length; i++) await plan.reclutar(m, i, NOMBRES[i], 'c' + i + '@ejemplo.test');
     await plan.soyYo(m, 5);
     // Lucía y Pablo; Elena y Javi. Luego Elena cambia a Rosa y Javi queda suelto.
+    // Con GN_FOTOS=ruta1,ruta2 se ponen fotos a Lucía y a Pablo (para ver la cara enamorada; no se suben al repositorio).
+    const fotos = (process.env.GN_FOTOS || '').split(',').filter(Boolean);
+    for (let i = 0; i < fotos.length && i < 2; i++) {
+      await m.locator(`[data-a="abrirFicha"][data-v="${i}"]`).click();
+      await m.locator(`input[type=file][data-v="${i}"]`).setInputFiles(fotos[i]);
+      await m.waitForSelector('.recorte-marco img'); await m.locator('.recorte-si').click(); await m.waitForSelector('.retrato img');
+      await m.locator('.hoja [data-a="cerrarFicha"]').click();
+    }
     await m.locator('[data-a="abrirFicha"][data-v="0"]').click();
     await m.selectOption('#gp-0', '1');
     await foto(m, '01-ficha-pareja');
@@ -74,7 +82,15 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     const j = await pagina(nav, 1280, 860, '#t=' + tok['Javi']);
     for (let k = 0; k < 15 && !(await j.locator('.casa-marca').count()); k++) { await j.locator('[data-a="mover"][data-v="1"]').first().click(); await j.waitForTimeout(250); }
     assert.ok(await j.locator('.casa-marca').count(), 'Javi ve el duelo doméstico');
+    assert.strictEqual(await j.locator('.carta.amor').count(), 2, 'las dos cartas del duelo doméstico van con marco de amor');
+    if (fotos.length) await j.waitForSelector('.cara-amor', { timeout: 20000 }).catch(() => {});
+    await j.waitForTimeout(1600);
     await foto(j, '05-batalla');
+    const jm = await pagina(nav, 390, 844, '#t=' + tok['Javi']);
+    for (let k = 0; k < 15 && !(await jm.locator('.casa-marca').count()); k++) { await jm.locator('[data-a="mover"][data-v="1"]').first().click(); await jm.waitForTimeout(250); }
+    if (fotos.length) await jm.waitForSelector('.cara-amor', { timeout: 20000 }).catch(() => {});
+    await jm.waitForTimeout(1600);
+    await foto(jm, '05b-batalla-movil');
     // Todos votan; Lucía se vota a sí misma contra Pablo y Rosa le da la porra cruzada a Elena.
     let k = 0;
     for (const n of NOMBRES) {

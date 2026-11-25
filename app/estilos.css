@@ -617,3 +617,19 @@ ul, ol { padding: 0; list-style: none; }
 .escena-beso .morro { transform-box: fill-box; transform-origin: center; animation: muac .8s ease-in-out infinite; }
 .escena-beso .beso-der .morro { animation-delay: .4s; }
 @keyframes muac { 0%, 100% { transform: scale(1, 1); } 35% { transform: scale(.62, 1.25); } 55% { transform: scale(1.12, .88); } }
+/* Duelo doméstico: carta de amor */
+.carta.amor { background: linear-gradient(135deg, #ffd0ec, #ff4fb8 30%, #c2187a 55%, #ff9ad6 75%, #e0287f) !important; box-shadow: 0 0 0 1px rgba(255,79,184,.5), 0 0 38px rgba(255,79,184,.55), 0 14px 28px rgba(0,0,0,.5); animation: latidoAmor 1.6s ease-in-out infinite; }
+.carta.amor .raya { background: #ff4fb8 !important; }
+.carta.amor.gris { animation: none; }
+@keyframes latidoAmor { 0%, 100% { box-shadow: 0 0 0 1px rgba(255,79,184,.5), 0 0 30px rgba(255,79,184,.45), 0 14px 28px rgba(0,0,0,.5); } 15% { box-shadow: 0 0 0 2px rgba(255,79,184,.8), 0 0 54px rgba(255,79,184,.8), 0 14px 28px rgba(0,0,0,.5); } 30% { box-shadow: 0 0 0 1px rgba(255,79,184,.5), 0 0 34px rgba(255,79,184,.5), 0 14px 28px rgba(0,0,0,.5); } 45% { box-shadow: 0 0 0 2px rgba(255,79,184,.8), 0 0 48px rgba(255,79,184,.7), 0 14px 28px rgba(0,0,0,.5); } }
+.cara-amor { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.cara-amor .ojo-amor { animation: ojoAmor .9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.cara-amor .morro-foto { animation: muac .8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.carta.izq .cara-amor .morro-foto { animation-delay: .4s; }
+@keyframes ojoAmor { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.22); } 40% { transform: scale(.95); } 55% { transform: scale(1.12); } }
+.corazones-carta { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+.corazones-carta svg { position: absolute; bottom: -12%; width: calc(26px * var(--e)); height: calc(26px * var(--e)); fill: #ff4fb8; filter: drop-shadow(0 0 6px rgba(255,79,184,.7)); opacity: 0; animation: flotaCorazon 4.6s ease-in infinite; }
+.corazones-carta svg:nth-child(even) { fill: #ffa3e6; }
+@keyframes flotaCorazon { 0% { opacity: 0; bottom: -12%; transform: translateX(0) scale(.6) rotate(-10deg); } 12% { opacity: .95; } 50% { transform: translateX(12px) scale(1) rotate(8deg); } 85% { opacity: .85; } 100% { opacity: 0; bottom: 100%; transform: translateX(-6px) scale(1.15) rotate(-6deg); } }
+.carta.gris .corazones-carta { display: none; }
+@media (prefers-reduced-motion: reduce) { .carta.amor, .cara-amor *, .corazones-carta svg { animation: none !important; } .corazones-carta svg { opacity: .8; bottom: 20%; } }

@@ -1,7 +1,7 @@
 // Datos convertidos en dibujos: la línea del frente, la fila de rezagados, el tira y afloja,
 // el anillo de victorias, la racha en casillas y la vitrina de medallas.
 // Las cifras siguen estando en el texto, para quien no vea el dibujo.
-import { esc } from './base.js?v=39';
+import { esc } from './base.js?v=40';
 
 const TEAL = '#5ef0d0', ROSA = '#ff6ad5', ORO = '#ffd36a', VIOLETA = '#8f7bff';
 
