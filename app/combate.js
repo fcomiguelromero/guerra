@@ -1,15 +1,15 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=36';
-import { botonesCalendario } from './calendario.js?v=36';
-import { botonAlbum } from './album.js?v=36';
-import { icono, ILU, piezas } from './dibujos.js?v=36';
-import { escena } from './monigotes.js?v=36';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=36';
-import { enfadar } from './caras.js?v=36';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=36';
-import { nombreRonda, preferencia } from './base.js?v=36';
+import { botonCartel } from './carteles.js?v=37';
+import { botonesCalendario } from './calendario.js?v=37';
+import { botonAlbum } from './album.js?v=37';
+import { icono, ILU, piezas } from './dibujos.js?v=37';
+import { escena } from './monigotes.js?v=37';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=37';
+import { enfadar } from './caras.js?v=37';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=37';
+import { nombreRonda, preferencia } from './base.js?v=37';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=36';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=37';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -228,7 +228,8 @@ function pantallaAbierta() {
     <header class="col g4"><div class="sobre solo-movil">${esc(tituloGuerra(e.guerra))}</div><h1 class="h1 centrado-pc">${esc(preguntaDe(b.of))}</h1></header>
     ${navegador(v, i, 'llevas ' + hechas + ' de ' + m.length)}${e.guerra.cuadro ? '<button class="btn chico linea" style="align-self:center" data-a="ir" data-v="/cuadro">Ver el cuadro</button>' : ''}
     <main class="col combate-main" style="flex:1;justify-content:center;gap:10px">
-      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs" aria-hidden="true">VS</div></div>
+      ${b.casa ? `<span class="casa-marca">${ico('roto', 16)}Duelo doméstico: pareja contra pareja</span>` : ''}
+      <div class="duelo anima entra-${S.ui.dir === -1 ? 'izq' : 'der'}" data-anim="duelo:${b.id}">${carta(a, Object.assign({ votar: b.voto ? '' : 'a', clase: b.voto === a.id ? '' : b.voto ? 'gris' + (recien && recien.id === b.id ? ' aparta-izq' : '') : '' }, recien && recien.id === b.id && b.voto === a.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}${carta(c, Object.assign({ votar: b.voto ? '' : 'b', clase: 'izq' + (b.voto && b.voto !== c.id ? ' gris' + (recien && recien.id === b.id ? ' aparta-der' : '') : '') }, recien && recien.id === b.id && b.voto === c.id ? { sello: 'Votado', selloClase: 'teal cae' } : {}))}<div class="vs${b.casa ? ' casa' : ''}" aria-hidden="true">${b.casa ? '♥' : 'VS'}</div></div>
       ${votada}${barraRetirada()}
       ${S.ui.repaso ? '<button class="btn linea medio" data-a="repaso">Volver</button>' : ''}
     </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
@@ -427,7 +428,7 @@ accion('votarDuelo', async (id) => { await llamar('votarDuelo', { elegido: id },
 
 function etiquetaSiguiente(s) {
   if (!s) return 'Terminar el desfile';
-  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
+  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', parejas: 'las parejas de hecho', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas, pantallaDesfile };
 
@@ -463,6 +464,23 @@ registrar('/cuadro', () => {
 // La frase del narrador, debajo de cada puesto.
 const narrador = (frase, chica) => (frase ? `<p class="narrador${chica ? ' chica' : ''}">${ico('micro', chica ? 14 : 18)}<span>${esc(frase)}</span></p>` : '');
 
+// Resultados de las parejas: duelo doméstico, sincronía, lealtad y porra cruzada (lo que esté encendido).
+export function bloqueParejas(P, G) {
+  if (!P || !P.lista || !P.lista.length) return '<p class="t3 centro">No hay datos de parejas.</p>';
+  const n = (id) => esc(G[id].nombre), premio = (k, txt, clase) => P.premios && P.premios[k] ? `<span class="medalla-pareja ${clase || ''}">${ico(k === 'almas' ? 'corazon' : 'roto', 16)}${txt}</span>` : '';
+  return `<div class="parejas-desfile">${P.lista.map((q) => {
+    const marca = [];
+    if (P.premios && P.premios.almas && P.premios.almas.a === q.a && P.premios.almas.b === q.b) marca.push(premio('almas', 'Almas gemelas'));
+    if (P.premios && P.premios.fria && P.premios.fria.a === q.a && P.premios.fria.b === q.b) marca.push(premio('fria', 'Guerra fría en casa', 'fria'));
+    const filas = [];
+    if (q.duelo) filas.push(`<div class="pareja-dato"><span>Duelo doméstico</span><span>${q.duelo.va === q.duelo.vb ? 'Empate en casa' : 'Gana ' + n(q.duelo.va > q.duelo.vb ? q.duelo.a : q.duelo.b)} <b>${Math.max(q.duelo.va, q.duelo.vb)}–${Math.min(q.duelo.va, q.duelo.vb)}</b></span></div>`);
+    if (q.sinc && q.sinc.de) filas.push(`<div class="pareja-dato"><span>Votaron igual</span><span>en ${q.sinc.igual} de ${q.sinc.de} <b>${q.sinc.pct}%</b></span></div>`);
+    if (q.leal) [q.a, q.b].forEach((id) => { const l = q.leal[id]; if (l && l.de) filas.push(`<div class="pareja-dato"><span>${n(id)} votó a su pareja</span><b>${l.n} de ${l.de}</b></div>`); });
+    if (q.cruzada) [q.a, q.b].forEach((id) => { const c = q.cruzada[id]; if (c) filas.push(`<div class="pareja-dato"><span>${n(id)} la situó ${ordinal(c.dijo)}</span><span>${c.dijo === c.real ? '<b class="teal">¡Clavado!</b>' : 'quedó ' + ordinal(c.real)}</span></div>`); });
+    return `<section class="pareja-desfile"><div class="pareja-cab">${avatar(G[q.a])}<strong>${n(q.a)}</strong><span class="corazon-medio">${ico('corazon', 20)}</span><strong>${n(q.b)}</strong>${avatar(G[q.b])}</div>
+      ${marca.join('')}${filas.join('') || '<p class="peq t2 centro" style="margin:0">Sin datos que contar.</p>'}</section>`;
+  }).join('')}</div>`;
+}
 // «ensayo» es la barra del ensayo privado del alto mando: con ella se pinta la vista que se le pasa, no el desfile real.
 function pantallaDesfile(vista, ensayo) {
   const e = S.est, d = vista || e.desfile, a = d.actual, G = gente();
@@ -477,7 +495,9 @@ function pantallaDesfile(vista, ensayo) {
   } else if (a.t === 'puesto') {
     centro = `<div class="bc oro centro" style="font-weight:800;font-size:32px;letter-spacing:.04em">${ordinal(a.pos)} puesto</div>
       ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}
-      ${narrador(a.frase)}`;
+      ${narrador(a.frase)}${a.guino ? `<p class="narrador guino">${ico('corazon', 18)}<span>${esc(a.guino)}</span></p>` : ''}`;
+  } else if (a.t === 'parejas') {
+    centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Parejas de hecho</h2><span class="med t2">Lo que vuestros votos dicen de cada casa</span></div>${bloqueParejas(a.parejas, G)}`;
   } else if (a.t === 'proclama') {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Proclamas anónimas</h2><span class="peq rosa" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">Proclama anónima · ${a.n} de ${a.de}</span></div>
       <blockquote class="cita" style="margin:0">«${esc(a.texto || '')}»</blockquote>
@@ -563,6 +583,7 @@ function pantallaPublicada() {
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>Enemigo íntimo: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
     ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
     ${campeonesPregunta(r, G)}
+    ${r.parejas ? `<section class="col g8"><h2 class="h2">Parejas de hecho</h2>${bloqueParejas(r.parejas, G)}</section>` : ''}
     ${listaCuriosidades(r, G).length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${listaCuriosidades(r, G).map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
     ${r.proclamas.length ? `<section class="caja"><h2 class="h2">Proclamas anónimas</h2>${r.proclamas.map((p) => `<p class="med"><span class="t2">${esc(G[p.a].nombre)} contra ${esc(G[p.b].nombre)} · a ${esc(G[p.elegido].nombre)}</span><br><em>«${esc(p.texto)}»</em></p>`).join('')}</section>` : ''}`,
     { fondo: 'a', ancha: true });
@@ -636,6 +657,7 @@ registrar('/porra', () => {
   }
   if (p.abierta) {
     const orden = ordenPorra();
+    if (S.ui.porraPareja == null && p.mia && p.mia.pareja) S.ui.porraPareja = p.mia.pareja;
     cuerpo = `<span class="chapa teal" style="align-self:flex-start">Desbloqueada: has votado tus ${total} batallas</span>
       <p class="t3">Ordena a los combatientes del primero al último. Gana quien más se acerque al parte final. ${e.guerra.fase === 'abierta' ? 'Se cierra cuando acabe la guerra.' : ''}</p>
       ${e.guerra.botin ? `<div class="caja oro" style="flex-direction:row;gap:8px"><span class="sobre oro">Botín</span><strong>${esc(e.guerra.botin)}</strong></div>` : ''}
@@ -643,10 +665,14 @@ registrar('/porra', () => {
         <b class="bc t2" style="width:22px;font-size:20px">${k + 1}</b>${avatar(G[id])}<span class="crece" style="font-weight:600">${esc(nombreDe(G[id]))}</span>
         <button class="cuadro" data-a="porraMover" data-v="${k}:-1" aria-label="Subir a ${esc(G[id].nombre)}" ${k === 0 ? 'disabled' : ''}>${ico('arriba')}</button>
         <button class="cuadro" data-a="porraMover" data-v="${k}:1" aria-label="Bajar a ${esc(G[id].nombre)}" ${k === orden.length - 1 ? 'disabled' : ''}>${ico('abajo')}</button></li>`).join('')}</ol>
+      ${p.pareja && G[p.pareja] ? `<section class="caja" style="border-color:rgba(255,106,213,.45)"><div class="fila" style="gap:8px"><span class="rosa">${ico('diana2', 20)}</span><strong>Porra cruzada: ¿en qué puesto quedará ${esc(nombreDe(G[p.pareja]))}?</strong></div>
+        <p class="peq t2" style="margin:0">Aparte de tu orden de arriba. Se revela en el desfile si acertaste.</p>
+        <select id="porra-pareja" data-c="porraPareja" aria-label="Puesto que crees que sacará tu pareja"><option value="">Elige un puesto</option>${orden.map((_, k) => `<option value="${k + 1}" ${S.ui.porraPareja === k + 1 ? 'selected' : ''}>${ordinal(k + 1)} puesto</option>`).join('')}</select></section>` : ''}
       <button class="btn" data-a="porraEnviar">${p.mia ? 'Guardar la porra' : 'Enviar porra'}</button>
       <p class="peq t2 centro">${e.guerra.fase === 'abierta' ? (p.mia ? 'Porra enviada. Puedes cambiarla hasta que acabe la guerra.' : 'Puedes cambiarla hasta que acabe la guerra.') : 'Sólo tienes un intento: la guerra ya ha acabado.'}</p>`;
   } else if (p.mia) {
     cuerpo = `<p class="t3">Tu porra está entregada y sellada. ${e.guerra.fase === 'publicada' ? '' : 'Se puntuará con el parte final.'}</p>
+      ${p.mia.pareja && p.pareja && G[p.pareja] ? `<p class="med rosa">${ico('diana2', 16)} Porra cruzada: ${esc(nombreDe(G[p.pareja]))}, ${ordinal(p.mia.pareja)} puesto.</p>` : ''}
       <ol class="lista-puestos caja">${p.mia.orden.filter((id) => G[id] && G[id].estado !== 'expulsado').map((id, k) => `<li><b>${k + 1}</b>${avatar(G[id])}<span>${esc(nombreDe(G[id]))}</span></li>`).join('')}</ol>`;
   } else if (e.guerra.fase === 'abierta' && yo().vota) {
     cuerpo = `<div class="caja"><strong>La porra está bajo llave.</strong><p class="med t2">Se desbloquea cuando votes tus ${total} batallas. Llevas ${hechas}.</p>
@@ -656,6 +682,7 @@ registrar('/porra', () => {
   }
   return marco(`${cabecera('La porra')}${final}${cuerpo}<p class="peq t2 centro">Porras recibidas: ${p.recibidas} de ${p.de}</p>`, { fondo: 'a' });
 });
+accion('porraPareja', (v, el) => { S.ui.porraPareja = el.value ? Number(el.value) : null; });
 accion('porraMover', (v) => {
   const [k, d] = v.split(':').map(Number), o = ordenPorra(), j = k + d;
   if (j < 0 || j >= o.length) return;
@@ -663,7 +690,7 @@ accion('porraMover', (v) => {
   pintar();
 });
 accion('porraEnviar', async () => {
-  await llamar('porra', { orden: ordenPorra() });
+  await llamar('porra', Object.assign({ orden: ordenPorra() }, S.est.porra.pareja && S.ui.porraPareja ? { pareja: S.ui.porraPareja } : {}));
   await refrescar(true);
   aviso('Porra entregada.', true);
 });

@@ -1,6 +1,6 @@
 // Carteles para WhatsApp y diploma de la cruz al mérito: se dibujan en el propio dispositivo (1080×1350)
 // y se comparten como imagen, o se descargan si el navegador no sabe compartir archivos.
-import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion } from './base.js?v=36';
+import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion } from './base.js?v=37';
 
 const W = 1080, H = 1350, M = 72;
 const C = { fondo: '#0d0b1a', sup: '#16132b', borde: '#2a2648', txt: '#f2f0ff', t2: '#b3aecf', t3: '#cdc8e6', teal: '#5ef0d0', violeta: '#8f7bff', rosa: '#ff6ad5', oro: '#ffd36a' };

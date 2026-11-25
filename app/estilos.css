@@ -583,3 +583,18 @@ ul, ol { padding: 0; list-style: none; }
 .fila-porra { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 10px 12px; }
 .fila-porra li { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 60px; text-align: center; }
 .fila-porra li .peq { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Parejas de hecho */
+.extra.rosa-extra.on { border-color: var(--rosa); background: linear-gradient(170deg, rgba(255,106,213,.16), rgba(28,24,54,.95) 70%); }
+.extra.rosa-extra.on svg { color: var(--rosa); } .extra.rosa-extra.on .luz { background: var(--rosa); box-shadow: 0 0 8px var(--rosa); }
+.casa-marca { display: inline-flex; align-items: center; gap: 6px; align-self: center; padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(255,106,213,.5); background: rgba(255,106,213,.1); color: var(--rosa); font-size: 14px; font-weight: 700; }
+.duelo .vs.casa { background: var(--rosa); color: #0d0b1a; }
+.parejas-desfile { display: flex; flex-direction: column; gap: 12px; }
+.pareja-desfile { padding: 14px; border: 1px solid rgba(255,106,213,.35); border-radius: 16px; background: rgba(22,19,43,.92); display: flex; flex-direction: column; gap: 8px; }
+.pareja-cab { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.pareja-cab .corazon-medio { color: var(--rosa); }
+.pareja-dato { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 15px; color: var(--txt3); }
+.pareja-dato b { font-family: var(--bc); font-size: 22px; color: #fff; }
+.medalla-pareja { display: inline-flex; align-items: center; gap: 6px; align-self: center; padding: 4px 12px; border-radius: 999px; background: var(--oro); color: #0d0b1a; font-family: var(--bc); font-weight: 800; font-size: 15px; text-transform: uppercase; }
+.medalla-pareja.fria { background: #8fd3ff; }
+.guino { font-style: italic; color: var(--rosa); }

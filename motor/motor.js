@@ -12,7 +12,10 @@ var MARGEN = 4000;           // holgura por la latencia de la red
 var DIA = 86400000;
 var DUELO_SEG = 60;
 var HORA_OFENSIVA = 9;     // con una ofensiva al día, la nueva se abre a las 9:00
-var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta', 'termometro', 'apuestas', 'narrador'];
+var EXTRAS = ['porra', 'espia', 'desfile', 'proclamas', 'condecoraciones', 'radio', 'parte', 'corneta', 'termometro', 'apuestas', 'narrador',
+  'duelo', 'sincronia', 'lealtad', 'porraPareja', 'guinos'];
+// Extras de parejas: sólo cuentan si hay parejas marcadas, y se pueden cambiar hasta el desfile.
+var EXTRAS_PAREJA = ['duelo', 'sincronia', 'lealtad', 'porraPareja', 'guinos'];
 var GRADOS = ['Recluta', 'Soldado', 'Cabo', 'Sargento', 'Alférez', 'Teniente', 'Capitán', 'Comandante', 'Coronel', 'General'];
 
 // ---------------------------------------------------------------- utilidades
@@ -146,9 +149,23 @@ function porPregunta(doc, rec) {
     return { k: i + 1, texto: texto, id: t[0].id, pts: t[0].pts, g: t[0].g, e: t[0].e, p: t[0].p, batallas: bs.length };
   }).filter(Boolean);
 }
+// Parejas: cada persona puede tener marcada a otra como pareja (siempre en los dos sentidos).
+function parejaDe(doc, id) { var g = porId(doc.gente)[id]; return g && g.pareja ? g.pareja : null; }
+function hayParejas(doc) { return doc.gente.some(function (g) { return g.pareja; }); }
+function esDeParejas(doc, b) { return !!b && parejaDe(doc, b.a) === b.b; }
+function listaParejas(doc) {
+  var vistas = {}, l = [];
+  doc.gente.forEach(function (g) { if (g.pareja && !vistas[g.id] && porId(doc.gente)[g.pareja]) { vistas[g.id] = vistas[g.pareja] = true; l.push([g.id, g.pareja]); } });
+  return l;
+}
 // Batalla del día: una por ofensiva, la misma para todos. Desde la segunda edición, el plato fuerte;
 // en la primera, una al azar pero siempre la misma.
 function batallaDelDia(doc, of) {
+  // Duelo doméstico: si en la ofensiva se enfrenta una pareja, ésa es la batalla del día (desde que se marcaron las parejas).
+  if (doc.extras && doc.extras.duelo && of > (doc.parejasDesde || 0)) {
+    var casa = (doc.batallas || []).filter(function (b) { return b.of === of && esDeParejas(doc, b); })[0];
+    if (casa) return casa.id;
+  }
   if (doc.platos && doc.platos[of]) return doc.platos[of].id;
   var lista = (doc.batallas || []).filter(function (b) { return b.of === of; });
   if (!lista.length) return null;
@@ -269,6 +286,55 @@ function clasificar(doc, rec) {
     if (grupo.length > 1) empate = grupo.map(function (f) { return f.id; });
   }
   return { tabla: tabla, empate: empate };
+}
+
+// Parejas: duelo doméstico, sincronía (cuánto votaron igual), lealtad (cuántas veces votó cada uno a su pareja
+// cuando ésta combatía con otro) y porra cruzada (qué puesto le dio cada uno a su pareja). Sólo lo de los extras activos.
+function parejasDe(doc, rec, tabla) {
+  var x = doc.extras || {};
+  if (!hayParejas(doc) || !(x.duelo || x.sincronia || x.lealtad || x.porraPareja)) return null;
+  var vota = porId(votantes(doc)), pos = {}, porB = porId(rec.batallas);
+  tabla.forEach(function (f) { pos[f.id] = f.pos; });
+  var votoDe = function (bid, vid) { var v = (doc.votos[bid] || {})[vid]; return vota[vid] && v ? v[0] : null; };
+  var lista = listaParejas(doc).map(function (par) {
+    var a = par[0], b = par[1], r = { a: a, b: b };
+    if (x.duelo) {
+      var bc = rec.batallas.filter(function (bt) { return (bt.a === a && bt.b === b) || (bt.a === b && bt.b === a); })[0];
+      if (bc) r.duelo = { a: bc.a, b: bc.b, va: bc.va, vb: bc.vb };
+    }
+    if (x.sincronia) {
+      var igual = 0, de = 0;
+      batallasVivas(doc).forEach(function (bt) { var va = votoDe(bt.id, a), vb = votoDe(bt.id, b); if (va && vb) { de++; if (va === vb) igual++; } });
+      r.sinc = { igual: igual, de: de, pct: de ? Math.round(100 * igual / de) : null };
+    }
+    if (x.lealtad) {
+      r.leal = {};
+      [[a, b], [b, a]].forEach(function (q) {
+        var n = 0, de = 0;
+        batallasVivas(doc).forEach(function (bt) {
+          if ((bt.a !== q[1] && bt.b !== q[1]) || bt.a === q[0] || bt.b === q[0]) return;
+          var v = votoDe(bt.id, q[0]); if (!v) return; de++; if (v === q[1]) n++;
+        });
+        r.leal[q[0]] = { n: n, de: de };
+      });
+    }
+    if (x.porraPareja) {
+      r.cruzada = {};
+      [[a, b], [b, a]].forEach(function (q) {
+        var po = (doc.porras || {})[q[0]];
+        if (po && po.pareja && pos[q[1]]) r.cruzada[q[0]] = { dijo: po.pareja, real: pos[q[1]] };
+      });
+    }
+    return r;
+  });
+  var conSinc = lista.filter(function (r) { return r.sinc && r.sinc.de > 0; });
+  var premios = {};
+  if (conSinc.length >= 1) {
+    var orden = conSinc.slice().sort(function (p, q) { return q.sinc.pct - p.sinc.pct; });
+    premios.almas = { a: orden[0].a, b: orden[0].b, pct: orden[0].sinc.pct };
+    if (orden.length >= 2 && orden[orden.length - 1].sinc.pct < orden[0].sinc.pct) premios.fria = { a: orden[orden.length - 1].a, b: orden[orden.length - 1].b, pct: orden[orden.length - 1].sinc.pct };
+  }
+  return { lista: lista, premios: premios };
 }
 
 function puntuarPorras(doc, tabla) {
@@ -394,7 +460,8 @@ function calcular(doc) {
     apuestas: doc.extras.apuestas ? adivinar(doc, rec) : [],
     afinidad: afinidades(doc, rec),
     curiosidades: curiosidades(doc, rec),
-    preguntas: porPregunta(doc, rec)
+    preguntas: porPregunta(doc, rec),
+    parejas: parejasDe(doc, rec, cl.tabla)
   };
   if (res.apuestas.length && res.apuestas[0].n > 0) res.premios.adivino = { id: res.apuestas[0].id, n: res.apuestas[0].n, de: res.apuestas[0].de };
   if (doc.duelo && doc.duelo.cerrado) aplicarDuelo(doc, res);
@@ -534,6 +601,7 @@ function pasosDesfile(doc) {
     else while (proclamas.length) pasos.push({ t: 'proclama', ref: proclamas.shift() });
   });
   premios.forEach(function (k) { pasos.push({ t: 'condecoracion', cual: k }); });
+  if (r.parejas && r.parejas.lista.length) pasos.push({ t: 'parejas' });
   (r.preguntas || []).forEach(function (q) { pasos.push({ t: 'pregunta', k: q.k }); });
   podio.forEach(function (pos) { pasos.push({ t: 'puesto', pos: pos }); });
   if (r.empate) pasos.push({ t: 'duelo' });
@@ -589,6 +657,16 @@ function ordenanzasAuto(doc) {
   }
   if (x.porra) lista.push({ t: 'La porra', x: 'Cuando termines tus votos se abre la porra: ordena a todos los combatientes del primero al último. Se suman los puestos de diferencia con el parte final y gana la suma más baja.' +
     (doc.botin ? ' Botín: ' + doc.botin + '.' : '') });
+  if (hayParejas(doc) && (x.duelo || x.sincronia || x.lealtad || x.porraPareja || x.guinos)) {
+    var nomP = listaParejas(doc).map(function (q) { var G = porId(doc.gente); return G[q[0]].nombre + ' y ' + G[q[1]].nombre; });
+    var partes = [];
+    if (x.duelo) partes.push('cuando una pareja se enfrenta, es un duelo doméstico' + (x.apuestas ? ' y ésa es la batalla del día de su ofensiva' : ''));
+    if (x.sincronia) partes.push('al final se revela en qué porcentaje de batallas votó igual cada pareja (sólo eso, no qué votó cada uno), con medalla de «Almas gemelas» para la más sincronizada y de «Guerra fría en casa» para la que menos');
+    if (x.lealtad) partes.push('al final se cuenta cuántas veces votó cada uno a su pareja cuando ésta combatía contra otro');
+    if (x.porraPareja && x.porra) partes.push('en la porra, cada uno adivina además el puesto de su pareja');
+    if (x.guinos) partes.push('en el desfile, el narrador comenta cuando una pareja queda cerca o lejos');
+    lista.push({ t: 'Parejas de hecho', x: 'En esta guerra hay parejas: ' + nomP.join('; ') + '. ' + partes.map(function (q) { return q.charAt(0).toUpperCase() + q.slice(1); }).join('. ') + '.' });
+  }
   if (x.termometro) lista.push({ t: 'El termómetro', x: 'Cuando pasan los 10 segundos de cortesía de un voto, verás si en esa batalla vas con la mayoría o contra ella. Sin cifras, y es sólo una foto de ese momento: puede cambiar a medida que vota el resto.' });
   if (x.apuestas) lista.push({ t: doc.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', x: 'En cada ofensiva hay una batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ', la misma para todos. Si quieres, apuesta quién crees que la ganará: no tiene por qué coincidir con tu voto.' +
     ' La apuesta se hace antes de votar esa batalla, y puedes cambiarla mientras no la votes. Si es uno de tus combates, también puedes apostar.' +
@@ -1006,7 +1084,7 @@ function crearMotor(env) {
   // -- vistas
   function fichaPublica(doc, g) {
     return { id: g.id, nombre: g.nombre, frase: g.frase || '', foto: g.foto || null, grado: g.grado || 0,
-      combate: !!g.combate, vota: !!g.vota, estado: g.estado, mando: !!g.mando };
+      combate: !!g.combate, vota: !!g.vota, estado: g.estado, mando: !!g.mando, pareja: g.pareja || null };
   }
   function genteOrdenada(doc) {
     if (!doc.orden) return doc.gente;
@@ -1037,7 +1115,7 @@ function crearMotor(env) {
     var r = doc.resultado;
     return {
       tabla: r.tabla, batallas: r.batallas, desertores: r.desertores, indultados: r.indultados,
-      porra: r.porra, premios: r.premios, curiosidades: r.curiosidades, empate: r.empate, duelo: r.duelo || null, apuestas: r.apuestas || [], preguntas: r.preguntas || [],
+      porra: r.porra, premios: r.premios, curiosidades: r.curiosidades, empate: r.empate, duelo: r.duelo || null, apuestas: r.apuestas || [], preguntas: r.preguntas || [], parejas: r.parejas || null,
       proclamas: (doc.estrellas || []).map(function (ref) { return proclamaDe(doc, ref); }).filter(Boolean)
     };
   }
@@ -1060,6 +1138,16 @@ function crearMotor(env) {
       ganador: d.cerrado ? doc.resultado.tabla[0].id : null
     };
   }
+  // Guiño del narrador: al revelar un puesto, si su pareja ya salió (quedó por debajo), se comenta.
+  function guinoPareja(doc, r, id) {
+    if (!doc.extras.guinos) return '';
+    var otra = parejaDe(doc, id), pos = {};
+    r.tabla.forEach(function (f) { pos[f.id] = f.pos; });
+    if (!otra || !pos[otra] || pos[otra] <= pos[id]) return '';
+    var nom = porId(doc.gente)[otra].nombre, d = pos[otra] - pos[id], h = (pos[id] * 7 + d) % 3;
+    if (d === 1) return ['Y justo detrás, su media naranja, ' + nom + ': en casa se llevan un puesto.', 'Un puesto por delante de ' + nom + '. Esta noche, en casa, alguien presume.', nom + ' le pisa los talones: un puesto les separa. Como en el sofá.'][h];
+    return ['Le saca ' + plural(d, 'puesto', 'puestos') + ' a su pareja, ' + nom + '. La cena de hoy la paga quien quedó detrás.', nom + ', su media naranja, se quedó ' + plural(d, 'puesto', 'puestos') + ' más abajo. Habrá revancha en casa.', 'En casa ya hay ganador: ' + plural(d, 'puesto', 'puestos') + ' por delante de ' + nom + '.'][h];
+  }
   function vistaDesfile(doc, yo) {
     var df = doc.desfile, r = doc.resultado, fila = {}, narrador = narrar(doc, r, repertorio().frases);
     r.tabla.forEach(function (f) { fila[f.pos] = f; });
@@ -1076,7 +1164,9 @@ function crearMotor(env) {
       var orden = r.desertores.map(function (d) { return d.id; });
       Object.assign(actual, { id: paso.id, sentencia: des.sentencia, faltaban: des.faltaban, n: orden.indexOf(paso.id) + 1, de: orden.length });
     } else if (paso.t === 'puesto') {
-      Object.assign(actual, { pos: paso.pos, fila: fila[paso.pos], frase: narrador[fila[paso.pos].id] || '' });
+      Object.assign(actual, { pos: paso.pos, fila: fila[paso.pos], frase: narrador[fila[paso.pos].id] || '', guino: guinoPareja(doc, r, fila[paso.pos].id) });
+    } else if (paso.t === 'parejas') {
+      actual.parejas = r.parejas;
     } else if (paso.t === 'proclama') {
       Object.assign(actual, proclamaDe(doc, paso.ref) || {}, { n: paso.n, de: paso.de });
     } else if (paso.t === 'condecoracion') {
@@ -1133,6 +1223,7 @@ function crearMotor(env) {
       res.batallas = batallasVivas(doc).map(function (b) {
         var fila = { id: b.id, of: b.of, a: b.a, b: b.b };
         if (b.tercero) fila.tercero = true;
+        if (doc.extras.duelo && esDeParejas(doc, b)) fila.casa = true;   // duelo doméstico
         if (yo && puedeVotar(yo, b)) {
           var v = votoDe(doc, b, yo.id); fila.mia = true; fila.voto = v ? v[0] : null; fila.ts = v ? v[1] : null;
           // En la batalla del día, el termómetro espera a la apuesta: si no, chivaría hacia dónde va la mayoría.
@@ -1146,7 +1237,9 @@ function crearMotor(env) {
       if (doc.extras.porra) {
         var puedePorra = !!yo && yo.vota && yo.estado === 'activo' && faltan(doc, yo) === 0 &&
           (doc.fase === 'abierta' || (doc.fase === 'terminada' && !doc.porras[yo.id] && !(doc.espias || {})[yo.id]));
+        var miPareja = yo && doc.extras.porraPareja ? parejaDe(doc, yo.id) : null;
         res.porra = { abierta: puedePorra, mia: yo && doc.porras[yo.id] ? doc.porras[yo.id] : null,
+          pareja: miPareja && contendientes(doc).some(function (c) { return c.id === miPareja; }) ? miPareja : null,
           recibidas: Object.keys(doc.porras).length, de: votantes(doc).filter(function (v) { return v.estado === 'activo'; }).length };
       }
       if (doc.extras.radio) {
@@ -1226,7 +1319,7 @@ function crearMotor(env) {
         gente: doc.gente.map(function (g) {
           return { id: g.id, nombre: g.nombre, correo: g.correo || '', frase: g.frase || '', foto: g.foto || null,
             combate: !!g.combate, vota: !!g.vota, mando: !!g.mando, alistado: g.alistado, estado: g.estado,
-            llamada: g.llamada || null, llamadaError: g.llamadaError || null };
+            llamada: g.llamada || null, llamadaError: g.llamadaError || null, pareja: g.pareja || null };
         })
       },
       mando: vistaMando(doc, ctx.ahora)
@@ -1263,7 +1356,8 @@ function crearMotor(env) {
     return {
       nombre: doc.nombre, campo: doc.campo || '', pregunta: doc.pregunta, preguntas: preguntas(doc), premio: doc.premio || '', botin: doc.botin || '',
       modo: doc.modo, ritmo: doc.ritmo || 'golpe', formato: doc.formato || 'liga', puntuacion: doc.puntuacion, hora: HORA_OFENSIVA,
-      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas, corneta: !!x.corneta, narrador: x.narrador !== false },
+      extras: { porra: !!x.porra, espia: !!x.espia, desfile: !!x.desfile, proclamas: !!x.proclamas, condecoraciones: !!x.condecoraciones, radio: !!x.radio, termometro: !!x.termometro, apuestas: !!x.apuestas, corneta: !!x.corneta, narrador: x.narrador !== false,
+        parejas: hayParejas(doc) && !!(x.duelo || x.sincronia || x.lealtad || x.porraPareja || x.guinos) },
       firma: nombreMando(doc), pitch: doc.pitch || '', enMarcha: ['borrador', 'llamamiento'].indexOf(doc.fase) < 0
     };
   });
@@ -1424,6 +1518,7 @@ function crearMotor(env) {
   function guerraNueva(t) {
     var extras = {};
     EXTRAS.forEach(function (k) { extras[k] = true; });
+    extras.lealtad = false;   // la más delicada: revela a quién votó cada uno en los combates de su pareja
     return {
       id: 'g' + env.id(8), v: 1, rev: 0, creada: t, fase: 'borrador',
       nombre: '', pregunta: '', premio: '', botin: '', modo: 'combatientes', puntuacion: 'liga', extras: extras,
@@ -1473,9 +1568,15 @@ function crearMotor(env) {
         if (p.llamamiento.soloAlistados != null) doc.llamamiento.soloAlistados = !!p.llamamiento.soloAlistados;
       }
     }
+    var antesDesfile = ['abierta', 'terminada'].indexOf(doc.fase) >= 0;
+    if (!previa && antesDesfile && p.extras) {
+      var cambia = false;
+      EXTRAS_PAREJA.forEach(function (k) { if (p.extras[k] != null && !!doc.extras[k] !== !!p.extras[k]) { doc.extras[k] = !!p.extras[k]; cambia = true; } });
+      if (cambia && p.extras.duelo != null) doc.parejasDesde = abiertas(doc, ahora());
+    }
     if (Array.isArray(p.gente)) {
-      var vieja = porId(doc.gente), lista = [];
-      p.gente.slice(0, 40).forEach(function (g) {
+      var vieja = porId(doc.gente), lista = [], porIndice = [];
+      p.gente.slice(0, 40).forEach(function (g, pIdx) {
         var nombre = txt(g.nombre, 40);
         if (!nombre) return;
         var item = g.id && vieja[g.id];
@@ -1493,8 +1594,20 @@ function crearMotor(env) {
           item.mando = !!g.mando && item.vota;
         }
         lista.push(item);
+        porIndice[pIdx] = item;
       });
       if (previa) doc.gente = lista;
+      // Parejas: «parejaK» es la posición de la pareja en la misma lista que se envía. Siempre en los dos sentidos.
+      if (previa || antesDesfile) {
+        var antes = JSON.stringify(doc.gente.map(function (g) { return g.pareja || null; }));
+        doc.gente.forEach(function (g) { g.pareja = null; });
+        p.gente.slice(0, 40).forEach(function (g, i) {
+          var yo = porIndice[i], otro = g.parejaK != null ? porIndice[Number(g.parejaK)] : null;
+          if (!yo || !otro || otro === yo || yo.pareja || otro.pareja) return;
+          yo.pareja = otro.id; otro.pareja = yo.id;
+        });
+        if (!previa && antes !== JSON.stringify(doc.gente.map(function (g) { return g.pareja || null; }))) doc.parejasDesde = abiertas(doc, ahora());
+      }
       var mandos = doc.gente.filter(function (g) { return g.mando; });
       mandos.slice(1).forEach(function (g) { g.mando = false; });
       if (doc.llamamiento.activo && mandos[0]) mandos[0].alistado = true;
@@ -1827,6 +1940,13 @@ function crearMotor(env) {
     var ids = contendientes(doc).map(function (c) { return c.id; }), orden = (p.orden || []).map(String);
     exigir(orden.length === ids.length && ids.every(function (id) { return orden.indexOf(id) >= 0; }), 'porra', 'La porra debe ordenar a todos los contendientes.');
     doc.porras[yo.id] = { orden: orden, ts: ctx.ahora };
+    // Porra cruzada: en qué puesto quedará tu pareja.
+    var suPareja = parejaDe(doc, yo.id);
+    if (doc.extras.porraPareja && suPareja && ids.indexOf(suPareja) >= 0 && p.pareja != null) {
+      var pp = Number(p.pareja);
+      exigir(pp >= 1 && pp <= ids.length && pp === Math.floor(pp), 'porra', 'El puesto de tu pareja tiene que ir del 1 al ' + ids.length + '.');
+      doc.porras[yo.id].pareja = pp;
+    }
     return {};
   });
 

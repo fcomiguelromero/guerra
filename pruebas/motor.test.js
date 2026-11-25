@@ -525,6 +525,51 @@ prueba('orden de movilización: un correo por combatiente con su enlace personal
   assert.ok(c.html.includes('Así es esta guerra'), 'sin llamamiento, la orden explica el juego');
 });
 
+prueba('parejas: se marcan en los dos sentidos, duelo doméstico de estrella, porra cruzada, sincronía, lealtad y guiños', () => {
+  const w = mundo(77);
+  const nombres = NOMBRES.slice(0, 6);
+  const gente = nombres.map((n, i) => ({ nombre: n, correo: n.toLowerCase().normalize('NFD').replace(/[^a-z]/g, '') + '@ejemplo.test', mando: i === 3 }));
+  gente[0].parejaK = 1;               // María y Andrés
+  gente[4].parejaK = 5;               // Javier y Elena
+  gente[2].parejaK = 0;               // Carmen intenta ser pareja de María: ya está cogida, no cuenta
+  const id = crearGuerra(w, { nombres, plan: { ritmo: 'diaria', gente, extras: { lealtad: true } } });
+  const g = declarar(w, id), P = Object.fromEntries(g.doc.gente.map((x) => [x.nombre, x.pareja ? g.nombre[x.pareja] : null]));
+  assert.deepStrictEqual(P, { 'María': 'Andrés', 'Andrés': 'María', Carmen: null, Fran: null, Javier: 'Elena', Elena: 'Javier' });
+  // Duelo doméstico: en la ofensiva en que se cruzan María y Andrés, ésa es la batalla del día, marcada.
+  const casa = g.doc.batallas.find((b) => [b.a, b.b].sort().join() === [g.id['María'], g.id['Andrés']].sort().join());
+  w.pasa((casa.of - 1) * 86400000 + 3600000);
+  const fila = w.do('estado', { token: g.tok['Carmen'] }).batallas.find((b) => b.id === casa.id);
+  assert.ok(fila.casa && fila.delDia, 'la batalla de la pareja es la del día y va marcada');
+  w.pasa(10 * 86400000);
+  // Todos votan; María vota siempre a Andrés cuando él combate con otro, y Andrés a nadie en especial.
+  nombres.forEach((n) => votarTodo(w, g, n, n === 'María' ? (b) => (b.a === g.id['Andrés'] || b.b === g.id['Andrés'] ? g.id['Andrés'] : b.a) : null));
+  const est = w.do('estado', { token: g.tok['María'] });
+  assert.strictEqual(est.porra.pareja, g.id['Andrés'], 'la porra pide el puesto de su pareja');
+  w.do('porra', { token: g.tok['María'], orden: est.gente.filter((x) => x.combate !== false).map((x) => x.id), pareja: 2 });
+  w.falla('porra', () => w.do('porra', { token: g.tok['Javier'], orden: est.gente.map((x) => x.id), pareja: 99 }));
+  w.pasa(60000); w.do('estado', { token: g.tok['María'] });
+  const r = w.mando('informe', { guerra: id }).resultado;
+  assert.strictEqual(r.parejas.lista.length, 2);
+  const ma = r.parejas.lista.find((x) => [x.a, x.b].includes(g.id['María']));
+  assert.ok(ma.duelo && ma.sinc.de > 0 && ma.sinc.pct >= 0, 'duelo y sincronía');
+  assert.strictEqual(ma.leal[g.id['María']].n, ma.leal[g.id['María']].de, 'María, leal en todos los combates de Andrés');
+  assert.strictEqual(ma.cruzada[g.id['María']].dijo, 2);
+  assert.ok(r.parejas.premios.almas, 'medalla de almas gemelas');
+  w.mando('desfile', { guerra: id, orden: 'empezar' });
+  const pasos = w.doc(id).desfile.pasos.map((x) => x.t);
+  assert.ok(pasos.includes('parejas') && pasos.indexOf('parejas') < pasos.indexOf('finalistas'), 'paso de parejas antes de la final');
+  let guinos = 0;
+  while (w.doc(id).desfile.paso < pasos.length - 1) {
+    const a = w.do('estado', { token: g.tok['Carmen'] }).desfile.actual;
+    if (a.t === 'puesto' && a.guino) guinos++;
+    if (a.t === 'parejas') assert.strictEqual(a.parejas.lista.length, 2);
+    w.mando('desfile', { guerra: id, orden: 'siguiente' });
+  }
+  const tabla = r.tabla, pos = Object.fromEntries(tabla.map((f) => [f.id, f.pos]));
+  const esperado = [['María', 'Andrés'], ['Javier', 'Elena']].filter(([x, y]) => Math.min(pos[g.id[x]], pos[g.id[y]]) > 2).length;
+  assert.ok(guinos >= esperado, 'el narrador hace guiños de pareja');
+});
+
 prueba('orden de movilización: la tropa dibujada va dentro del correo', () => {
   const w = mundo(41);
   const id = crearGuerra(w, {});
