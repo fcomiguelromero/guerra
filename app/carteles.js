@@ -1,6 +1,7 @@
 // Carteles para WhatsApp y diploma de la cruz al mérito: se dibujan en el propio dispositivo (1080×1350)
 // y se comparten como imagen, o se descargan si el navegador no sabe compartir archivos.
-import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion } from './base.js?v=46';
+import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion, tituloGuerra } from './base.js?v=47';
+import { soldado } from './monigotes.js?v=47';
 
 const W = 1080, H = 1350, M = 72;
 const C = { fondo: '#0d0b1a', sup: '#16132b', borde: '#2a2648', txt: '#f2f0ff', t2: '#b3aecf', t3: '#cdc8e6', teal: '#5ef0d0', violeta: '#8f7bff', rosa: '#ff6ad5', oro: '#ffd36a' };
@@ -362,6 +363,107 @@ accion('copiarTexto', async () => {
   try { await navigator.clipboard.writeText(S.ui.cartel.texto); aviso('Texto copiado.', true); } catch (e) { aviso('No se ha podido copiar.'); }
 });
 accion('cerrarCartel', () => { if (S.ui.cartel) URL.revokeObjectURL(S.ui.cartel.url); S.ui.cartel = null; S.velo = ''; pintar(); });
+
+// ---------------------------------------------------------------- bando de guerra (para reclutar por WhatsApp)
+// Un expediente de papel con el nombre de la guerra, la pregunta, la ficha y los dos monigotes. Se dibuja a partir del plan.
+const MQ = '"Courier New", Courier, monospace';
+async function monigote(cual) {
+  const svg = soldado(cual).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" ').replace('style="height:88%;overflow:visible"', '');
+  return imagen('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+}
+export async function cartelBando(p, url) {
+  await fuentes();
+  const [cv, x] = lienzo(), tinta = '#2a2418', gris = '#6b5d43', papel = '#f4eedd';
+  x.fillStyle = C.fondo; x.fillRect(0, 0, W, H);
+  // Carpeta de cartón con su pestaña.
+  const cx = 40, cy = 92, cw = W - 80, ch = H - 140;
+  x.fillStyle = '#c9a86a'; caja(x, cx + 30, cy - 46, 360, 70, 12); x.fill();
+  caja(x, cx, cy, cw, ch, 22); x.fill();
+  texto(x, 'BANDO DE GUERRA', cx + 60, cy - 12, { font: `700 30px ${MQ}`, color: '#3b2f1c', esp: 2 });
+  // Hoja de papel, algo torcida, con renglones y agujeros.
+  x.save(); x.translate(W / 2, cy + ch / 2); x.rotate(-0.008);
+  const px = -cw / 2 + 26, py = -ch / 2 + 26, pw = cw - 52, ph = ch - 52;
+  x.shadowColor = 'rgba(0,0,0,0.35)'; x.shadowBlur = 24; x.shadowOffsetY = 8;
+  x.fillStyle = papel; x.fillRect(px, py, pw, ph); x.shadowColor = 'transparent';
+  x.strokeStyle = 'rgba(60,90,160,0.12)'; x.lineWidth = 2;
+  for (let yy = py + 60; yy < py + ph; yy += 44) { x.beginPath(); x.moveTo(px, yy); x.lineTo(px + pw, yy); x.stroke(); }
+  [py + 90, py + ph - 90].forEach((yy) => { x.fillStyle = '#c9a86a'; x.beginPath(); x.arc(px + 30, yy, 12, 0, Math.PI * 2); x.fill(); });
+  const L = px + 70, R = px + pw - 46, ancho = R - L;
+  let y = py + 74;
+  texto(x, 'ESTADO MAYOR DE LA NORMALIDAD', L, y, { font: `400 24px ${MQ}`, color: '#3b2f1c', esp: 1 }); y += 34;
+  texto(x, 'NEGOCIADO DE PROPAGANDA Y RECLUTAMIENTO', L, y, { font: `400 24px ${MQ}`, color: '#3b2f1c', esp: 1, max: ancho }); y += 70;
+  // Nombre de la guerra, subrayado.
+  const nombre = p.nombre || 'La guerra';
+  let tam = 78, ls = lineas(x, may(nombre), `700 ${tam}px ${MQ}`, ancho);
+  while (ls.length > 3 && tam > 44) { tam -= 6; ls = lineas(x, may(nombre), `700 ${tam}px ${MQ}`, ancho); }
+  ls.slice(0, 3).forEach((l) => { const w = texto(x, l, L, y, { font: `700 ${tam}px ${MQ}`, color: tinta }); x.fillStyle = tinta; x.fillRect(L, y + 10, w, 4); y += tam * 1.12; });
+  y += 18;
+  const qs = [p.pregunta].concat(p.otras || []).filter(Boolean).slice(0, 3);
+  qs.forEach((q) => { y += parrafo(x, 'ASUNTO: ' + q, L, y, { font: `700 32px ${MQ}`, color: tinta, max: ancho, alto: 42, maxLineas: 2 }) + 6; });
+  // Los dos monigotes, como una foto grapada, y el sello.
+  y += 16;
+  const fw = 430, fh = 300, fx = L, fy = y;
+  x.save(); x.translate(fx + fw / 2, fy + fh / 2); x.rotate(-0.03);
+  x.shadowColor = 'rgba(0,0,0,0.3)'; x.shadowBlur = 16; x.fillStyle = '#fbf8f0'; x.fillRect(-fw / 2, -fh / 2, fw, fh); x.shadowColor = 'transparent';
+  x.fillStyle = '#1c1836'; x.fillRect(-fw / 2 + 16, -fh / 2 + 16, fw - 32, fh - 64);
+  try { const [u, q] = await Promise.all([monigote('usa'), monigote('prusia')]); x.drawImage(u, -fw / 2 + 20, -fh / 2 + 20, 210, 210); x.drawImage(q, fw / 2 - 230, -fh / 2 + 20, 210, 210); } catch (e) { /* sin monigotes */ }
+  texto(x, 'FIG. 1 · LOS DOS BANDOS', 0, fh / 2 - 18, { font: `400 22px ${MQ}`, color: '#3b2f1c', align: 'center', esp: 1 });
+  x.fillStyle = 'rgba(240,232,205,0.85)'; x.save(); x.rotate(0.06); x.fillRect(-60, -fh / 2 - 16, 120, 34); x.restore();
+  x.restore();
+  // Ficha a máquina a la derecha de la foto.
+  const fichaX = fx + fw + 40, filas = [
+    p.campo ? ['CAMPO DE BATALLA', p.campo] : null,
+    ['FORMATO', p.formato === 'torneo' ? 'ELIMINATORIAS' : 'LIGA'],
+    ['RITMO', p.formato === 'torneo' ? 'RONDA A RONDA' : p.ritmo === 'diaria' ? 'UNA OFENSIVA AL DÍA' : 'TODO DE GOLPE'],
+    p.premio ? ['PREMIO', p.premio] : null
+  ].filter(Boolean);
+  let fyy = fy + 30;
+  filas.forEach(([k, v]) => {
+    texto(x, k, fichaX, fyy, { font: `400 20px ${MQ}`, color: gris, esp: 2 }); fyy += 34;
+    fyy += parrafo(x, may(v), fichaX, fyy, { font: `700 27px ${MQ}`, color: tinta, max: R - fichaX, alto: 32, maxLineas: 2 }) + 18;
+  });
+  sello(x, 'Se busca tropa', Math.min(R - 150, fichaX + 170), fyy + 26, 34, '#1f6b3a', -8);
+  y = Math.max(fy + fh, fyy + 60) + 50;
+  x.strokeStyle = '#b9ad8f'; x.setLineDash([10, 8]); x.beginPath(); x.moveTo(L, y); x.lineTo(R, y); x.stroke(); x.setLineDash([]);
+  y += 60;
+  const yAlistas = y;
+  texto(x, '¿TE ALISTAS?', L, y, { font: `800 76px ${BC}`, color: tinta }); y += 56;
+  y += parrafo(x, 'Desde el móvil, en secreto y sin instalar nada. Mira de qué va en el enlace del mensaje.', L, y, { font: `400 28px ${MQ}`, color: '#3b2f1c', max: ancho, alto: 38, maxLineas: 3 });
+  // Firma a pluma y sello redondo.
+  const fyF = Math.min(py + ph - 140, Math.max(y + 30, py + ph - 190));
+  x.strokeStyle = '#1d2a6b'; x.lineWidth = 4; x.lineCap = 'round'; x.beginPath();
+  const fx0 = R - 330; x.moveTo(fx0, fyF + 40); x.bezierCurveTo(fx0 + 30, fyF - 20, fx0 + 60, fyF - 10, fx0 + 55, fyF + 35); x.bezierCurveTo(fx0 + 70, fyF + 60, fx0 + 100, fyF - 10, fx0 + 120, fyF + 20);
+  x.bezierCurveTo(fx0 + 140, fyF + 50, fx0 + 170, fyF - 20, fx0 + 200, fyF + 15); x.lineTo(fx0 + 300, fyF - 5); x.stroke();
+  texto(x, may(p.firma || (p.gente || []).filter((g) => g.mando).map((g) => g.nombre)[0] || 'EL ALTO MANDO'), fx0 + 150, fyF + 80, { font: `700 26px ${MQ}`, color: tinta, align: 'center', max: 340 });
+  texto(x, 'POR ORDEN DEL ALTO MANDO', fx0 + 150, fyF + 112, { font: `400 20px ${MQ}`, color: gris, align: 'center', esp: 1 });
+  x.save(); x.translate(fx0 - 130, fyF + 50); x.rotate(-0.25); x.strokeStyle = 'rgba(179,38,30,0.55)'; x.lineWidth = 5; x.beginPath(); x.arc(0, 0, 80, 0, Math.PI * 2); x.stroke();
+  x.lineWidth = 2.5; x.beginPath(); x.arc(0, 0, 54, 0, Math.PI * 2); x.stroke();
+  texto(x, 'OFICINA DE', 0, -8, { font: `700 17px ${MQ}`, color: 'rgba(179,38,30,0.65)', align: 'center' });
+  texto(x, 'RECLUTAMIENTO', 0, 16, { font: `700 15px ${MQ}`, color: 'rgba(179,38,30,0.65)', align: 'center' }); x.restore();
+  x.restore();
+  texto(x, '¡SÓLO PUEDE QUEDAR UNO!', W / 2, H - 14, { font: `800 34px ${BC}`, color: '#fff', align: 'center', esp: 3 });
+  return cv;
+}
+// Abre el bando dibujado con los botones de compartir. «texto» es el mensaje de WhatsApp (con el enlace).
+export async function abrirBando(p, texto) {
+  S.velo = `<div class="velo"><div class="caja centro" role="status">Imprimiendo el bando…</div></div>`;
+  pintar();
+  const cv = await cartelBando(p);
+  const blob = await new Promise((ok) => cv.toBlob(ok, 'image/jpeg', 0.9));
+  const archivo = new File([blob], 'bando-de-guerra.jpg', { type: 'image/jpeg' });
+  const url = URL.createObjectURL(blob);
+  S.ui.cartel = { archivo, texto, url };
+  const puede = navigator.canShare && navigator.canShare({ files: [archivo] });
+  S.velo = `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="velo-t"><div class="caja" style="max-width:460px;gap:10px">
+    <div class="fila entre"><h2 class="h2" id="velo-t">Bando de guerra</h2><button class="cuadro" data-a="cerrarCartel" aria-label="Cerrar">${ico('equis')}</button></div>
+    <img src="${url}" alt="Bando de guerra" style="width:100%;border-radius:10px;border:1px solid #3a3566">
+    ${puede ? `<button class="btn" data-a="compartirCartel">${ico('wasap')}Compartir el bando</button><p class="peq t2" style="margin:0">Elige WhatsApp: llega la imagen con el texto y el enlace debajo.</p>`
+      : `<p class="peq t2" style="margin:0">Este navegador no sabe mandar imágenes a otras apps: descarga el bando, cópialo en WhatsApp y pega el texto.</p>`}
+    <a class="btn ${puede ? 'linea medio' : ''}" href="${url}" download="bando-de-guerra.jpg">Descargar la imagen</a>
+    <button class="btn linea medio" data-a="copiarTexto">${ico('copiar')}Copiar el texto con el enlace</button>
+  </div></div>`;
+  pintar();
+}
 
 export function botonCartel(tipo, texto, clase = 'btn linea medio') {
   return `<button class="${clase}" data-a="cartel" data-v="${tipo}">${texto}</button>`;

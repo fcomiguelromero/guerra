@@ -69,6 +69,13 @@ const texto = (p) => p.locator('#app').innerText();
     assert.ok(/#p=g\w+\.\w+$/.test(urlPres));
     assert.ok(/^mailto:\?subject=/.test(await m.getByRole('link', { name: 'Por correo' }).getAttribute('href')));
     await foto(m, '00-plan-presentacion', true);
+    // El bando: el cartel de la guerra como imagen, para WhatsApp.
+    await m.locator('[data-a="bando"]').click();
+    await m.waitForSelector('.velo img[alt="Bando de guerra"]', { timeout: 20000 });
+    const bando = await m.locator('.velo img[alt="Bando de guerra"]').evaluate(async (img) => { const r = await fetch(img.src); const b = new Uint8Array(await r.arrayBuffer()); let s = ''; b.forEach((c) => { s += String.fromCharCode(c); }); return btoa(s); });
+    fs.writeFileSync(path.join(SALIDA, '00-bando.jpg'), Buffer.from(bando, 'base64'));
+    await foto(m, '00-bando-dialogo');
+    await m.locator('.velo [data-a="cerrarCartel"]').click();
     const pr = await pagina(navegador, 390, 844, urlPres.slice(urlPres.indexOf('#')));
     await pr.waitForSelector('.enorme');
     const tp = await texto(pr);

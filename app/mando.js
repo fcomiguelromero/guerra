@@ -1,12 +1,12 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=46';
-import { escena } from './monigotes.js?v=46';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=46';
-import { botonCartel, imagenTropa } from './carteles.js?v=46';
-import { recortarFoto } from './recorte.js?v=46';
-import { icono, ILU } from './dibujos.js?v=46';
-import { frente, filaRezagados } from './graficos.js?v=46';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=47';
+import { escena } from './monigotes.js?v=47';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=47';
+import { botonCartel, imagenTropa, abrirBando } from './carteles.js?v=47';
+import { recortarFoto } from './recorte.js?v=47';
+import { icono, ILU } from './dibujos.js?v=47';
+import { frente, filaRezagados } from './graficos.js?v=47';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -160,25 +160,30 @@ accion('anadirFrase', async () => {
 accion('borrarFrase', async (id) => { S.ui.repertorio = await llamar('guardarFrase', { borrar: id }); pintar(); });
 
 // Presentación: una página sólo explicativa, para animar a la gente antes de meterla en la guerra.
+accion('bando', async () => { await guardarPlan(); seccionPresentacion(); await abrirBando(Object.assign({}, S.ui.plan, { otras: S.ui.otrasLista || S.ui.plan.otras }), S.ui.textoBando); });
 function seccionPresentacion() {
   const p = S.ui.plan;
   if (!p.presenta) return `<section class="caja"><h2 class="h2">Presentación de la guerra</h2><p class="med t2">Una página que explica el juego para animar a la gente a participar. Guarda el plan para obtener su enlace.</p></section>`;
   const url = enlaceApp() + '#p=' + p.presenta, nombre = tituloGuerra(p) || 'una guerra';
-  // El correo y el WhatsApp van en texto plano: lo esencial en líneas cortas con emoji, y el resto en la página.
+  // El mensaje de WhatsApp: corto, con negritas y cursivas de WhatsApp, y el enlace al final. El resto está en la página.
+  const qs = [p.pregunta].concat(S.ui.otrasLista || p.otras || []).filter(Boolean);
   const lineas = [
-    p.modo === 'cosas' ? '⚔️ Dos contendientes, una pregunta: eliges cuál gana.' : '⚔️ Todos contra todos: dos de nosotros, una pregunta, y eliges a uno.',
-    p.ritmo === 'diaria' ? '📱 Unas pocas batallas cada mañana, desde el móvil y sin instalar nada.' : '📱 Votas desde el móvil, a tu ritmo y sin instalar nada.',
-    '🤫 En secreto: nadie sabrá a quién has votado.',
-    p.extras && p.extras.desfile ? '🥁 Y al final, el desfile de la victoria: la clasificación, en directo.' : '📜 Al final, el parte de guerra con la clasificación.'
-  ].concat(p.premio ? ['🏆 Premio: ' + p.premio] : []);
-  const texto = `Se avecina la ${nombre}${p.pregunta ? ': «' + p.pregunta + '»' : ''}\n\n${lineas.join('\n')}\n\n👉 Mira de qué va: ${url}\n\nSi te alistas, avísame y te meto en la guerra.`;
-  const correo = 'mailto:?subject=' + encodeURIComponent('Se avecina la ' + nombre) + '&body=' + encodeURIComponent(texto + (p.firma ? '\n\n' + p.firma : ''));
+    p.modo === 'cosas' ? '⚔️ Dos contendientes, una pregunta: tú eliges cuál gana.' : '⚔️ Todos contra todos: dos de nosotros, una pregunta, y eliges a uno.',
+    p.ritmo === 'diaria' ? '📱 Unas batallas cada mañana, desde el móvil.' : '📱 Desde el móvil, a tu ritmo.',
+    '🤫 Votas en secreto.'
+  ].concat(p.premio ? ['🏆 *Premio:* ' + p.premio] : []);
+  const firma = p.firma || (p.gente.find((g) => g.mando) || {}).nombre || '';
+  const texto = `*SE AVECINA LA ${nombre.toLocaleUpperCase('es')}*\n${qs.map((q) => '_«' + q + '»_').join('\n')}\n\n${lineas.join('\n')}\n\n👉 *Mira de qué va:* ${url}\n\n¿Te alistas? Avísame y te meto en la guerra.${firma ? '\n— ' + firma : ''}`;
+  const correo = 'mailto:?subject=' + encodeURIComponent('Se avecina la ' + nombre) + '&body=' + encodeURIComponent(texto.replace(/[*_]/g, ''));
+  S.ui.textoBando = texto;
   return `<section class="caja oro"><h2 class="h2">Presentación de la guerra</h2>
     <p class="med t2">Una página que explica de qué va el juego, para animar a la gente. Es sólo para leer: no tiene botones, ni cartas, ni nombres. Quien quiera participar te avisa a ti y tú lo reclutas aquí.</p>
     <label class="campo"><span>Tu mensaje (opcional)</span><textarea id="p-pitch" maxlength="600" data-m="plan.pitch" placeholder="Compañeros: ha llegado la hora de saber quién es quién.">${esc(p.pitch || '')}</textarea></label>
     <p class="peq t2" style="margin-top:-6px">Sale firmado por ti. La página usa el nombre, la pregunta, el premio y los extras de este plan: guarda antes de compartirla.</p>
     <a class="btn oro medio" href="${esc(url)}" target="_blank" rel="noopener">Ver la presentación</a>
-    <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Por WhatsApp</a>
+    <button class="btn medio" data-a="bando">${ico('wasap')}Compartir el bando por WhatsApp</button>
+    <p class="peq t2" style="margin-top:-6px">Un cartel de la guerra como imagen, con el texto y el enlace. Es lo que mejor se ve en WhatsApp.</p>
+    <div class="fila" style="flex-wrap:wrap"><a class="btn medio linea crece" href="${wasap(texto)}" target="_blank" rel="noopener">${ico('wasap')}Sólo el texto</a>
       <a class="btn medio linea crece" href="${esc(correo)}">Por correo</a>
       <button class="btn linea medio" data-a="copiar" data-v="${esc(url)}">${ico('copiar')}Copiar enlace</button></div></section>`;
 }
