@@ -633,3 +633,49 @@ ul, ol { padding: 0; list-style: none; }
 @keyframes flotaCorazon { 0% { opacity: 0; bottom: -12%; transform: translateX(0) scale(.6) rotate(-10deg); } 12% { opacity: .95; } 50% { transform: translateX(12px) scale(1) rotate(8deg); } 85% { opacity: .85; } 100% { opacity: 0; bottom: 100%; transform: translateX(-6px) scale(1.15) rotate(-6deg); } }
 .carta.gris .corazones-carta { display: none; }
 @media (prefers-reduced-motion: reduce) { .carta.amor, .cara-amor *, .corazones-carta svg { animation: none !important; } .corazones-carta svg { opacity: .8; bottom: 20%; } }
+
+/* Parte de guerra final: expediente oficial (carpeta de cartón, hojas a máquina, clip, sellos, firma y café) */
+.expediente { position: relative; display: flex; flex-direction: column; gap: 16px; padding: 26px 12px 18px; border-radius: 6px 16px 16px 16px; background: #c9a86a;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.16), transparent 30%), repeating-linear-gradient(90deg, rgba(0,0,0,.025) 0 2px, transparent 2px 6px); box-shadow: 0 12px 30px rgba(0,0,0,.55); margin-top: 6px; }
+.expediente::before { content: 'ARCHIVO DE LA GUERRA'; position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: .3em; color: rgba(59,47,28,.55); }
+.parte-hoja { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 22px 16px 18px 30px; border-radius: 3px; background: #f4eedd; color: #2a2418;
+  background-image: radial-gradient(circle at 12px 40px, #c9a86a 5px, rgba(0,0,0,.25) 5.5px, transparent 6.5px), radial-gradient(circle at 12px calc(100% - 40px), #c9a86a 5px, rgba(0,0,0,.25) 5.5px, transparent 6.5px), repeating-linear-gradient(180deg, transparent 0 25px, rgba(60,90,160,.1) 25px 26px);
+  box-shadow: 0 2px 0 #d8cfb8, 0 10px 20px rgba(0,0,0,.4); font-family: 'Courier New', Courier, monospace; }
+.parte-hoja .maquina, .parte-hoja .maquina-t { color: #2a2418; }
+.parte-portada { transform: rotate(-.6deg); }
+.parte-portada .pestana-carpeta { top: -15px; left: 14px; background: #e8dfc6; color: #3b2f1c; }
+.parte-portada .maquina-t { font-size: 34px; letter-spacing: .03em; text-transform: uppercase; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.parte-hoja .sello-oficial { top: 150px; right: 14px; border-color: #1f6b3a; color: #1f6b3a; font-size: 22px; }
+.sello-redondo { position: absolute; width: 96px; height: 96px; color: rgba(29,42,107,.55); mix-blend-mode: multiply; pointer-events: none; }
+.parte-portada .sello-redondo { right: 18px; bottom: 14px; transform: rotate(14deg); }
+.parte-firma .sello-redondo { right: 8px; bottom: 26px; transform: rotate(-18deg); color: rgba(179,38,30,.45); }
+.clip-papel { position: absolute; top: -22px; right: 70px; width: 22px; height: 56px; transform: rotate(-8deg); filter: drop-shadow(1px 2px 1px rgba(0,0,0,.35)); }
+.ficha-parte { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; margin: 4px 0; padding: 8px 0; border-top: 1px dashed #b9ad8f; border-bottom: 1px dashed #b9ad8f; max-width: 560px; }
+.ficha-parte div { display: flex; flex-direction: column; padding: 4px 0; }
+.ficha-parte dt { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #6b5d43; }
+.ficha-parte dd { margin: 0; font-weight: 700; font-size: 15px; color: #2a2418; text-transform: uppercase; }
+.parte-firma .garabato { width: 150px; height: 44px; }
+.parte-firma .pagina-parte { align-self: center; margin-top: 6px; letter-spacing: .2em; }
+.parte-campeon { align-items: center; }
+.foto-grapada { position: relative; transform: rotate(-2deg); align-self: center; }
+.foto-grapada::before, .foto-grapada::after { content: ''; position: absolute; z-index: 3; top: -10px; width: 74px; height: 24px; background: rgba(240,232,205,.78); box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.foto-grapada::before { left: -14px; transform: rotate(-32deg); } .foto-grapada::after { right: -14px; transform: rotate(32deg); }
+.parte-campeon .enorme { color: #2a2418 !important; font-size: 44px; }
+.parte-final .caja::after, .parte-campeon .caja::after { content: attr(data-sello); }
+.parte-final .caja:not([data-sello])::after, .parte-campeon .caja:not([data-sello])::after { display: none; }
+.parte-final > .caja:nth-child(odd), .parte-final > section.col:nth-child(odd) { transform: rotate(.4deg); }
+.parte-final > .caja:nth-child(even), .parte-final > section.col:nth-child(even) { transform: rotate(-.35deg); }
+.dossier .caja.cafe::before { content: ''; position: absolute; right: 36px; top: -14px; width: 92px; height: 92px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, transparent 54%, rgba(120,72,28,.22) 57%, rgba(120,72,28,.1) 62%, transparent 66%); transform: rotate(20deg) scaleX(1.08); }
+.dossier .pareja-desfile { background: transparent; border-color: #d8cfb8; }
+.dossier .medalla-pareja { color: #0d0b1a !important; } .dossier .medalla-pareja * { color: #0d0b1a !important; }
+@media (min-width: 900px) { .expediente { padding: 30px 26px 24px; } .ficha-parte { grid-template-columns: repeat(4, 1fr); max-width: none; } }
+.regla-beso { display: flex; justify-content: center; margin: 2px 0 6px; } .regla-beso .escena { width: 100%; max-width: 280px; }
+.tarjeta-dibujo .escena-beso { width: 100%; }
+.aviso-amor { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(255,106,213,.45); background: rgba(255,106,213,.1); font-size: 15px; }
+.propinas li.propina-amor { grid-column: 1 / -1; border-color: rgba(255,106,213,.5); }
+.propina-amor .escena { width: 100%; max-width: 300px; align-self: center; }
+
+.dossier b, .parte-hoja b { color: #2a2418 !important; }
+.dossier .avatar, .dossier .avatar * { color: #fff !important; }
+@media (min-width: 900px) { .parte-hoja .sello-oficial { top: 70px; right: 220px; } }

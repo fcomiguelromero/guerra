@@ -1,9 +1,9 @@
 // Álbum de la guerra: el recuerdo final, para todos los combatientes cuando se publica el parte.
 // Se dibuja en el propio dispositivo por bloques (portada, cuadro de honor, parte, condecoraciones...)
 // y sale de dos maneras: una imagen larga para WhatsApp y un PDF de páginas A4 para guardar o imprimir.
-import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=40';
-import { dibujo } from './carteles.js?v=40';
-import { listaCuriosidades, TITULOS, detallePremio } from './combate.js?v=40';
+import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=41';
+import { dibujo } from './carteles.js?v=41';
+import { listaCuriosidades, TITULOS, detallePremio } from './combate.js?v=41';
 
 const { W, M, C, BC, IN, may, imagen, fuentes, caja, texto, lineas, parrafo, cartita, sello } = dibujo;
 const PAGINA = Math.round(W * Math.SQRT2);           // proporción A4

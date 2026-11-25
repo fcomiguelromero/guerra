@@ -1,8 +1,8 @@
 // Presentación de la guerra: una página sólo para leer, que explica el juego y anima a participar.
 // Se abre con #p=ID.CLAVE. No tiene botones, ni cartas, ni nombres de nadie: quien quiera alistarse avisa al alto mando.
-import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=40';
-import { icono } from './dibujos.js?v=40';
-import { soldado } from './monigotes.js?v=40';
+import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=41';
+import { icono } from './dibujos.js?v=41';
+import { soldado, escena } from './monigotes.js?v=41';
 
 alEntrar('/presentacion', async () => {
   S.ui.presDatos = null; S.ui.presError = null;
@@ -62,7 +62,7 @@ registrar('/presentacion', () => {
     ${demo}
     ${d.pitch ? `<section class="caja rosa"><p style="font-style:italic;white-space:pre-line">«${esc(d.pitch)}»</p><span class="peq t2">${esc(d.firma)}, alto mando</span></section>` : ''}
     <section class="col g8"><h2 class="h2">Cómo funciona</h2><ol class="pasos-pres">${pasos.map((q, k) => paso(q, k + 1)).join('')}</ol></section>
-    <section class="col g8"><h2 class="h2">Y de propina</h2><ul class="propinas">${propinas.map(([ic, c, t, corta, det]) => `<li style="--c:${c}"><span class="paso-ico chico">${icono(ic, 22, 1.8)}</span>
+    <section class="col g8"><h2 class="h2">Y de propina</h2><ul class="propinas">${propinas.map(([ic, c, t, corta, det]) => `<li style="--c:${c}"${ic === 'corazon' ? ' class="propina-amor"' : ''}>${ic === 'corazon' ? escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 110) : ''}<span class="paso-ico chico">${icono(ic, 22, 1.8)}</span>
       <strong class="bc paso-t">${esc(t)}</strong><span class="peq t3">${esc(corta)}</span>${leerMas(det)}</li>`).join('')}</ul></section>
     ${d.premio ? `<section class="caja oro centro" style="align-items:center"><span class="oro">${icono('medalla', 34, 1.8)}</span><span class="sobre oro">El premio</span><strong class="bc" style="font-size:28px;line-height:1.05;color:#fff">${esc(d.premio)}</strong></section>` : ''}
     <section class="caja teal centro" style="align-items:center;padding:20px 14px">

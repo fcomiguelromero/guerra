@@ -65,6 +65,11 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await foto(m, '04-ordenanzas', true); if (!/en el amor y en la guerra/i.test(ord)) console.log(ord.slice(0, 3000));
     assert.ok(/en el amor y en la guerra/i.test(ord), 'las ordenanzas explican las parejas');
     await foto(m, '04-ordenanzas', true);
+    const presenta = (await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).plan.presenta;
+    const pr = await pagina(nav, 390, 844, '#p=' + presenta);
+    await pr.waitForSelector('.propina-amor .escena-beso');
+    await pr.locator('.propina-amor').scrollIntoViewIfNeeded(); await pr.waitForTimeout(500);
+    await pr.locator('.propina-amor').screenshot({ path: path.join(SALIDA, '04b-presentacion-amor.png') });
     await plan.declarar(m);
     await m.locator('[data-a="declararYa"]').click();
     await m.waitForFunction(() => location.hash === '#/cuartel');
@@ -72,6 +77,11 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     const tok = {};
     correos.forEach((c) => { tok[NOMBRES[Number(c.para[1])]] = /#t=([\w.]+)/.exec(c.html)[1]; });
     const est0 = await api('estado', { token: tok['Lucía'] });
+    const ordz = await pagina(nav, 390, 844, '#t=' + tok['Rosa']);
+    await ordz.evaluate(() => { location.hash = '#/ordenanzas'; }); await quieto(ordz);
+    assert.ok(await ordz.locator('.regla-beso .escena-beso').count(), 'el beso sale en la ordenanza de las parejas');
+    await ordz.locator('.regla-beso').scrollIntoViewIfNeeded(); await ordz.waitForTimeout(500);
+    await foto(ordz, '04c-ordenanzas-amor');
     const id = (n) => est0.gente.find((g) => g.nombre === n).id;
     assert.strictEqual(est0.gente.find((g) => g.nombre === 'Lucía').pareja, id('Pablo'));
     assert.strictEqual(est0.gente.find((g) => g.nombre === 'Rosa').pareja, id('Elena'));
@@ -122,6 +132,37 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
       est = await api('estado', { token: tok['Lucía'] });
     }
     assert.ok(fs.existsSync(path.join(SALIDA, '09-desfile-parejas.png')), 'el desfile tiene el paso de las parejas');
+    // Parte de guerra final, como expediente.
+    await api('desfile', { mando: 'mando-local', token: tok['Fran'], orden: 'terminar' });
+    const pf = await pagina(nav, 390, 844, '#t=' + tok['Rosa']);
+    await pf.waitForSelector('.expediente'); await pf.waitForTimeout(500);
+    assert.ok(/parte n\.º/i.test(await pf.locator('.parte-portada').innerText()), 'el parte lleva su número');
+    await foto(pf, '10-parte-final-movil', true);
+    const pfc = await pagina(nav, 1280, 860, '#t=' + tok['Lucía']);
+    await pfc.waitForSelector('.expediente'); await pfc.waitForTimeout(500);
+    await foto(pfc, '11-parte-final-pc', true);
+    // Ritmo diario: la ofensiva con duelo doméstico da la bienvenida con el beso.
+    const { id: id2 } = await api('crearGuerra', { mando: 'mando-local', plan: {} });
+    const p2 = (await api('plan', { mando: 'mando-local', guerra: id2 })).plan;
+    Object.assign(p2, { nombre: 'Guerra diaria de parejas', pregunta: '¿Quién es más normal?', ritmo: 'diaria' });
+    p2.gente = ['Ana', 'Beto', 'Ceci', 'Dani'].map((n, i) => ({ nombre: n, correo: 'd' + i + '@ejemplo.test', frase: '', foto: null, combate: true, mando: i === 3, parejaK: i === 0 ? 1 : i === 1 ? 0 : null }));
+    await api('guardarPlan', { mando: 'mando-local', guerra: id2, plan: p2 });
+    await api('declarar', { mando: 'mando-local', guerra: id2 });
+    const c2 = (await api('_prueba', {})).correos.filter((c) => /^d2@/.test(c.para) && /#t=/.test(c.html)).pop();
+    const t2 = /#t=([\w.]+)/.exec(c2.html)[1];
+    let vistoBeso = false;
+    for (let dia = 0; dia < 4 && !vistoBeso; dia++) {
+      const pb = await (await nav.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+      pb.on('pageerror', (e) => errores.push(e.message));
+      await pb.goto(BASE + '#t=' + t2); await quieto(pb);
+      if (await pb.locator('.bienvenida .escena-beso').count()) { vistoBeso = true; await pb.waitForTimeout(600); await foto(pb, '12-bienvenida-duelo-domestico'); }
+      else {
+        if (await pb.locator('[data-a="alCombate"]').count()) await pb.locator('[data-a="alCombate"]').click();
+        await api('_prueba', { salto: 24 * 3600 * 1000, reloj: true });
+      }
+      await pb.close();
+    }
+    assert.ok(vistoBeso, 'la bienvenida del día del duelo doméstico lleva el beso');
   } finally { await nav.close(); servidor.kill(); }
   if (errores.length) { console.log('ERRORES DE PANTALLA:\n' + errores.join('\n')); process.exit(1); }
   console.log('Parejas sin errores. Capturas en ' + SALIDA);
