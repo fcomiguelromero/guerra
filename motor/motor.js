@@ -943,7 +943,7 @@ function crearMotor(env) {
   }
   function pieFirma(doc, papel) {
     if (!papel) return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
-    return '<p style="margin:18px 0 0"><span style="font-family:\'Brush Script MT\',\'Segoe Script\',cursive;font-size:26px;color:#1d2a6b">' + esc(nombreMando(doc)) + '</span><br><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Por orden del alto mando</span></p>';
+    return '<p style="margin:18px 0 0"><span style="font-family:\'Brush Script MT\',\'Segoe Script\',cursive;font-size:26px;color:#1d2a6b">' + esc(nombreMando(doc)) + '</span><br><span style="font-size:13px;color:#b3aecf">Por orden del alto mando</span></p>';
   }
   function avisarOfensiva(doc, n, t) {
     var total = esTorneo(doc) && doc.cuadro ? doc.cuadro.R : totalOfensivas(doc), enviados = 0, torneo = esTorneo(doc) && doc.cuadro;
