@@ -79,6 +79,21 @@ const ESCENAS = {
       <g stroke="#a39d8a" stroke-width="2">${[88, 95, 102, 109, 116, 123, 130].map((y) => `<path d="M62 ${y}h52M126 ${y}h52"/>`).join('')}</g>
       <rect x="66" y="86" width="28" height="18" fill="#cfc9b5"/></g>
     <g class="lupa"><circle cx="206" cy="58" r="12" fill="rgba(255,255,255,.12)" stroke="#ffd36a" stroke-width="3"/><path d="M196 67 L186 78" stroke="#ffd36a" stroke-width="4" stroke-linecap="round"/></g>`,
+  // En el amor y en la guerra: el americano y el prusiano se besan sobre la trinchera, con los fusiles tirados y corazones subiendo.
+  beso: () => `
+    <g fill="#f2f0ff" opacity=".7"><circle cx="24" cy="22" r="1.3"/><circle cx="62" cy="10" r="1"/><circle cx="196" cy="14" r="1.2"/><circle cx="222" cy="40" r="1"/></g>
+    <g class="beso-izq">${en('usa', 46, 18, 92, { dormido: true, sinFusil: true, sinChicle: true }, 22)}</g>
+    <g class="beso-der">${en('prusia', 102, 18, 92, { dormido: true, sinFusil: true }, -22)}</g>
+    <g class="morritos"><path d="M112 58 Q116 53 120 57 Q124 53 128 58 Q120 66 112 58 Z" fill="#ff4fb8"/><path d="M113 58 Q120 60.5 127 58" stroke="#a8237a" stroke-width="1.1" fill="none"/></g>
+    <path class="beso-chispa" d="M120 14c-2.6-3.2-7.4-1.4-6.2 2.4.9 2.7 6.2 6.1 6.2 6.1s5.3-3.4 6.2-6.1c1.2-3.8-3.6-5.6-6.2-2.4z" fill="#ff6ad5"/>
+    <g class="corazones" fill="#ff6ad5">
+      <path d="M104 30c-2-2.5-5.8-1.1-4.8 1.9.7 2.1 4.8 4.7 4.8 4.7s4.1-2.6 4.8-4.7c1-3-2.8-4.4-4.8-1.9z"/>
+      <path d="M128 22c-2.6-3.2-7.4-1.4-6.2 2.4.9 2.7 6.2 6.1 6.2 6.1s5.3-3.4 6.2-6.1c1.2-3.8-3.6-5.6-6.2-2.4z" fill="#ffa3e6"/>
+      <path d="M146 34c-1.6-2-4.6-.9-3.8 1.5.6 1.7 3.8 3.8 3.8 3.8s3.2-2.1 3.8-3.8c.8-2.4-2.2-3.5-3.8-1.5z"/></g>
+    <path d="M0 112 Q20 98 44 106 Q70 94 98 106 Q124 96 150 106 Q178 94 204 106 Q226 98 240 108 V140 H0 Z" fill="#3a3166"/>
+    <g stroke-linecap="round"><path d="M18 118 L74 100" stroke="#9a58a3" stroke-width="4"/><path d="M222 118 L166 100" stroke="#4d93a6" stroke-width="4"/><path d="M162 99 L156 97" stroke="#ff9d7a" stroke-width="4"/></g>
+    <g fill="#4a4080" stroke="#2a2648" stroke-width="1.2">${[12, 52, 92, 132, 172, 212].map((x) => `<rect x="${x}" y="${112 + (x % 3)}" width="36" height="14" rx="7"/>`).join('')}${[32, 72, 112, 152, 192].map((x) => `<rect x="${x}" y="124" width="36" height="14" rx="7"/>`).join('')}</g>
+    <path d="M120 120c-2.6-3.2-7.4-1.4-6.2 2.4.9 2.7 6.2 6.1 6.2 6.1s5.3-3.4 6.2-6.1c1.2-3.8-3.6-5.6-6.2-2.4z" fill="#ff6ad5" stroke="#2a2648" stroke-width="1"/>`,
   // Radio Macuto: con un megáfono y las ondas saliendo.
   altavoz: () => `
     ${en('usa', 24, 24, 104, { sinFusil: true, sinChicle: true, mira: 1.6 })}

@@ -54,8 +54,8 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await foto(m, '03-extras-parejas', true);
     await plan.paso(m, 5); await plan.abrir(m, 'ordenanzas');
     const ord = await m.locator('body').innerText();
-    await foto(m, '04-ordenanzas', true); if (!/parejas de hecho/i.test(ord)) console.log(ord.slice(0, 3000));
-    assert.ok(/parejas de hecho/i.test(ord), 'las ordenanzas explican las parejas');
+    await foto(m, '04-ordenanzas', true); if (!/en el amor y en la guerra/i.test(ord)) console.log(ord.slice(0, 3000));
+    assert.ok(/en el amor y en la guerra/i.test(ord), 'las ordenanzas explican las parejas');
     await foto(m, '04-ordenanzas', true);
     await plan.declarar(m);
     await m.locator('[data-a="declararYa"]').click();

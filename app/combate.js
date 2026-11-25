@@ -1,15 +1,15 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=37';
-import { botonesCalendario } from './calendario.js?v=37';
-import { botonAlbum } from './album.js?v=37';
-import { icono, ILU, piezas } from './dibujos.js?v=37';
-import { escena } from './monigotes.js?v=37';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=37';
-import { enfadar } from './caras.js?v=37';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=37';
-import { nombreRonda, preferencia } from './base.js?v=37';
+import { botonCartel } from './carteles.js?v=38';
+import { botonesCalendario } from './calendario.js?v=38';
+import { botonAlbum } from './album.js?v=38';
+import { icono, ILU, piezas } from './dibujos.js?v=38';
+import { escena } from './monigotes.js?v=38';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=38';
+import { enfadar } from './caras.js?v=38';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=38';
+import { nombreRonda, preferencia } from './base.js?v=38';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=37';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=38';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -428,7 +428,7 @@ accion('votarDuelo', async (id) => { await llamar('votarDuelo', { elegido: id },
 
 function etiquetaSiguiente(s) {
   if (!s) return 'Terminar el desfile';
-  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', parejas: 'las parejas de hecho', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
+  return 'Siguiente: ' + ({ consejo: 'consejo de guerra', proclama: 'una proclama', condecoracion: 'condecoración', duelo: 'el duelo final', finalistas: 'los dos finalistas', campeon: 'revelar al campeón', parejas: 'en el amor y en la guerra', pregunta: 'campeón de la pregunta ' + s.k }[s.t] || ordinal(s.pos) + ' puesto');
 }
 export { etiquetaSiguiente, bloqueDuelo, listaPremios, detallePremio, TITULOS, textoBatallas, pantallaDesfile };
 
@@ -497,7 +497,7 @@ function pantallaDesfile(vista, ensayo) {
       ${carta(G[a.fila.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(a.fila)}<span class="t2">${textoBatallas(a.fila)}</span><span class="t2">${signo(a.fila.dif)}</span></div>` })}
       ${narrador(a.frase)}${a.guino ? `<p class="narrador guino">${ico('corazon', 18)}<span>${esc(a.guino)}</span></p>` : ''}`;
   } else if (a.t === 'parejas') {
-    centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Parejas de hecho</h2><span class="med t2">Lo que vuestros votos dicen de cada casa</span></div>${bloqueParejas(a.parejas, G)}`;
+    centro = `<div class="col g4 centro">${escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 150)}<h2 class="enorme" style="font-size:34px">En el amor y en la guerra</h2><span class="med t2">Lo que vuestros votos dicen de cada casa</span></div>${bloqueParejas(a.parejas, G)}`;
   } else if (a.t === 'proclama') {
     centro = `<div class="col g4 centro"><h2 class="enorme" style="font-size:36px">Proclamas anónimas</h2><span class="peq rosa" style="font-weight:600;letter-spacing:.14em;text-transform:uppercase">Proclama anónima · ${a.n} de ${a.de}</span></div>
       <blockquote class="cita" style="margin:0">«${esc(a.texto || '')}»</blockquote>
@@ -583,7 +583,7 @@ function pantallaPublicada() {
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>Enemigo íntimo: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
     ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
     ${campeonesPregunta(r, G)}
-    ${r.parejas ? `<section class="col g8"><h2 class="h2">Parejas de hecho</h2>${bloqueParejas(r.parejas, G)}</section>` : ''}
+    ${r.parejas ? `<section class="col g8"><div class="amor-cab">${escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 110)}<h2 class="h2">En el amor y en la guerra</h2></div>${bloqueParejas(r.parejas, G)}</section>` : ''}
     ${listaCuriosidades(r, G).length ? `<section class="caja"><h2 class="h2">Curiosidades</h2>${listaCuriosidades(r, G).map((x) => `<p class="med">${x}</p>`).join('')}</section>` : ''}
     ${r.proclamas.length ? `<section class="caja"><h2 class="h2">Proclamas anónimas</h2>${r.proclamas.map((p) => `<p class="med"><span class="t2">${esc(G[p.a].nombre)} contra ${esc(G[p.b].nombre)} · a ${esc(G[p.elegido].nombre)}</span><br><em>«${esc(p.texto)}»</em></p>`).join('')}</section>` : ''}`,
     { fondo: 'a', ancha: true });

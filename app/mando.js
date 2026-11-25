@@ -1,11 +1,12 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=37';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=37';
-import { botonCartel, imagenTropa } from './carteles.js?v=37';
-import { recortarFoto } from './recorte.js?v=37';
-import { icono, ILU } from './dibujos.js?v=37';
-import { frente, filaRezagados } from './graficos.js?v=37';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=38';
+import { escena } from './monigotes.js?v=38';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=38';
+import { botonCartel, imagenTropa } from './carteles.js?v=38';
+import { recortarFoto } from './recorte.js?v=38';
+import { icono, ILU } from './dibujos.js?v=38';
+import { frente, filaRezagados } from './graficos.js?v=38';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -395,8 +396,9 @@ function paso4(p, previa) {
       const si = !!p.extras[k], [t, d] = CORTO_EXTRA[k];
       return `<button class="extra ${si ? 'on' : ''}" aria-pressed="${si}" data-a="extra" data-v="${k}"><span class="luz" aria-hidden="true"></span>${icono(ICONO_EXTRA[k], 32, 1.8)}<span class="bc">${t}</span><span class="peq">${d}</span></button>`;
     }).join('')}</div>
-    <section class="col g8"><div class="fila entre" style="align-items:baseline"><h2 class="h2 fila" style="gap:8px"><span class="rosa">${icono('anillos', 22)}</span>Parejas de hecho</h2>
-        <span class="peq ${parejasPlan(p).length ? 'rosa' : 't2'}">${parejasPlan(p).length ? plural(parejasPlan(p).length, 'pareja marcada', 'parejas marcadas') : 'Sin parejas marcadas'}</span></div>
+    <section class="col g8 amor-plan">${escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 96)}
+      <div class="fila entre" style="align-items:baseline"><h2 class="h2">En el amor y en la guerra</h2>
+        <span class="peq ${parejasPlan(p).length ? 'rosa' : 't2'}" style="white-space:nowrap">${parejasPlan(p).length ? plural(parejasPlan(p).length, 'pareja', 'parejas') : 'Sin parejas'}</span></div>
       <p class="peq t2" style="margin:0">${parejasPlan(p).length ? 'Sólo cuentan entre las parejas que marcaste. Se pueden cambiar hasta el desfile.' : 'Para que cuenten, marca quién es pareja de quién en la ficha de cada uno (paso 2).'}</p>
       <div class="extras-rejilla">${EXTRAS_PAREJA.map(([k]) => {
         const si = !!p.extras[k], [t, d] = CORTO_EXTRA[k];
@@ -776,7 +778,7 @@ registrar('/informe', () => {
       ${r.porra.lista.length ? `<section class="caja"><h2 class="h2">La porra</h2><p class="peq t2">Puestos de diferencia con el parte final. Gana la suma más baja.</p>
         <ol class="lista-puestos">${r.porra.lista.map((p) => `<li><b>${p.pos}</b><span>${nom(p.id)}</span><em>${p.suma}</em></li>`).join('')}</ol>${inf.guerra.botin ? `<p class="med t2">Botín: ${esc(inf.guerra.botin)}</p>` : ''}</section>` : ''}
       ${premios.length ? `<section class="col"><h2 class="h2">Condecoraciones</h2>${listaPremios(premios)}</section>` : ''}
-      ${r.parejas ? `<section class="col g8"><h2 class="h2">Parejas de hecho</h2>${bloqueParejas(r.parejas, G)}</section>` : ''}
+      ${r.parejas ? `<section class="col g8"><div class="amor-cab">${escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 110)}<h2 class="h2">En el amor y en la guerra</h2></div>${bloqueParejas(r.parejas, G)}</section>` : ''}
       ${(r.apuestas || []).length ? `<section class="caja"><h2 class="h2">Apuestas</h2><p class="peq t2">Aciertos en la batalla ${inf.guerra.ritmo === 'diaria' ? 'del día' : 'estrella'} de cada ofensiva. Sólo los ves tú.</p>
         ${r.apuestas.map((a) => `<div class="fila entre"><span>${nom(a.id)}</span><span class="med"><strong class="teal">${a.n}</strong> de ${a.de}</span></div>`).join('')}</section>` : ''}
       ${campeonesPregunta(r, G)}
@@ -867,7 +869,7 @@ function resumenPaso(a, G) {
   if (a.t === 'consejo') return ['Consejo de guerra', G[a.id].nombre, 'Desertor'];
   if (a.t === 'puesto') return [ordinal(a.pos) + ' puesto', G[a.fila.id].nombre, plural(a.fila.pts, 'punto', 'puntos')];
   if (a.t === 'proclama') return ['Proclama anónima', a.n + ' de ' + a.de, ''];
-  if (a.t === 'parejas') return ['Parejas de hecho', plural((a.parejas && a.parejas.lista || []).length, 'pareja', 'parejas'), ''];
+  if (a.t === 'parejas') return ['En el amor y en la guerra', plural((a.parejas && a.parejas.lista || []).length, 'pareja', 'parejas'), ''];
   if (a.t === 'condecoracion') return [TITULOS[a.cual], G[a.id].nombre, ''];
   if (a.t === 'pregunta') return ['Pregunta ' + a.k + ' de ' + a.de, G[a.id].nombre, plural(a.pts, 'punto', 'puntos')];
   if (a.t === 'duelo') return ['Duelo final', enumerar(a.duelo.entre.map((id) => G[id].nombre)), `${a.duelo.votaron} de ${a.duelo.deben} votos`];

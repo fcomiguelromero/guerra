@@ -584,7 +584,7 @@ ul, ol { padding: 0; list-style: none; }
 .fila-porra li { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 60px; text-align: center; }
 .fila-porra li .peq { max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Parejas de hecho */
+/* En el amor y en la guerra (parejas) */
 .extra.rosa-extra.on { border-color: var(--rosa); background: linear-gradient(170deg, rgba(255,106,213,.16), rgba(28,24,54,.95) 70%); }
 .extra.rosa-extra.on svg { color: var(--rosa); } .extra.rosa-extra.on .luz { background: var(--rosa); box-shadow: 0 0 8px var(--rosa); }
 .casa-marca { display: inline-flex; align-items: center; gap: 6px; align-self: center; padding: 5px 14px; border-radius: 999px; border: 1px solid rgba(255,106,213,.5); background: rgba(255,106,213,.1); color: var(--rosa); font-size: 14px; font-weight: 700; }
@@ -598,3 +598,18 @@ ul, ol { padding: 0; list-style: none; }
 .medalla-pareja { display: inline-flex; align-items: center; gap: 6px; align-self: center; padding: 4px 12px; border-radius: 999px; background: var(--oro); color: #0d0b1a; font-family: var(--bc); font-weight: 800; font-size: 15px; text-transform: uppercase; }
 .medalla-pareja.fria { background: #8fd3ff; }
 .guino { font-style: italic; color: var(--rosa); }
+/* En el amor y en la guerra: el beso */
+.escena-beso .beso-izq { animation: besoIzq 3.2s ease-in-out infinite; transform-box: fill-box; }
+.escena-beso .beso-der { animation: besoDer 3.2s ease-in-out infinite; transform-box: fill-box; }
+.escena-beso .beso-chispa { animation: chispa 3.2s ease-in-out infinite; transform-origin: 120px 19px; }
+.escena-beso .corazones path { animation: sube 3.2s ease-out infinite; opacity: 0; }
+.escena-beso .corazones path:nth-child(2) { animation-delay: .7s; } .escena-beso .corazones path:nth-child(3) { animation-delay: 1.4s; }
+@keyframes besoIzq { 0%, 100% { transform: translateX(-4px); } 40%, 70% { transform: translateX(2px); } }
+@keyframes besoDer { 0%, 100% { transform: translateX(4px); } 40%, 70% { transform: translateX(-2px); } }
+@keyframes chispa { 0%, 30%, 100% { transform: scale(0); } 45% { transform: scale(1.3); } 60%, 75% { transform: scale(1); } }
+@keyframes sube { 0% { opacity: 0; transform: translateY(6px) scale(.6); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1.1); } }
+@media (prefers-reduced-motion: reduce) { .escena-beso * { animation: none !important; } .escena-beso .corazones path { opacity: 1; } .escena-beso .beso-chispa { transform: none; } }
+.amor-cab { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.amor-cab .escena { width: 100%; max-width: 300px; }
+.amor-plan { border-top: 1px dashed rgba(255,106,213,.35); padding-top: 6px; }
+.amor-plan > .escena { align-self: center; width: 100%; max-width: 260px; }

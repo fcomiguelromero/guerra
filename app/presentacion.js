@@ -1,8 +1,8 @@
 // Presentación de la guerra: una página sólo para leer, que explica el juego y anima a participar.
 // Se abre con #p=ID.CLAVE. No tiene botones, ni cartas, ni nombres de nadie: quien quiera alistarse avisa al alto mando.
-import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=37';
-import { icono } from './dibujos.js?v=37';
-import { soldado } from './monigotes.js?v=37';
+import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=38';
+import { icono } from './dibujos.js?v=38';
+import { soldado } from './monigotes.js?v=38';
 
 alEntrar('/presentacion', async () => {
   S.ui.presDatos = null; S.ui.presError = null;
@@ -45,7 +45,7 @@ registrar('/presentacion', () => {
     x.proclamas ? ['proclama', O, 'Proclamas', 'Explica tu voto, sin firma.', 'Las mejores se leen al final, de forma anónima.'] : null,
     x.condecoraciones ? ['medalla', O, 'Medallas', 'Al rebelde, al borrego y al tardón.', ''] : null,
     x.apuestas ? ['apuesta', O, d.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', 'Apuesta quién la gana.', 'En cada ofensiva hay una batalla elegida para todos. Quien más acierte se lleva el título de «El adivino».'] : null,
-    x.parejas ? ['corazon', R, 'Parejas de hecho', 'Hay parejas en el frente.', 'Duelos domésticos, votos sincronizados y algún guiño del narrador. Lo explican las ordenanzas.'] : null,
+    x.parejas ? ['corazon', R, 'En el amor y en la guerra', 'Hay parejas en el frente.', 'Duelos domésticos, votos sincronizados y algún guiño del narrador. Lo explican las ordenanzas.'] : null,
     x.termometro ? ['termo', T, 'El termómetro', '¿Vas con la mayoría?', 'Lo sabrás después de votar. Sin cifras, que esto es secreto.'] : null,
     ['grados', V, 'Galones', 'De recluta a general.', 'Cada guerra terminada te asciende un grado. Y hay consejo de guerra para los desertores.']
   ].filter(Boolean);

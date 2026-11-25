@@ -665,7 +665,7 @@ function ordenanzasAuto(doc) {
     if (x.lealtad) partes.push('al final se cuenta cuántas veces votó cada uno a su pareja cuando ésta combatía contra otro');
     if (x.porraPareja && x.porra) partes.push('en la porra, cada uno adivina además el puesto de su pareja');
     if (x.guinos) partes.push('en el desfile, el narrador comenta cuando una pareja queda cerca o lejos');
-    lista.push({ t: 'Parejas de hecho', x: 'En esta guerra hay parejas: ' + nomP.join('; ') + '. ' + partes.map(function (q) { return q.charAt(0).toUpperCase() + q.slice(1); }).join('. ') + '.' });
+    lista.push({ t: 'En el amor y en la guerra', x: 'En esta guerra hay parejas: ' + nomP.join('; ') + '. ' + partes.map(function (q) { return q.charAt(0).toUpperCase() + q.slice(1); }).join('. ') + '.' });
   }
   if (x.termometro) lista.push({ t: 'El termómetro', x: 'Cuando pasan los 10 segundos de cortesía de un voto, verás si en esa batalla vas con la mayoría o contra ella. Sin cifras, y es sólo una foto de ese momento: puede cambiar a medida que vota el resto.' });
   if (x.apuestas) lista.push({ t: doc.ritmo === 'diaria' ? 'La batalla del día' : 'La batalla estrella', x: 'En cada ofensiva hay una batalla ' + (doc.ritmo === 'diaria' ? 'del día' : 'estrella') + ', la misma para todos. Si quieres, apuesta quién crees que la ganará: no tiene por qué coincidir con tu voto.' +
