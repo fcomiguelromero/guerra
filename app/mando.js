@@ -1,12 +1,12 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=41';
-import { escena } from './monigotes.js?v=41';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=41';
-import { botonCartel, imagenTropa } from './carteles.js?v=41';
-import { recortarFoto } from './recorte.js?v=41';
-import { icono, ILU } from './dibujos.js?v=41';
-import { frente, filaRezagados } from './graficos.js?v=41';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=42';
+import { escena } from './monigotes.js?v=42';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=42';
+import { botonCartel, imagenTropa } from './carteles.js?v=42';
+import { recortarFoto } from './recorte.js?v=42';
+import { icono, ILU } from './dibujos.js?v=42';
+import { frente, filaRezagados } from './graficos.js?v=42';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [

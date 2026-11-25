@@ -1,15 +1,15 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=41';
-import { botonesCalendario } from './calendario.js?v=41';
-import { botonAlbum } from './album.js?v=41';
-import { icono, ILU, piezas } from './dibujos.js?v=41';
-import { escena } from './monigotes.js?v=41';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=41';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=41';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=41';
-import { nombreRonda, preferencia } from './base.js?v=41';
+import { botonCartel } from './carteles.js?v=42';
+import { botonesCalendario } from './calendario.js?v=42';
+import { botonAlbum } from './album.js?v=42';
+import { icono, ILU, piezas } from './dibujos.js?v=42';
+import { escena } from './monigotes.js?v=42';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=42';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=42';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=42';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=42';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=41';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=42';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -577,6 +577,13 @@ function selloRedondo(texto) {
     <text font-family="Courier New, monospace" font-weight="700" font-size="11.5" letter-spacing="2.2" fill="currentColor"><textPath href="#circ-sello">${esc(texto)}</textPath></text>
     <path fill="currentColor" d="M60 44l4.2 9.4 10.2 1-7.7 6.8 2.3 10-9-5.3-9 5.3 2.3-10-7.7-6.8 10.2-1z"/></svg>`;
 }
+// Foto del vencedor como copia en papel sujeta al expediente: borde blanco, pie a máquina, celo y clip.
+function fotoInforme(g, pie) {
+  const foto = g.foto && S.fotos[g.foto];
+  return `<figure class="foto-informe"><span class="cinta" aria-hidden="true"></span>
+    <div class="foto-papel" style="background:${tinte(g.id)[0]}">${foto ? `<img src="${foto}" alt="Foto de ${esc(g.nombre)}">` : silueta(g.id, 'height:86%')}</div>
+    <figcaption class="maquina">${esc(pie)} — ${esc(g.nombre).toUpperCase()}</figcaption></figure>`;
+}
 function pantallaPublicada() {
   const e = S.est, r = e.resultado, G = gente(), campeon = r.tabla[0], g = e.guerra;
   const duelo = e.duelo && !e.duelo.cerrado;
@@ -606,7 +613,11 @@ function pantallaPublicada() {
     <div class="expediente">
     ${cabeza}
     ${duelo ? `<div class="parte-hoja"><p class="maquina med">El resto del parte ya es oficial: sólo falta decidir quién se lleva la guerra.</p></div>${bloqueDuelo(e.duelo, false)}`
-      : `<div class="cols-pc parte-campeon"><div class="foto-grapada">${carta(G[campeon.id], { clase: 'sola', pie: `<div class="fila bc" style="padding:0 10px 12px;gap:10px;font-weight:700;font-size:16px;white-space:nowrap">${textoPuntos(campeon)}<span class="t2">${textoBatallas(campeon)}</span><span class="t2">${signo(campeon.dif)}</span></div>` })}</div>
+      : `<div class="cols-pc parte-campeon"><div class="col g12 dossier" style="align-items:center">${fotoInforme(G[campeon.id], 'Fig. 1 · El vencedor')}
+          <section class="caja ficha-vencedor" data-sello="ANEXO I"><span class="maquina peq">HOJA DE SERVICIOS DEL VENCEDOR</span>
+            <dl class="ficha-parte"><div><dt>Puntos</dt><dd>${campeon.pts}</dd></div><div><dt>Batallas ganadas</dt><dd>${campeon.g} de ${campeon.g + campeon.e + campeon.p}</dd></div>
+              <div><dt>Empates</dt><dd>${campeon.e}</dd></div><div><dt>Derrotas</dt><dd>${campeon.p}</dd></div><div><dt>Diferencia de votos</dt><dd>${signo(campeon.dif)}</dd></div>
+              ${G[campeon.id].frase ? `<div style="grid-column:1/-1"><dt>Grito de guerra</dt><dd style="text-transform:none">«${esc(G[campeon.id].frase)}»</dd></div>` : ''}</dl></section></div>
         <div class="col g12 dossier"><section class="caja" data-sello="VENCEDOR"><span class="maquina peq">PRIMER PUESTO</span><div class="enorme" style="line-height:1">${esc(G[campeon.id].nombre)}</div>
           ${g.premio ? `<p class="maquina med"><strong>PREMIO:</strong> ${esc(g.premio)}</p>` : ''}
           ${gana.length ? `<p class="maquina med"><strong>LA PORRA:</strong> ${r.porra.gana.length > 1 ? 'ganan' : 'gana'} ${esc(enumerar(r.porra.gana.map((id) => G[id].nombre)))}, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</p>` : ''}</section>
@@ -710,6 +721,22 @@ registrar('/porra', () => {
         <select id="porra-pareja" data-c="porraPareja" aria-label="Puesto que crees que sacará tu pareja"><option value="">Elige un puesto</option>${orden.map((_, k) => `<option value="${k + 1}" ${S.ui.porraPareja === k + 1 ? 'selected' : ''}>${ordinal(k + 1)} puesto</option>`).join('')}</select></section>` : ''}
       <button class="btn" data-a="porraEnviar">${p.mia ? 'Guardar la porra' : 'Enviar porra'}</button>
       <p class="peq t2 centro">${e.guerra.fase === 'abierta' ? (p.mia ? 'Porra enviada. Puedes cambiarla hasta que acabe la guerra.' : 'Puedes cambiarla hasta que acabe la guerra.') : 'Sólo tienes un intento: la guerra ya ha acabado.'}</p>`;
+  } else if (p.mia && e.guerra.fase === 'publicada' && e.resultado) {
+    // Tu porra, al lado de la clasificación real, puesto a puesto, con los puestos de diferencia.
+    const tabla = e.resultado.tabla, real = {}, mia = p.mia.orden.filter((id) => G[id] && tabla.some((f) => f.id === id));
+    tabla.forEach((f) => { real[f.id] = f.pos; });
+    const yoEn = e.resultado.porra.lista.find((x) => x.id === yo().id);
+    const filas = tabla.map((f, k) => {
+      const id = mia[k], d = id ? Math.abs((real[id] || 0) - (k + 1)) : null;
+      return `<tr><td class="bc t2">${k + 1}</td>
+        <td>${id ? `<span class="fila" style="gap:8px">${avatar(G[id])}<span>${esc(nombreDe(G[id]))}</span></span>` : '—'}</td>
+        <td class="porra-dif ${d === 0 ? 'clavado' : d >= 3 ? 'lejos' : ''}">${d === null ? '' : d === 0 ? ico('visto', 16) : '±' + d}</td>
+        <td><span class="fila" style="gap:8px">${avatar(G[f.id])}<span>${esc(nombreDe(G[f.id]))}</span></span></td></tr>`;
+    }).join('');
+    const aciertos = mia.filter((id, k) => real[id] === k + 1).length;
+    cuerpo = `<p class="t3">Tu porra, al lado del parte final. ${yoEn ? `Te quedaste a <strong>${plural(yoEn.suma, 'puesto', 'puestos')}</strong> y ${aciertos === 1 ? 'clavaste <strong>1 puesto</strong>' : aciertos ? `clavaste <strong>${aciertos} puestos</strong>` : 'no clavaste ningún puesto'}.` : ''}</p>
+      ${p.mia.pareja && p.pareja && G[p.pareja] ? `<p class="med rosa">${ico('diana2', 16)} Porra cruzada: dijiste que ${esc(nombreDe(G[p.pareja]))} quedaría ${ordinal(p.mia.pareja)}; quedó ${ordinal(real[p.pareja])}.</p>` : ''}
+      <div class="caja" style="padding:8px 10px"><table class="tabla porra-vs"><thead><tr><th>#</th><th>Tu porra</th><th title="Puestos de diferencia">Dif.</th><th>Parte final</th></tr></thead><tbody>${filas}</tbody></table></div>`;
   } else if (p.mia) {
     cuerpo = `<p class="t3">Tu porra está entregada y sellada. ${e.guerra.fase === 'publicada' ? '' : 'Se puntuará con el parte final.'}</p>
       ${p.mia.pareja && p.pareja && G[p.pareja] ? `<p class="med rosa">${ico('diana2', 16)} Porra cruzada: ${esc(nombreDe(G[p.pareja]))}, ${ordinal(p.mia.pareja)} puesto.</p>` : ''}

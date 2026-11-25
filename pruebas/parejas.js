@@ -138,6 +138,9 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await pf.waitForSelector('.expediente'); await pf.waitForTimeout(500);
     assert.ok(/parte n\.º/i.test(await pf.locator('.parte-portada').innerText()), 'el parte lleva su número');
     await foto(pf, '10-parte-final-movil', true);
+    await pf.evaluate(() => { location.hash = '#/porra'; }); await quieto(pf);
+    assert.ok(await pf.locator('.porra-vs tbody tr').count() >= 6, 'la porra se compara con el parte final');
+    await foto(pf, '10b-porra-comparada', true);
     const pfc = await pagina(nav, 1280, 860, '#t=' + tok['Lucía']);
     await pfc.waitForSelector('.expediente'); await pfc.waitForTimeout(500);
     await foto(pfc, '11-parte-final-pc', true);
