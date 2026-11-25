@@ -1,12 +1,12 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=43';
-import { escena } from './monigotes.js?v=43';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=43';
-import { botonCartel, imagenTropa } from './carteles.js?v=43';
-import { recortarFoto } from './recorte.js?v=43';
-import { icono, ILU } from './dibujos.js?v=43';
-import { frente, filaRezagados } from './graficos.js?v=43';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=44';
+import { escena } from './monigotes.js?v=44';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=44';
+import { botonCartel, imagenTropa } from './carteles.js?v=44';
+import { recortarFoto } from './recorte.js?v=44';
+import { icono, ILU } from './dibujos.js?v=44';
+import { frente, filaRezagados } from './graficos.js?v=44';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -365,6 +365,7 @@ function paso2(p, previa) {
       <span class="peq t2">${n.nc >= 3 ? (n.torneo ? `${n.rondas} rondas · ${n.batallas} cruces` : `${n.ofensivas} ofensivas · ${n.batallas} batallas`) : 'Hacen falta al menos 3'}</span></div>
     ${cosas ? `<h2 class="h2">Contendientes</h2>${rejillaGente(combaten, true, previa)}<h2 class="h2">Quién vota</h2>` : ''}
     ${rejillaGente(votan, false, previa)}
+    ${previa && !cosas ? `<button class="btn linea medio" data-a="abrirVeteranos">${icono('grados', 18)}Reclutar veteranos de otras guerras</button>` : ''}
     <p class="peq t2 centro">Toca una ficha para editar su nombre, correo, foto y grito de guerra. Marca «Soy yo» en la tuya.</p>
     ${previa ? pliegue('llamamiento', 'corneta', 'Llamamiento a filas', resLl, seccionLlamamiento().replace(/^<section class="caja[^"]*">/, '<div class="col g12">').replace(/<\/section>\s*$/, '</div>')) : ''}
     ${previa ? pliegue('modo', 'tropa', '¿Compiten personas u otra cosa?', cosas ? 'Ahora: otras cosas (bodas, películas…)' : 'Ahora: los propios combatientes', `
@@ -372,8 +373,54 @@ function paso2(p, previa) {
         const sel = (v === 'cosas') === cosas;
         return `<button class="eleccion ${sel ? 'sel' : ''}" style="--c:#5ef0d0" aria-pressed="${sel}" data-a="modo" data-v="${v}">${sel ? `<span class="marca-sel" aria-hidden="true">${icono('visto', 13, 3.4)}</span>` : ''}${ILU[il](sel ? '#5ef0d0' : '#8f7bff')}<span class="bc nombre">${t}</span><span class="peq t2">${d}</span></button>`;
       }).join('')}</div>`) : ''}
-    ${hojaFicha()}`;
+    ${hojaFicha()}${hojaVeteranos()}`;
 }
+// Veteranos: gente de guerras anteriores. Se copian sus datos (nombre, correo, foto y grito de guerra) y luego se pueden cambiar en su ficha.
+const yaEsta = (p, v) => p.gente.some((g) => (v.correo && g.correo && g.correo.toLowerCase() === v.correo.toLowerCase()) || (!v.correo || !g.correo) && g.nombre.trim().toLowerCase() === v.nombre.trim().toLowerCase());
+function hojaVeteranos() {
+  const V = S.ui.veteranos, p = S.ui.plan;
+  if (!V) return '';
+  const lista = V.lista || [], elegidos = V.elegidos || {}, n = Object.keys(elegidos).filter((k) => elegidos[k]).length;
+  const vis = lista;
+  return `<div class="hoja-fondo" data-a="cerrarVeteranos" aria-hidden="true"></div>
+    <section class="hoja" role="dialog" aria-modal="true" aria-label="Reclutar veteranos"><span class="hoja-asa" aria-hidden="true"></span>
+      <div class="fila entre" style="align-items:baseline"><h2 class="h2">Veteranos</h2><span class="peq t2">${V.cargando ? 'Buscando en el archivo…' : plural(lista.length, 'persona', 'personas')}</span></div>
+      <p class="peq t2" style="margin:0">Gente de tus guerras anteriores. Entran con su nombre, correo, foto y grito de guerra, y luego puedes cambiar lo que quieras en su ficha.</p>
+      ${lista.length > 8 ? `<input class="entrada" id="vet-buscar" aria-label="Buscar veterano" placeholder="Buscar por nombre" autocomplete="off">` : ''}
+      <ul class="lista-veteranos">${vis.map((v) => {
+        const esta = yaEsta(p, v), si = !!elegidos[v.id], foto = v.foto && S.fotos[v.foto];
+        return `<li data-nombre="${esc(v.nombre.toLowerCase())}"><button class="veterano ${si ? 'sel' : ''}" data-a="elegirVeterano" data-v="${esc(v.id)}" aria-pressed="${si}" ${esta ? 'disabled' : ''}>
+          <span class="avatar grande" aria-hidden="true">${foto ? `<img src="${foto}" alt="">` : esc(v.nombre.charAt(0).toUpperCase())}</span>
+          <span class="col g4 crece" style="min-width:0;text-align:left"><strong>${esc(v.nombre)}</strong><span class="peq t2" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.correo || 'Sin correo')}</span>
+            <span class="peq ${esta ? 'teal' : 't2'}">${esta ? 'Ya está en esta guerra' : v.guerras ? plural(v.guerras, 'guerra terminada', 'guerras terminadas') : 'Aún sin guerras terminadas'}</span></span>
+          <span class="marca-vet" aria-hidden="true">${si || esta ? icono('visto', 16, 3) : ''}</span></button></li>`;
+      }).join('') || (V.cargando ? '' : '<li class="peq t2 centro">Aún no hay veteranos: aparecen cuando declaras tu primera guerra.</li>')}</ul>
+      <div class="fila" style="gap:8px"><button class="btn linea medio" data-a="cerrarVeteranos">Cancelar</button>
+        <button class="btn medio crece" data-a="reclutarVeteranos" ${n ? '' : 'disabled'}>${n ? 'Reclutar a ' + plural(n, 'veterano', 'veteranos') : 'Elige a alguien'}</button></div></section>`;
+}
+accion('abrirVeteranos', async () => {
+  S.ui.veteranos = { cargando: true, lista: [], elegidos: {} }; pintar();
+  const d = await llamar('veteranos', {}, 1);
+  if (!S.ui.veteranos) return;
+  S.ui.veteranos = { lista: d.lista, elegidos: {} };
+  pedirFotos(d.lista.map((v) => v.foto));
+  pintar();
+});
+// El buscador filtra la lista al vuelo, sin repintar (para no perder el foco).
+document.addEventListener('input', (ev) => {
+  if (ev.target.id !== 'vet-buscar') return;
+  const q = ev.target.value.trim().toLowerCase();
+  document.querySelectorAll('.lista-veteranos li[data-nombre]').forEach((li) => { li.hidden = !!q && !li.dataset.nombre.includes(q); });
+});
+accion('cerrarVeteranos', () => { S.ui.veteranos = null; pintar(); });
+accion('elegirVeterano', (id) => { const e = S.ui.veteranos.elegidos; e[id] = !e[id]; pintar(); });
+accion('reclutarVeteranos', () => {
+  const V = S.ui.veteranos, p = S.ui.plan, nuevos = V.lista.filter((v) => V.elegidos[v.id] && !yaEsta(p, v));
+  nuevos.forEach((v) => p.gente.push({ nombre: v.nombre, correo: v.correo, frase: v.frase, foto: v.foto, combate: p.modo !== 'cosas', vota: true, mando: false, alistado: null, parejaK: null }));
+  S.ui.veteranos = null;
+  aviso(nuevos.length ? (nuevos.length === 1 ? nuevos[0].nombre + ' vuelve a filas.' : plural(nuevos.length, 'veterano vuelve', 'veteranos vuelven') + ' a filas.') : 'Ya estaban todos.', true);
+  pintar();
+});
 
 function paso3(p, previa) {
   const n = numeros(p);

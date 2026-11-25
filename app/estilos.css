@@ -721,3 +721,11 @@ ul, ol { padding: 0; list-style: none; }
 .dossier .vitrina, .dossier .vitrina * { color: #f2f0ff !important; } .dossier .vitrina .t2 { color: #b3aecf !important; }
 .parte-hoja .sello-oficial.sello-arriba { top: 46px; }
 @media (min-width: 900px) { .parte-hoja .sello-oficial.sello-arriba { top: 60px; right: 180px; } }
+/* Veteranos de otras guerras */
+.lista-veteranos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 52vh; overflow-y: auto; }
+.veterano { width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 14px; border: 1px solid #2a2648; background: rgba(22,19,43,.9); color: var(--txt); cursor: pointer; }
+.veterano.sel { border-color: var(--teal); background: rgba(94,240,208,.1); }
+.veterano:disabled { opacity: .55; cursor: default; }
+.marca-vet { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid #4a4080; display: flex; align-items: center; justify-content: center; color: #0d0b1a; }
+.veterano.sel .marca-vet { background: var(--teal); border-color: var(--teal); }
+.veterano:disabled .marca-vet { border-color: var(--teal); color: var(--teal); }

@@ -1295,6 +1295,17 @@ function crearMotor(env) {
     return res;
   });
 
+  // Veteranos: la gente de guerras anteriores, para reclutarla en una nueva sin volver a escribir sus datos.
+  definir('veteranos', { quien: 'mando' }, function () {
+    var veces = {}, ultima = {};
+    cronicas().forEach(function (c) {
+      c.gente.forEach(function (g) { if (!g.persona) return; veces[g.persona] = (veces[g.persona] || 0) + 1; ultima[g.persona] = Math.max(ultima[g.persona] || 0, c.fecha || 0); });
+    });
+    return { lista: personas().lista.filter(function (p) { return p.nombre; }).map(function (p) {
+      return { id: p.id, nombre: p.nombre, correo: p.correo || '', foto: p.foto || null, frase: p.frase || '', guerras: veces[p.id] || 0, ultima: ultima[p.id] || 0 };
+    }).sort(function (x, y) { return (y.ultima - x.ultima) || x.nombre.localeCompare(y.nombre, 'es'); }) };
+  });
+
   // Entrada del alto mando: sus guerras y, en cada una, su propia carta.
   definir('cuartel', { quien: 'mando' }, function () {
     return {

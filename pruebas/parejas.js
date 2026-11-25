@@ -166,6 +166,34 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
       await pb.close();
     }
     assert.ok(vistoBeso, 'la bienvenida del día del duelo doméstico lleva el beso');
+    // Guerra nueva con veteranos: se reclutan desde el archivo y se pueden editar.
+    await m.goto(BASE + '#mando=mando-local'); await quieto(m);
+    await m.getByRole('button', { name: 'Plan de guerra nuevo' }).first().click(); await quieto(m);
+    await m.fill('#p-nombre', 'Guerra de los veteranos'); await m.fill('#p-pregunta', '¿Quién es más normal?');
+    await plan.paso(m, 2);
+    await m.locator('[data-a="abrirVeteranos"]').click();
+    await m.waitForSelector('.lista-veteranos .veterano');
+    const nVet = await m.locator('.lista-veteranos .veterano').count();
+    assert.ok(nVet >= 6, 'salen los veteranos de las guerras anteriores: ' + nVet);
+    await m.fill('#vet-buscar', 'luc').catch(() => {});
+    await m.locator('.veterano', { hasText: 'Lucía' }).click();
+    await m.fill('#vet-buscar', '').catch(() => {});
+    await m.locator('.veterano', { hasText: 'Pablo' }).click();
+    await m.locator('.veterano', { hasText: 'Rosa' }).click();
+    await foto(m, '13-veteranos');
+    await m.locator('[data-a="reclutarVeteranos"]').click(); await m.waitForTimeout(200);
+    assert.strictEqual(await m.locator('.fichas [data-a="abrirFicha"]').count(), 3, 'entran los tres veteranos');
+    await m.locator('[data-a="abrirFicha"][data-v="0"]').click();
+    assert.strictEqual(await m.inputValue('#gc-0'), 'c0@ejemplo.test', 'el veterano trae su correo');
+    await m.fill('#gf-0', 'Vuelvo con más ganas');
+    await m.locator('.hoja [data-a="cerrarFicha"]').click();
+    await plan.paso(m, 3);
+    const p3 = (await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).plan;
+    assert.strictEqual(p3.gente[0].frase, 'Vuelvo con más ganas', 'los datos del veterano se pueden cambiar');
+    await m.locator('[data-a="pasoPlan"][data-v="2"]').first().click(); await quieto(m);
+    await m.locator('[data-a="abrirVeteranos"]').click(); await m.waitForSelector('.lista-veteranos .veterano');
+    assert.ok(await m.locator('.veterano:disabled', { hasText: 'Lucía' }).count(), 'quien ya está sale marcado y no se duplica');
+    await foto(m, '14-veteranos-ya-dentro');
   } finally { await nav.close(); servidor.kill(); }
   if (errores.length) { console.log('ERRORES DE PANTALLA:\n' + errores.join('\n')); process.exit(1); }
   console.log('Parejas sin errores. Capturas en ' + SALIDA);
