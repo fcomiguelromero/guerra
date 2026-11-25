@@ -1,6 +1,6 @@
 // Piezas del «expediente»: carpeta de cartón, hojas a máquina, clip, sellos y firma.
 // Se usan en el parte de guerra final, la porra y las crónicas.
-import { esc } from './base.js?v=44';
+import { esc } from './base.js?v=46';
 
 export const fechaParte = (ts) => (ts ? new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '—');
 export const garabato = '<svg class="garabato" viewBox="0 0 160 46" aria-hidden="true"><path d="M6 32 C 18 6, 30 6, 26 30 S 40 40, 48 18 S 60 6, 62 26 S 74 40, 84 22 Q 92 10 98 24 T 118 22 Q 130 16 152 12" fill="none" stroke="#1d2a6b" stroke-width="2.2" stroke-linecap="round"/><path d="M40 40 Q 90 30 146 36" fill="none" stroke="#1d2a6b" stroke-width="1.4" stroke-linecap="round"/></svg>';
@@ -19,7 +19,8 @@ export function portada(o) {
     <div class="fila entre" style="align-items:flex-start;gap:10px"><div class="col g4">${(o.membrete || ['ESTADO MAYOR DE LA NORMALIDAD']).map((l) => `<span class="maquina peq">${esc(l)}</span>`).join('')}</div>
       ${o.registro ? `<span class="maquina peq" style="text-align:right">${o.registro}</span>` : ''}</div>
     <h1 class="h1 maquina-t">${esc(o.titulo)}</h1>${(o.lineas || []).map((l) => `<span class="maquina med">${l}</span>`).join('')}
+    ${o.sello ? `<span class="sello-conf sello-oficial sello-linea" aria-hidden="true">${esc(o.sello)}</span>` : ''}
     ${o.ficha && o.ficha.length ? `<dl class="ficha-parte">${o.ficha.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl>` : ''}
     ${o.pie ? `<p class="maquina peq">${o.pie}</p>` : ''}
-    ${o.sello ? `<span class="sello-conf sello-oficial${o.registro ? '' : ' sello-arriba'}" aria-hidden="true">${esc(o.sello)}</span>` : ''}${selloRedondo(o.redondo || 'ALTO MANDO · VERIFICADO · ')}</div>`;
+    ${selloRedondo(o.redondo || 'ALTO MANDO · VERIFICADO · ')}</div>`;
 }

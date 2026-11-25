@@ -1,16 +1,16 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=44';
-import { botonesCalendario } from './calendario.js?v=44';
-import { botonAlbum } from './album.js?v=44';
-import { icono, ILU, piezas } from './dibujos.js?v=44';
-import { escena } from './monigotes.js?v=44';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=44';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=44';
-import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=44';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=44';
-import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=44';
+import { botonCartel } from './carteles.js?v=46';
+import { botonesCalendario } from './calendario.js?v=46';
+import { botonAlbum } from './album.js?v=46';
+import { icono, ILU, piezas } from './dibujos.js?v=46';
+import { escena } from './monigotes.js?v=46';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=46';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=46';
+import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=46';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=46';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=46';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=44';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=46';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -594,9 +594,10 @@ function pantallaPublicada() {
         <span class="maquina peq" style="text-align:right">REG. SALIDA ${esc(num)}<br>${fechaParte(g.publicada)}</span></div>
       <h1 class="h1 maquina-t">Parte de guerra</h1><span class="maquina med" style="font-weight:700">${esc(tituloGuerra(g))}</span>
       ${(g.preguntas || [g.pregunta]).filter(Boolean).map((q) => `<span class="maquina med">ASUNTO: ${esc(q)}</span>`).join('')}
+      <span class="sello-conf sello-oficial sello-linea" aria-hidden="true">${duelo ? 'Pendiente' : 'Oficial'}</span>
       <dl class="ficha-parte">${ficha.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl>
       <p class="maquina peq">DISTRIBUCIÓN: TODAS LAS TRINCHERAS. LÉASE EN VOZ ALTA EN EL COMEDOR DE TROPA.</p>
-      <span class="sello-conf sello-oficial" aria-hidden="true">${duelo ? 'Pendiente' : 'Oficial'}</span>${selloRedondo('ALTO MANDO · VERIFICADO · ')}</div>`;
+      ${selloRedondo('ALTO MANDO · VERIFICADO · ')}</div>`;
   const pie = `<div class="parte-hoja parte-firma"><p class="maquina med">Lo que se comunica para general conocimiento y efectos oportunos. Archívese y cúmplase.</p>
       <div class="fila entre" style="align-items:flex-end;gap:12px;flex-wrap:wrap"><span class="maquina peq">EN EL CUARTEL GENERAL, A ${fechaParte(g.publicada)}</span>
         <span class="col" style="align-items:center;gap:0">${garabato}<span class="maquina med" style="font-weight:700">${esc(firma)}</span><span class="maquina peq">POR ORDEN DEL ALTO MANDO</span></span></div>

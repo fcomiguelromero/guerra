@@ -736,8 +736,43 @@ function textoResumen(items) { return items.map(function (p) { return '· ' + p.
 // ---------------------------------------------------------------- correos
 
 // Marco común de los correos. o.fondo: imagen de fondo (JPG alojado en la web); o.mosaico: repetirla; o.titulo: rótulo grande.
+// Pasa a tinta sobre papel un cuerpo de correo pensado para el fondo oscuro.
+function aPapel(html) {
+  var tinta = { '#ffffff': '#2a2418', '#f2f0ff': '#2a2418', '#cdc8e6': '#3b2f1c', '#d9d5f2': '#3b2f1c', '#b3aecf': '#6b5d43', '#8d88ab': '#6b5d43',
+    '#5ef0d0': '#0f7a63', '#ff6ad5': '#b0287f', '#ffd36a': '#8a6512', '#8f7bff': '#4b3a9c' };
+  return html.replace(/color:\s*(#[0-9a-fA-F]{6})/g, function (m, c) { return 'color:' + (tinta[c.toLowerCase()] || c); })
+    .replace(/background-color:#221d40/g, 'background-color:#e6dcc3')
+    .replace(/background:#5ef0d0;color:#0d0b1a/g, 'background:#2a2418;color:#f4eedd;font-family:\'Courier New\',Courier,monospace;letter-spacing:2px;border:2px solid #2a2418');
+}
+// Correo con aspecto de expediente: carpeta de cartón, hoja a máquina, membrete, número, sellos y firma.
+function expedienteCorreo(doc, cuerpo, pie, o) {
+  var maquina = 'font-family:\'Courier New\',Courier,monospace', num = String(doc.id || '').slice(-4).toUpperCase();
+  var fecha = o.fecha ? new Date(o.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '';
+  var sello = function (t, c) { return '<span style="display:inline-block;padding:3px 10px;border:3px double ' + c + ';border-radius:6px;color:' + c + ';' + maquina + ';font-weight:bold;font-size:16px;letter-spacing:3px;text-transform:uppercase">' + esc(t) + '</span>'; };
+  return '<div style="margin:0;padding:30px 10px 48px;background-color:#0d0b1a;font-family:Arial,Helvetica,sans-serif">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;margin:0 auto">' +
+    '<tr><td style="padding:0 0 0 18px"><span style="display:inline-block;padding:5px 14px;border-radius:8px 8px 0 0;background-color:#c9a86a;' + maquina + ';font-weight:bold;font-size:12px;letter-spacing:1px;color:#3b2f1c">' + esc((o.pestana || 'Expediente') + ' n.º ' + num) + '</span></td></tr>' +
+    '<tr><td style="padding:14px;border-radius:4px 14px 14px 14px;background-color:#c9a86a">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4eedd;border-radius:3px;border-bottom:3px solid #d8cfb8">' +
+    (o.cabecera ? '<tr><td style="padding:14px 14px 0"><div style="padding:8px;background-color:#fbf8f0;border:1px solid #e5dfcf">' + o.cabecera + '</div></td></tr>' : '') +
+    '<tr><td style="padding:20px 22px 6px;' + maquina + ';color:#2a2418">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td valign="top" style="' + maquina + ';font-size:11px;line-height:1.6;letter-spacing:1px;color:#3b2f1c">ESTADO MAYOR DE LA NORMALIDAD<br>' + esc(o.negociado || 'NEGOCIADO DE OPERACIONES') + '</td>' +
+      '<td valign="top" align="right" style="' + maquina + ';font-size:11px;line-height:1.6;letter-spacing:1px;color:#3b2f1c">REG. SALIDA ' + esc(num) + (fecha ? '<br>' + esc(fecha) : '') + '</td></tr></table>' +
+      '<div style="margin:16px 0 4px;' + maquina + ';font-weight:bold;font-size:28px;line-height:1.1;letter-spacing:1px;text-transform:uppercase;text-decoration:underline;color:#2a2418">' + esc(o.titulo || doc.nombre) + '</div>' +
+      '<div style="' + maquina + ';font-size:15px;font-weight:bold;color:#2a2418">' + esc(doc.nombre + (doc.campo ? ' · ' + doc.campo : '')) + '</div>' +
+      '<div style="margin:14px 0 4px">' + sello(o.sello || 'Urgente', '#b3261e') + (o.sello2 ? ' &nbsp;' + sello(o.sello2, '#1f6b3a') : '') + '</div>' +
+      '<div style="margin:14px 0 0;border-top:1px dashed #b9ad8f"></div></td></tr>' +
+    '<tr><td style="padding:14px 22px 8px;' + maquina + ';font-size:15px;line-height:1.6;color:#2a2418">' + aPapel(cuerpo) + '</td></tr>' +
+    '<tr><td style="padding:12px 22px 18px;border-top:1px dashed #b9ad8f;' + maquina + ';font-size:12px;line-height:1.5;color:#6b5d43">' + aPapel(pie) +
+      '<br><br><span style="letter-spacing:2px">LO QUE SE COMUNICA PARA SU CONOCIMIENTO Y CUMPLIMIENTO.</span></td></tr>' +
+    '</table>' +
+    '<div style="padding:10px 0 0;text-align:center;' + maquina + ';font-size:10px;letter-spacing:4px;color:#5b4a2c">ARCHIVO DE LA GUERRA</div></td></tr></table>' +
+    '<p style="margin:22px 0 0;text-align:center;font-family:\'Barlow Condensed\',\'Arial Narrow\',Arial,sans-serif;font-weight:800;text-transform:uppercase;font-size:18px;letter-spacing:2px;color:#ffffff">¡Sólo puede quedar uno!</p>' +
+    '</div>';
+}
 function marcoCorreo(doc, cuerpo, pie, o) {
   o = o || {};
+  if (o.expediente) return expedienteCorreo(doc, cuerpo, pie, o);
   var fondo = o.fondo ? 'background-image:url(' + o.fondo + ');background-repeat:' + (o.mosaico ? 'repeat' : 'no-repeat') +
     ';background-size:' + (o.mosaico ? '390px auto' : 'cover') + ';background-position:center ' + (o.mosaico ? 'top' : 'bottom') + ';' : '';
   var condensada = 'font-family:\'Barlow Condensed\',\'Arial Narrow\',\'Roboto Condensed\',Arial,sans-serif;font-weight:800;text-transform:uppercase';
@@ -906,8 +941,9 @@ function crearMotor(env) {
     return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(ev.titulo) +
       '&dates=' + fechaIcs(ev.ini) + '/' + fechaIcs(ev.fin) + '&details=' + encodeURIComponent(ev.detalle);
   }
-  function pieFirma(doc) {
-    return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+  function pieFirma(doc, papel) {
+    if (!papel) return '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+    return '<p style="margin:18px 0 0"><span style="font-family:\'Brush Script MT\',\'Segoe Script\',cursive;font-size:26px;color:#1d2a6b">' + esc(nombreMando(doc)) + '</span><br><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Por orden del alto mando</span></p>';
   }
   function avisarOfensiva(doc, n, t) {
     var total = esTorneo(doc) && doc.cuadro ? doc.cuadro.R : totalOfensivas(doc), enviados = 0, torneo = esTorneo(doc) && doc.cuadro;
@@ -923,8 +959,8 @@ function crearMotor(env) {
             html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', ' + (n === total ? 'llega la final.' : 'se abre una ronda nueva: ' + esc(ronda.toLowerCase()) + '.') + '</p>' +
               (pasan.length ? '<p style="margin:0 0 14px;color:#cdc8e6">Pasan de ronda: <strong style="color:#ffffff">' + esc(enumerar(pasan)) + '</strong>. Los votos de cada cruce, en el desfile.</p>' : '') +
               '<p style="margin:0 0 14px;color:#cdc8e6">Tienes ' + plural(debe, 'cruce', 'cruces') + ' por votar. La ronda se cierra cuando vote todo el mundo.</p>' +
-              botonCorreo(enlacePersonal(g), 'Ver el cuadro y votar') + pieFirma(doc),
-              '¡Sólo puede quedar uno!', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: ronda }),
+              botonCorreo(enlacePersonal(g), 'Ver el cuadro y votar') + pieFirma(doc, true),
+              '¡Sólo puede quedar uno!', { expediente: true, fecha: ahora(), pestana: 'Parte de ronda', negociado: 'NEGOCIADO DE OPERACIONES', sello: n === total ? 'Final' : 'Nueva ronda', titulo: ronda }),
             texto: g.nombre + ', se abre ' + ronda.toLowerCase() + '. A votar: ' + enlacePersonal(g)
           });
           enviados++;
@@ -934,8 +970,8 @@ function crearMotor(env) {
           para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': se abre la ofensiva ' + n + ' de ' + total,
           html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', hay batallas nuevas.</p>' +
             '<p style="margin:0 0 14px;color:#cdc8e6">Se ha abierto la ofensiva ' + n + ' de ' + total + '. Tienes ' + plural(debe, 'batalla', 'batallas') + ' por votar' + (n < total ? '; mañana a las ' + HORA_OFENSIVA + ':00, la siguiente.' : ': es la última ofensiva.') + '</p>' +
-            botonCorreo(enlacePersonal(g), 'A las trincheras') + pieFirma(doc),
-            'Recibirás un aviso cada día mientras se abran ofensivas.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Ofensiva ' + n + ' de ' + total, ic: 'sol' }),
+            botonCorreo(enlacePersonal(g), 'A las trincheras') + pieFirma(doc, true),
+            'Recibirás un aviso cada día mientras se abran ofensivas.', { expediente: true, fecha: ahora(), pestana: 'Parte de ofensiva', negociado: 'NEGOCIADO DE OPERACIONES', sello: n < total ? 'Ofensiva ' + n : 'Última ofensiva', sello2: plural(debe, 'batalla', 'batallas'), titulo: 'Ofensiva ' + n + ' de ' + total }),
           texto: g.nombre + ', se ha abierto la ofensiva ' + n + ' de ' + total + '. A votar: ' + enlacePersonal(g)
         });
         enviados++;
@@ -1774,14 +1810,13 @@ function crearMotor(env) {
         ? 'La primera ofensiva ya está abierta; cada mañana a las ' + HORA_OFENSIVA + ':00 se abre otra y te avisamos.'
         : 'Todas abiertas ya: vota a tu ritmo.') + '</p>' +
       (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc), urlApp())) +
-      botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) +
-      '<p style="margin:18px 0 0"><strong>' + esc(nombreMando(doc)) + '</strong><br><span style="font-size:13px;color:#b3aecf">Alto mando de la guerra</span></p>';
+      botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) + pieFirma(doc, true);
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',
-      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { fondo: urlApp() + 'assets/correo-reflectores.jpg', titulo: 'Orden de movilización', ic: 'casco',
-        cabecera: tropa ? '<img src="cid:tropa" width="520" alt="Los combatientes de la ' + esc(doc.nombre) + '" style="display:block;width:100%;max-width:520px;height:auto;border:0;border-radius:15px 15px 0 0">' +
-          '<div style="padding:10px 24px 0;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b3aecf;text-align:center">' + plural(doc.gente.filter(function (x) { return x.combate; }).length, 'combatiente', 'combatientes') + ' · ¡que empiece el combate!</div>' : '' }),
+      html: marcoCorreo(doc, cuerpo, 'Dentro tienes ' + enumerar(extras) + '.', { expediente: true, fecha: ahora(), pestana: 'Orden', negociado: 'NEGOCIADO DE RECLUTAMIENTO', titulo: 'Orden de movilización', sello: 'Urgente', sello2: 'Incorporación inmediata',
+        cabecera: tropa ? '<img src="cid:tropa" width="490" alt="Los combatientes de la ' + esc(doc.nombre) + '" style="display:block;width:100%;max-width:490px;height:auto;border:0">' +
+          '<div style="padding:8px 4px 0;font-family:\'Courier New\',Courier,monospace;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#3b2f1c;text-align:center">Fig. 1 · ' + plural(doc.gente.filter(function (x) { return x.combate; }).length, 'combatiente', 'combatientes') + ' · ¡que empiece el combate!</div>' : '' }),
       imagenes: tropa ? [{ cid: 'tropa', datos: tropa }] : [],
       texto: (c.apertura ? c.apertura + '\n\n' : '') + 'Entra a la guerra con tu enlace personal (no lo reenvíes): ' + enlace + (c.remate ? '\n\n' + c.remate : '')
     };

@@ -729,3 +729,23 @@ ul, ol { padding: 0; list-style: none; }
 .marca-vet { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid #4a4080; display: flex; align-items: center; justify-content: center; color: #0d0b1a; }
 .veterano.sel .marca-vet { background: var(--teal); border-color: var(--teal); }
 .veterano:disabled .marca-vet { border-color: var(--teal); color: var(--teal); }
+/* Presentación como bando de guerra */
+.dossier .paso-pres, .dossier .propinas li { background: rgba(255,255,255,.35); border: 1px dashed #b9ad8f; border-left: 3px solid #8a7a58; border-radius: 4px; }
+.dossier .paso-ico { background: #e6dcc3; color: #2a2418; } .dossier .paso-ico b { background: #2a2418; color: #f4eedd !important; }
+.dossier .paso-corta { color: #3b2f1c !important; }
+.dossier .leer-mas summary { color: #0f7a63 !important; font-family: 'Courier New', monospace; }
+.dossier .propinas li.propina-amor { border-color: #b0287f; border-left-color: #b0287f; }
+.dossier .propina-amor .escena { background: #1a1630; border-radius: 4px; padding: 4px; }
+.pres-expediente .demo-pres { transform: rotate(-1deg); }
+.pres-expediente .demo-pres .peq { color: #3b2f1c !important; font-family: 'Courier New', monospace; }
+.dossier .hoja-alistamiento .garabato { width: 150px; height: 44px; }
+/* Vista en miniatura de la orden de movilización: también como expediente */
+.correo-mini { border: 0; border-radius: 4px 12px 12px 12px; background: #c9a86a; padding: 10px; }
+.correo-mini-cab { height: auto; padding: 12px 14px 4px; background: #f4eedd; color: #2a2418; font-family: 'Courier New', monospace !important; font-size: 18px; text-transform: uppercase; text-decoration: underline; border-radius: 3px 3px 0 0; }
+.correo-mini > div:last-child { background: #f4eedd; border-radius: 0 0 3px 3px; font-family: 'Courier New', monospace; }
+.correo-mini strong, .correo-mini .med { color: #2a2418 !important; }
+.correo-mini-boton { background: #2a2418; color: #f4eedd; font-family: 'Courier New', monospace !important; letter-spacing: .1em; border-radius: 4px; }
+.parte-hoja .sello-oficial.sello-linea, .parte-hoja .sello-oficial.sello-linea.sello-arriba { position: relative; top: auto; right: auto; align-self: flex-end; margin: -4px 6px -2px 0; transform: rotate(-7deg); }
+@media (min-width: 900px) { .parte-hoja .sello-oficial.sello-linea { top: auto; right: auto; } }
+.parte-hoja strong { color: #2a2418; }
+.dossier .enorme { color: #2a2418 !important; -webkit-text-fill-color: #2a2418; background: none !important; text-shadow: none; }

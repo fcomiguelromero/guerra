@@ -1,8 +1,9 @@
 // Presentación de la guerra: una página sólo para leer, que explica el juego y anima a participar.
 // Se abre con #p=ID.CLAVE. No tiene botones, ni cartas, ni nombres de nadie: quien quiera alistarse avisa al alto mando.
-import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=44';
-import { icono } from './dibujos.js?v=44';
-import { soldado, escena } from './monigotes.js?v=44';
+import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=46';
+import { icono } from './dibujos.js?v=46';
+import { soldado, escena } from './monigotes.js?v=46';
+import { portada, garabato } from './expediente.js?v=46';
 
 alEntrar('/presentacion', async () => {
   S.ui.presDatos = null; S.ui.presError = null;
@@ -49,26 +50,28 @@ registrar('/presentacion', () => {
     x.termometro ? ['termo', T, 'El termómetro', '¿Vas con la mayoría?', 'Lo sabrás después de votar. Sin cifras, que esto es secreto.'] : null,
     ['grados', V, 'Galones', 'De recluta a general.', 'Cada guerra terminada te asciende un grado. Y hay consejo de guerra para los desertores.']
   ].filter(Boolean);
-  const demo = cosas ? '' : `<section class="col g4"><div class="duelo">${carta({ id: 'c1', nombre: 'Tú', frase: 'Aquí irá tu grito de guerra' }, { figura: soldado('usa') })}${carta({ id: 'c2', nombre: 'Tu rival', frase: 'Y aquí, el suyo' }, { clase: 'izq', figura: soldado('prusia') })}<div class="vs" aria-hidden="true">VS</div></div>
+  const demo = cosas ? '' : `<section class="col g4 demo-pres"><div class="duelo">${carta({ id: 'c1', nombre: 'Tú', frase: 'Aquí irá tu grito de guerra' }, { figura: soldado('usa') })}${carta({ id: 'c2', nombre: 'Tu rival', frase: 'Y aquí, el suyo' }, { clase: 'izq', figura: soldado('prusia') })}<div class="vs" aria-hidden="true">VS</div></div>
     <p class="peq t2 centro">Así es una batalla: dos cartas, una pregunta y un voto.</p></section>`;
-  return marco(`<header class="col centro" style="align-items:center;gap:10px;padding-top:8px">
-      <span class="chapa">Se avecina una guerra</span>
-      ${d.campo ? `<div class="sobre">${esc(d.campo)}</div>` : ''}
-      <h1 class="enorme">${esc(nombre)}</h1>
-      ${(d.preguntas || [d.pregunta]).filter(Boolean).map((q) => `<p class="bc oro" style="font-weight:800;font-size:${(d.preguntas || []).length > 1 ? 26 : 34}px;line-height:1.05">${esc(q)}</p>`).join('')}
-      ${(d.preguntas || []).length > 1 ? `<p class="med t2">Cada ofensiva, una pregunta. Y cada pregunta, su campeón.</p>` : ''}
-      <p class="t3">${cosas ? 'Un torneo para resolverlo de una vez por todas, a votos y desde el móvil.' : 'Un torneo de todos contra todos para resolverlo de una vez, a votos y desde el móvil. Es un juego: aquí se viene a reír.'}</p>
-    </header>
+  const qs = (d.preguntas || [d.pregunta]).filter(Boolean);
+  const hoja = portada({ pestana: 'Bando de guerra', membrete: ['ESTADO MAYOR DE LA NORMALIDAD', 'NEGOCIADO DE PROPAGANDA Y RECLUTAMIENTO'],
+    titulo: nombre, lineas: qs.map((q) => `<strong>ASUNTO:</strong> ${esc(q)}`).concat(qs.length > 1 ? ['Cada ofensiva, una pregunta. Y cada pregunta, su campeón.'] : [],
+      [cosas ? 'Un torneo para resolverlo de una vez por todas, a votos y desde el móvil.' : 'Un torneo de todos contra todos para resolverlo de una vez, a votos y desde el móvil. Es un juego: aquí se viene a reír.']),
+    ficha: [d.campo ? ['Campo de batalla', d.campo] : null, ['Formato', torneo ? 'Eliminatorias' : 'Liga'], ['Ritmo', torneo ? 'Ronda a ronda' : d.ritmo === 'diaria' ? 'Una ofensiva al día' : 'Todo de golpe'],
+      ['Convoca', d.firma], d.premio ? ['Premio', d.premio] : null].filter(Boolean),
+    pie: 'PUBLÍQUESE EN TODOS LOS TABLONES, GRUPOS DE WHATSAPP Y MÁQUINAS DE CAFÉ.', sello: d.enMarcha ? 'En marcha' : 'Se busca tropa', redondo: 'OFICINA DE RECLUTAMIENTO · ' });
+  return marco(`<div class="expediente pres-expediente">${hoja}
     ${demo}
-    ${d.pitch ? `<section class="caja rosa"><p style="font-style:italic;white-space:pre-line">«${esc(d.pitch)}»</p><span class="peq t2">${esc(d.firma)}, alto mando</span></section>` : ''}
+    <div class="col g12 dossier parte-final">
+    ${d.pitch ? `<section class="caja" data-sello="PROCLAMA"><p style="font-style:italic;white-space:pre-line">«${esc(d.pitch)}»</p><span class="peq t2">${esc(d.firma)}, alto mando</span></section>` : ''}
     <section class="col g8"><h2 class="h2">Cómo funciona</h2><ol class="pasos-pres">${pasos.map((q, k) => paso(q, k + 1)).join('')}</ol></section>
     <section class="col g8"><h2 class="h2">Y de propina</h2><ul class="propinas">${propinas.map(([ic, c, t, corta, det]) => `<li style="--c:${c}"${ic === 'corazon' ? ' class="propina-amor"' : ''}>${ic === 'corazon' ? escena('beso', 'El americano y el prusiano se besan sobre la trinchera', 110) : ''}<span class="paso-ico chico">${icono(ic, 22, 1.8)}</span>
       <strong class="bc paso-t">${esc(t)}</strong><span class="peq t3">${esc(corta)}</span>${leerMas(det)}</li>`).join('')}</ul></section>
-    ${d.premio ? `<section class="caja oro centro" style="align-items:center"><span class="oro">${icono('medalla', 34, 1.8)}</span><span class="sobre oro">El premio</span><strong class="bc" style="font-size:28px;line-height:1.05;color:#fff">${esc(d.premio)}</strong></section>` : ''}
-    <section class="caja teal centro" style="align-items:center;padding:20px 14px">
-      <div class="enorme teal" style="font-size:40px">${d.enMarcha ? 'Esta guerra ya ha empezado' : '¿Te alistas?'}</div>
+    ${d.premio ? `<section class="caja centro" data-sello="PREMIO" style="align-items:center"><span class="oro">${icono('medalla', 34, 1.8)}</span><span class="sobre oro">El premio</span><strong class="bc" style="font-size:28px;line-height:1.05">${esc(d.premio)}</strong></section>` : ''}
+    <section class="caja centro hoja-alistamiento" data-sello="${d.enMarcha ? 'CERRADO' : 'ABIERTO'}" style="align-items:center;padding:20px 14px">
+      <div class="enorme" style="font-size:40px">${d.enMarcha ? 'Esta guerra ya ha empezado' : '¿Te alistas?'}</div>
       <p style="font-size:17px">${d.enMarcha ? `Si quieres entrar en la próxima, díselo a <strong>${esc(d.firma)}</strong>.` : `Díselo a <strong>${esc(d.firma)}</strong> y te meterá en la guerra.`}</p>
       ${d.enMarcha ? '' : `<p class="med t2">Sólo hacen falta tu nombre y tu correo${cosas ? '' : '. Si quieres lucirte, también una foto y un grito de guerra'}.</p>`}
-    </section>
+      <div class="col" style="align-items:center;gap:0;margin-top:6px">${garabato}<span class="maquina med" style="font-weight:700">${esc(d.firma)}</span><span class="maquina peq">POR ORDEN DEL ALTO MANDO</span></div>
+    </section></div></div>
     <p class="bc centro" style="font-weight:800;font-size:24px;color:#fff">¡Sólo puede quedar uno!</p>`, { sinNav: true, fondo: 'b', marca: tituloGuerra(d) });
 });
