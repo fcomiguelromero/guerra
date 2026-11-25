@@ -660,7 +660,6 @@ ul, ol { padding: 0; list-style: none; }
 .ficha-parte dd { margin: 0; font-weight: 700; font-size: 15px; color: #2a2418; text-transform: uppercase; }
 .parte-firma .garabato { width: 150px; height: 44px; }
 .parte-firma .pagina-parte { align-self: center; margin-top: 6px; letter-spacing: .2em; }
-.parte-campeon { align-items: center; }
 .parte-campeon .enorme { color: #2a2418 !important; font-size: 44px; }
 .parte-final .caja::after, .parte-campeon .caja::after { content: attr(data-sello); }
 .parte-final .caja:not([data-sello])::after, .parte-campeon .caja:not([data-sello])::after { display: none; }
@@ -725,3 +724,9 @@ ul, ol { padding: 0; list-style: none; }
 .dossier .hoja-alistamiento .garabato { width: 150px; height: 44px; }
 .parte-hoja strong { color: #2a2418; }
 .dossier .enorme { color: #2a2418 !important; -webkit-text-fill-color: #2a2418; background: none !important; text-shadow: none; }
+/* Parte final: la foto a un lado y, al otro, primer puesto, hoja de servicios y botones, alineados arriba */
+.parte-campeon { align-items: flex-start; }
+.parte-campeon .foto-campeon { align-items: center; }
+.parte-campeon .ficha-vencedor .ficha-parte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 899px) { .parte-campeon .ficha-vencedor .ficha-parte { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 900px) { .cols-pc.parte-campeon { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); } .parte-campeon .foto-informe { width: min(340px, 92%); } }

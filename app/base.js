@@ -1,6 +1,6 @@
 // Cimientos de las pantallas: conexión con el motor, memoria local, piezas comunes y pintado.
-import { ICONOS as FAMILIA } from './dibujos.js?v=48';
-import { API } from './config.js?v=48';
+import { ICONOS as FAMILIA } from './dibujos.js?v=49';
+import { API } from './config.js?v=49';
 
 const mem = {
   leer(k, d) { try { const v = localStorage.getItem('gn.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },

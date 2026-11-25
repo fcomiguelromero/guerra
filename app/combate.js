@@ -1,16 +1,16 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=48';
-import { botonesCalendario } from './calendario.js?v=48';
-import { botonAlbum } from './album.js?v=48';
-import { icono, ILU, piezas } from './dibujos.js?v=48';
-import { escena } from './monigotes.js?v=48';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=48';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=48';
-import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=48';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=48';
-import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=48';
+import { botonCartel } from './carteles.js?v=49';
+import { botonesCalendario } from './calendario.js?v=49';
+import { botonAlbum } from './album.js?v=49';
+import { icono, ILU, piezas } from './dibujos.js?v=49';
+import { escena } from './monigotes.js?v=49';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=49';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=49';
+import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=49';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=49';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=49';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=48';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=49';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -606,14 +606,14 @@ function pantallaPublicada() {
     <div class="expediente">
     ${cabeza}
     ${duelo ? `<div class="parte-hoja"><p class="maquina med">El resto del parte ya es oficial: sólo falta decidir quién se lleva la guerra.</p></div>${bloqueDuelo(e.duelo, false)}`
-      : `<div class="cols-pc parte-campeon"><div class="col g12 dossier" style="align-items:center">${fotoInforme(G[campeon.id], 'Fig. 1 · El vencedor')}
-          <section class="caja ficha-vencedor" data-sello="ANEXO I"><span class="maquina peq">HOJA DE SERVICIOS DEL VENCEDOR</span>
-            <dl class="ficha-parte"><div><dt>Puntos</dt><dd>${campeon.pts}</dd></div><div><dt>Batallas ganadas</dt><dd>${campeon.g} de ${campeon.g + campeon.e + campeon.p}</dd></div>
-              <div><dt>Empates</dt><dd>${campeon.e}</dd></div><div><dt>Derrotas</dt><dd>${campeon.p}</dd></div><div><dt>Diferencia de votos</dt><dd>${signo(campeon.dif)}</dd></div>
-              ${G[campeon.id].frase ? `<div style="grid-column:1/-1"><dt>Grito de guerra</dt><dd style="text-transform:none">«${esc(G[campeon.id].frase)}»</dd></div>` : ''}</dl></section></div>
+      : `<div class="cols-pc parte-campeon"><div class="col dossier foto-campeon">${fotoInforme(G[campeon.id], 'Fig. 1 · Primer puesto')}</div>
         <div class="col g12 dossier"><section class="caja" data-sello="VENCEDOR"><span class="maquina peq">PRIMER PUESTO</span><div class="enorme" style="line-height:1">${esc(G[campeon.id].nombre)}</div>
           ${g.premio ? `<p class="maquina med"><strong>PREMIO:</strong> ${esc(g.premio)}</p>` : ''}
           ${gana.length ? `<p class="maquina med"><strong>LA PORRA:</strong> ${r.porra.gana.length > 1 ? 'ganan' : 'gana'} ${esc(enumerar(r.porra.gana.map((id) => G[id].nombre)))}, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.</p>` : ''}</section>
+          <section class="caja ficha-vencedor" data-sello="ANEXO I"><span class="maquina peq">HOJA DE SERVICIOS DEL VENCEDOR</span>
+            <dl class="ficha-parte"><div><dt>Puntos</dt><dd>${campeon.pts}</dd></div><div><dt>Batallas ganadas</dt><dd>${campeon.g} de ${campeon.g + campeon.e + campeon.p}</dd></div>
+              <div><dt>Empates</dt><dd>${campeon.e}</dd></div><div><dt>Derrotas</dt><dd>${campeon.p}</dd></div><div><dt>Diferencia de votos</dt><dd>${signo(campeon.dif)}</dd></div>
+              ${G[campeon.id].frase ? `<div style="grid-column:1/-1"><dt>Grito de guerra</dt><dd style="text-transform:none">«${esc(G[campeon.id].frase)}»</dd></div>` : ''}</dl></section>
         <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}${botonAlbum()}</div></div></div>`}
     <div class="col g12 dossier parte-final">
     <section class="caja" data-sello="OFICIAL"><h2 class="h2">Clasificación</h2>${tablaFinal(r)}${g.cuadro ? '<button class="btn linea medio" data-a="ir" data-v="/cuadro">Ver el cuadro del torneo</button>' : ''}</section>
