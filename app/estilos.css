@@ -613,3 +613,7 @@ ul, ol { padding: 0; list-style: none; }
 .amor-cab .escena { width: 100%; max-width: 300px; }
 .amor-plan { border-top: 1px dashed rgba(255,106,213,.35); padding-top: 6px; }
 .amor-plan > .escena { align-self: center; width: 100%; max-width: 260px; }
+/* Los morritos se fruncen y se estiran, como dando besos. */
+.escena-beso .morro { transform-box: fill-box; transform-origin: center; animation: muac .8s ease-in-out infinite; }
+.escena-beso .beso-der .morro { animation-delay: .4s; }
+@keyframes muac { 0%, 100% { transform: scale(1, 1); } 35% { transform: scale(.62, 1.25); } 55% { transform: scale(1.12, .88); } }

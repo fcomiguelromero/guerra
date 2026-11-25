@@ -1,15 +1,15 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=38';
-import { botonesCalendario } from './calendario.js?v=38';
-import { botonAlbum } from './album.js?v=38';
-import { icono, ILU, piezas } from './dibujos.js?v=38';
-import { escena } from './monigotes.js?v=38';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=38';
-import { enfadar } from './caras.js?v=38';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=38';
-import { nombreRonda, preferencia } from './base.js?v=38';
+import { botonCartel } from './carteles.js?v=39';
+import { botonesCalendario } from './calendario.js?v=39';
+import { botonAlbum } from './album.js?v=39';
+import { icono, ILU, piezas } from './dibujos.js?v=39';
+import { escena } from './monigotes.js?v=39';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=39';
+import { enfadar } from './caras.js?v=39';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=39';
+import { nombreRonda, preferencia } from './base.js?v=39';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=38';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=39';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);

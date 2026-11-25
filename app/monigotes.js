@@ -4,6 +4,8 @@
 // Un monigote, en una caja de 100×100. o.dormido: ojos cerrados; o.sinFusil; o.mira: hacia dónde mira.
 function figura(cual, o = {}) {
   const usa = cual === 'usa';
+  // Morritos de beso: unos labios fruncidos hacia el lado de la pareja; se animan con CSS (.morro).
+  const morro = (x, y) => `<g class="morro"><path d="M${x - 5} ${y} Q${x - 2.5} ${y - 4} ${x} ${y - 1.2} Q${x + 2.5} ${y - 4} ${x + 5} ${y} Q${x} ${y + 5.5} ${x - 5} ${y} Z" fill="#ff4fb8" stroke="#a8237a" stroke-width=".8"/><path d="M${x - 4} ${y} Q${x} ${y + 1.6} ${x + 4} ${y}" stroke="#a8237a" stroke-width=".9" fill="none"/></g>`;
   const c = usa ? '#6b3572' : '#2f6170', claro = usa ? '#9a58a3' : '#4d93a6', oscuro = usa ? '#3a1d3f' : '#1b3540';
   const cuerpo = `<path d="M14 100 C14 72 32 60 50 60 C68 60 86 72 86 100 Z" fill="${c}"/><circle cx="50" cy="36" r="18" fill="${c}"/>`;
   const ojos = (mira) => o.dormido ? `<path d="M39.5 37.5 Q43 40 46.5 37.5 M53.5 37.5 Q57 40 60.5 37.5" stroke="${oscuro}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`
@@ -18,7 +20,7 @@ function figura(cual, o = {}) {
       <g transform="rotate(-9 50 27)"><path d="M32 27 Q34 8 50 8 Q66 8 68 27 Z" fill="${claro}"/><ellipse cx="50" cy="27" rx="28" ry="5.2" fill="${claro}"/><path d="M24 28.4 Q50 34 76 28.4" stroke="${oscuro}" stroke-width="1" fill="none" opacity=".45"/>
         <path fill="#f6f2ff" d="M50 11.5l1.7 3.6 3.9.5-2.9 2.7.8 3.9-3.5-1.9-3.5 1.9.8-3.9-2.9-2.7 3.9-.5z"/></g>
       ${o.dormido || o.sinChicle ? '' : '<circle cx="60" cy="48" r="7.5" fill="#ff6ad5"/><path d="M56.2 45.6 Q57.6 42.8 60.6 42.6" stroke="#fff" stroke-width="1.3" fill="none" stroke-linecap="round" opacity=".85"/>'}
-      <path d="M45 46.5 Q49 49.5 53 47.5" stroke="${oscuro}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      ${o.morritos ? morro(56, 47.5) : `<path d="M45 46.5 Q49 49.5 53 47.5" stroke="${oscuro}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`}
       <path d="M42 62.5 Q50 70 58 62.5" stroke="${claro}" stroke-width="1" fill="none"/><rect x="47.6" y="67.5" width="4.8" height="6.4" rx="1.2" fill="#ffd36a"/>`;
   }
   return `${o.sinFusil ? '' : `<g stroke-linecap="round"><path d="M75 97 L85 36" stroke="${claro}" stroke-width="5"/><path d="M85 36 L88.5 13" stroke="${claro}" stroke-width="2.2"/><path d="M88.5 13 L89.6 4" stroke="#f6f2ff" stroke-width="1.5"/>
@@ -30,7 +32,7 @@ function figura(cual, o = {}) {
     ${ojos(-1)}
     <path d="M38.8 31.8 L46.6 34 M53.4 34 L61.2 31.8" stroke="${oscuro}" stroke-width="1.7" fill="none" stroke-linecap="round"/>
     ${o.dormido ? '' : '<circle cx="57" cy="37" r="5.3" fill="rgba(255,255,255,.14)" stroke="#ffd36a" stroke-width="1.3"/>'}<path d="M61.6 39.8 Q68 48 63.5 61" stroke="#ffd36a" stroke-width=".8" fill="none"/>
-    <g stroke="#f6f2ff" stroke-width="3.1" fill="none" stroke-linecap="round"><path d="M50 46.6 Q43 51.5 36.5 47 Q32.5 44 35 40.2"/><path d="M50 46.6 Q57 51.5 63.5 47 Q67.5 44 65 40.2"/></g>
+    <g stroke="#f6f2ff" stroke-width="3.1" fill="none" stroke-linecap="round"><path d="M50 46.6 Q43 51.5 36.5 47 Q32.5 44 35 40.2"/><path d="M50 46.6 Q57 51.5 63.5 47 Q67.5 44 65 40.2"/></g>${o.morritos ? morro(44, 52) : ''}
     <path d="M47.9 63.2h4.2v2.6h2.6v4.2h-2.6v2.6h-4.2v-2.6h-2.6v-4.2h2.6z" fill="#ffd36a"/>`;
 }
 
@@ -82,9 +84,8 @@ const ESCENAS = {
   // En el amor y en la guerra: el americano y el prusiano se besan sobre la trinchera, con los fusiles tirados y corazones subiendo.
   beso: () => `
     <g fill="#f2f0ff" opacity=".7"><circle cx="24" cy="22" r="1.3"/><circle cx="62" cy="10" r="1"/><circle cx="196" cy="14" r="1.2"/><circle cx="222" cy="40" r="1"/></g>
-    <g class="beso-izq">${en('usa', 46, 18, 92, { dormido: true, sinFusil: true, sinChicle: true }, 22)}</g>
-    <g class="beso-der">${en('prusia', 102, 18, 92, { dormido: true, sinFusil: true }, -22)}</g>
-    <g class="morritos"><path d="M112 58 Q116 53 120 57 Q124 53 128 58 Q120 66 112 58 Z" fill="#ff4fb8"/><path d="M113 58 Q120 60.5 127 58" stroke="#a8237a" stroke-width="1.1" fill="none"/></g>
+    <g class="beso-izq">${en('usa', 46, 18, 92, { dormido: true, sinFusil: true, sinChicle: true, morritos: true }, 22)}</g>
+    <g class="beso-der">${en('prusia', 102, 18, 92, { dormido: true, sinFusil: true, morritos: true }, -22)}</g>
     <path class="beso-chispa" d="M120 14c-2.6-3.2-7.4-1.4-6.2 2.4.9 2.7 6.2 6.1 6.2 6.1s5.3-3.4 6.2-6.1c1.2-3.8-3.6-5.6-6.2-2.4z" fill="#ff6ad5"/>
     <g class="corazones" fill="#ff6ad5">
       <path d="M104 30c-2-2.5-5.8-1.1-4.8 1.9.7 2.1 4.8 4.7 4.8 4.7s4.1-2.6 4.8-4.7c1-3-2.8-4.4-4.8-1.9z"/>
