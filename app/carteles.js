@@ -1,8 +1,8 @@
 // Carteles para WhatsApp y diploma de la cruz al mérito: se dibujan en el propio dispositivo (1080×1350)
 // y se comparten como imagen, o se descargan si el navegador no sabe compartir archivos.
-import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion, tituloGuerra } from './base.js?v=50';
-import { soldado } from './monigotes.js?v=50';
-import { gen, tituloPremio } from './genero.js?v=50';
+import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion, tituloGuerra } from './base.js?v=52';
+import { soldado } from './monigotes.js?v=52';
+import { gen, tituloPremio } from './genero.js?v=52';
 const plurDes = (ids, G) => (ids.length === 1 ? gen(G[ids[0]], 'Desertor', 'Desertora') : ids.every((id) => gen(G[id], false, true)) ? 'Desertoras' : 'Desertores');
 
 

@@ -1,13 +1,13 @@
 // Pantallas del alto mando: guerras, plan de guerra, cuartel general, armisticio, informe clasificado y mando del desfile.
 import { S, llamar, refrescar, esc, tituloGuerra, nombreRonda, plural, signo, ordinal, enumerar, porId, hace, fecha, diaHora, duracion, poner, preferencia,
-  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=50';
-import { escena } from './monigotes.js?v=50';
-import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=50';
-import { botonCartel, imagenTropa, abrirBando } from './carteles.js?v=50';
-import { gen, tituloPremio, adivinarSexo } from './genero.js?v=50';
-import { recortarFoto } from './recorte.js?v=50';
-import { icono, ILU } from './dibujos.js?v=50';
-import { frente, filaRezagados } from './graficos.js?v=50';
+  ico, avatar, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar, pedirFotos } from './base.js?v=52';
+import { escena } from './monigotes.js?v=52';
+import { etiquetaSiguiente, listaPremios, tablaFinal, listaCuriosidades, TITULOS, pantallaDesfile, campeonesPregunta, bloqueParejas } from './combate.js?v=52';
+import { botonCartel, imagenTropa, abrirBando } from './carteles.js?v=52';
+import { gen, tituloPremio, adivinarSexo } from './genero.js?v=52';
+import { recortarFoto } from './recorte.js?v=52';
+import { icono, ILU } from './dibujos.js?v=52';
+import { frente, filaRezagados } from './graficos.js?v=52';
 
 const NOMBRE_FASE = { borrador: 'Borrador', llamamiento: 'Llamamiento a filas', abierta: 'En guerra', terminada: 'Alto el fuego', desfile: 'De desfile', publicada: 'Terminada' };
 const EXTRAS = [
@@ -291,7 +291,9 @@ function cabeceraPlan(n) {
 function piePlan(n, previa) {
   const sig = n < 6 ? `<button class="btn crece" data-a="pasoPlan" data-v="${n + 1}">Siguiente: ${['', 'combatientes', 'reglas', 'extras', 'correo', 'revisar'][n]}${icono('flecha', 20, 2.6)}</button>`
     : previa ? `<button class="btn rosa crece" data-a="declarar">¡Declarar la guerra!</button>` : `<button class="btn crece" data-a="guardarPlan">Guardar cambios</button>`;
-  return `<footer class="plan-pie">${n > 1 ? `<button class="btn linea cuadro-grande" data-a="pasoPlan" data-v="${n - 1}" aria-label="Paso anterior">${icono('atras', 20, 2.6)}</button>` : ''}${sig}</footer>`;
+  // En los pasos 1 a 5, «Guardar» graba el borrador sin moverse de página (en el 6 ya está el botón de guardar o declarar).
+  const guardar = n < 6 ? `<button class="btn linea guardar-plan" data-a="guardarPlan" aria-label="${previa ? 'Guardar borrador' : 'Guardar cambios'}">${icono('guardar', 20, 2.2)}<span>${previa ? 'Guardar borrador' : 'Guardar'}</span></button>` : '';
+  return `<footer class="plan-pie">${n > 1 ? `<button class="btn linea cuadro-grande" data-a="pasoPlan" data-v="${n - 1}" aria-label="Paso anterior">${icono('atras', 20, 2.6)}</button>` : ''}${guardar}${sig}</footer>`;
 }
 // Bloque plegable: una fila con icono y resumen que se abre al tocarla.
 function pliegue(clave, ic, titulo, resumen, contenido, abiertoPorDefecto) {
@@ -631,7 +633,12 @@ async function guardarPlan() {
   await llamar('guardarPlan', { plan });
   await cargarPlan();
 }
-accion('guardarPlan', async () => { await guardarPlan(); aviso('Plan guardado.', true); });
+accion('guardarPlan', async () => {
+  S.ui.ficha = null;
+  await guardarPlan(); S.ui.planGuardado = Date.now();
+  const p = S.ui.plan;
+  aviso(p.fase === 'borrador' || p.fase === 'llamamiento' ? 'Borrador guardado.' : 'Cambios guardados.', true);
+});
 accion('abrirLlamamiento', async () => { await guardarPlan(); await llamar('abrirLlamamiento'); await cargarPlan(); aviso('Llamamiento abierto: manda el enlace por WhatsApp.', true); });
 accion('llamarCorreo', async (todos) => {
   await guardarPlan();

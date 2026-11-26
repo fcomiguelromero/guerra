@@ -36,6 +36,13 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await plan.paso(m, 2);
     for (let i = 0; i < NOMBRES.length; i++) await plan.reclutar(m, i, NOMBRES[i], 'c' + i + '@ejemplo.test');
     await plan.soyYo(m, 5);
+    // Guardar el borrador sin cambiar de paso.
+    await m.locator('.plan-pie [data-a="guardarPlan"]').click();
+    await m.getByText('Borrador guardado.').waitFor();
+    const guardado = (await api('plan', { mando: 'mando-local', guerra: (await api('cuartel', { mando: 'mando-local' })).guerras[0].id })).plan;
+    assert.strictEqual(guardado.gente.length, NOMBRES.length, 'el borrador se guarda desde el paso 2');
+    assert.ok(await m.locator('[aria-current="step"][data-v="2"]').count(), 'sigue en el paso 2');
+    await foto(m, '01b-guardar-borrador');
     // Lucía y Pablo; Elena y Javi. Luego Elena cambia a Rosa y Javi queda suelto.
     // Con GN_FOTOS=ruta1,ruta2 se ponen fotos a Lucía y a Pablo (para ver la cara enamorada; no se suben al repositorio).
     const fotos = (process.env.GN_FOTOS || '').split(',').filter(Boolean);

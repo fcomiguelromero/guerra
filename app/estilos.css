@@ -735,3 +735,6 @@ ul, ol { padding: 0; list-style: none; }
 .campo-sexo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .campo-sexo .opciones button { min-width: 64px; }
 .campo-sexo .nota-sexo { flex-basis: 100%; }
+/* Botón de guardar en el pie del plan: en el móvil, sólo el icono */
+.plan-pie .guardar-plan { flex: none; }
+@media (max-width: 599px) { .plan-pie .guardar-plan span { display: none; } .plan-pie .guardar-plan { padding-left: 14px; padding-right: 14px; } }

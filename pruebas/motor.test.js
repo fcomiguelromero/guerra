@@ -1010,11 +1010,11 @@ prueba('enlaces: reenviar, liberar una carta y correos que fallan', () => {
 prueba('género: el motor y la app adivinan igual, y las frases cambian con él o ella', () => {
   const fuente = fs.readFileSync(path.join(__dirname, '..', 'app', 'genero.js'), 'utf8').replace(/^export /gm, '');
   const app = new Function(fuente + '; return { adivinarSexo, sexoDe, tituloPremio, medallaPremio };')();
-  ['Cristina', 'Jorge Roberto', 'Mónica', 'Carmen', 'Isabel', 'Jacobo', 'Escobar', 'Fran', 'Candela', 'Andrea', 'Luca', 'Rocío', 'Noa', 'Íñigo', 'Belén', 'Raúl', ''].forEach((n) => {
+  ['Cristina', 'Jorge Roberto', 'Mónica', 'Carmen', 'Isabel', 'Jacobo', 'Escobar', 'Fran', 'Candela', 'Andrea', 'Luca', 'Rocío', 'Noa', 'Íñigo', 'Belén', 'Raúl', 'Javi', 'Rafa', 'Pili', ''].forEach((n) => {
     assert.deepStrictEqual(M.adivinarSexo(n), app.adivinarSexo(n), 'distinto para ' + n);
   });
   assert.strictEqual(M.adivinarSexo('Cristina').s, 'm'); assert.strictEqual(M.adivinarSexo('Carmen').s, 'm'); assert.strictEqual(M.adivinarSexo('Jacobo').s, 'h');
-  assert.ok(M.adivinarSexo('Escobar').dudoso); assert.ok(M.adivinarSexo('Fran').dudoso);
+  assert.ok(M.adivinarSexo('Escobar').dudoso); assert.strictEqual(M.adivinarSexo('Rafa').s, 'h'); assert.ok(!M.adivinarSexo('Javi').dudoso); assert.ok(M.adivinarSexo('Fran').dudoso);
   assert.strictEqual(M.generar('Llega {{el último|la última}}', { nombre: 'Cristina' }), 'Llega la última');
   assert.strictEqual(M.generar('Llega {{el último|la última}}', { nombre: 'Cristina', sexo: 'h' }), 'Llega el último');
   assert.strictEqual(app.tituloPremio('borrego', { nombre: 'Cristina' }), 'La más borrega');

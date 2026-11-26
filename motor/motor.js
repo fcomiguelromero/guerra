@@ -36,13 +36,14 @@ var NOMBRES_ELLA = conjunto('carmen isabel raquel pilar rocio consuelo mercedes 
   'montserrat flor amparo encarnacion asuncion concepcion itziar noemi mabel maribel lourdes iris judith elisabet elizabeth salud paz angeles remedios ' +
   'milagros trinidad soledad piedad caridad leire uxue aitziber maite jone lis cloe chloe zoe cande mari isa lu marisol rosario guadalupe reyes ' +
   'raquel macarena ingrid carmen yaiza naiara arancha begonya nur noor rut edurne amaia ainhoa miren itsaso iratxe idoia aranzazu arantzazu ' +
-  'covadonga montse gemma yasmin jazmin carol karen helen ellen anabel cristel liz beth ruth estrella');
+  'covadonga montse gemma yasmin jazmin carol karen helen ellen anabel cristel liz beth ruth estrella pili susi conchi loli mamen rosi encarni paqui puri yoli geni nuri vane bego cari');
 var NOMBRES_EL = conjunto('borja luca josema nicola jota garcia sasha misha kostia ilia elias jonas andreas tomas lucas matias nicolas ' +
   'jose juan luis pablo jorge carlos javier jacobo diego david daniel miguel manuel rafael alvaro sergio adrian ivan ruben oscar raul ' +
   'victor hector fernando alberto antonio francisco ignacio enrique eduardo ramon roberto gonzalo joaquin jaime marcos mario alfonso ' +
   'guillermo angel agustin cesar felix samuel ismael gabriel abel isaac aaron noel saul bruno hugo leo marc pau pol oriol jordi xavi ' +
   'iker unai aitor asier gorka ander mikel jon julen ibai eneko paco pepe pepito curro quique nacho chema manolo lolo santi rodrigo ' +
-  'emilio julio cristian christian kevin jesus martin german esteban sebastian tobias gaspar baltasar melchor benito andres mateo simon');
+  'emilio julio cristian christian kevin jesus martin german esteban sebastian tobias gaspar baltasar melchor benito andres mateo simon ' +
+  'javi rafa edu migue juanma josemi manu guille rober luisma tito tono fede kike isra lalo pancho ximo');
 var NOMBRES_DUDOSOS = conjunto('fran alex cris dani sam toni juli chus pat eli ariel noa mar trini nico andrea dominique charlie jesse robin');
 function adivinarSexo(nombre) {
   var n = String(nombre || '').trim().split(/[\s-]+/)[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zñ]/g, '');
