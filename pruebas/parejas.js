@@ -57,6 +57,16 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     assert.strictEqual(await m.locator('#gp-3').inputValue(), '', 'Javi se queda sin pareja al cambiar Elena');
     await m.locator('.hoja [data-a="cerrarFicha"]').click();
     await foto(m, '02-fichas-con-parejas', true);
+    // Fran es un nombre dudoso: la ficha avisa y se confirma «él».
+    assert.ok(await m.locator('.fichas [data-a="abrirFicha"][data-v="5"]', { hasText: '¿Él o ella?' }).count(), 'avisa de que Fran es dudoso');
+    await m.locator('[data-a="abrirFicha"][data-v="5"]').click();
+    assert.ok(await m.locator('#gs-5 .nota-sexo:not([hidden])').count(), 'la ficha pide elegir');
+    assert.strictEqual(await m.locator('#gs-5 [data-v="5:h"]').getAttribute('aria-pressed'), 'true');
+    await m.locator('#gs-5 [data-v="5:h"]').click();
+    assert.ok(!(await m.locator('#gs-5 .nota-sexo:not([hidden])').count()), 'al elegir, deja de avisar');
+    await foto(m, '02b-ficha-el-o-ella');
+    await m.locator('.hoja [data-a="cerrarFicha"]').click();
+    assert.ok(!(await m.locator('.fichas [data-a="abrirFicha"][data-v="5"]', { hasText: '¿Él o ella?' }).count()));
     await plan.paso(m, 4);
     await m.locator('[data-a="extra"][data-v="lealtad"]').click();
     await foto(m, '03-extras-parejas', true);
@@ -140,6 +150,10 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await foto(pf, '10-parte-final-movil', true);
     await pf.evaluate(() => { location.hash = '#/porra'; }); await quieto(pf);
     assert.ok(await pf.locator('.porra-vs tbody tr').count() >= 6, 'la porra se compara con el parte final');
+    const ELLAS = ['Lucía', 'Elena', 'Rosa'];
+    const ganaPorra = (await pf.locator('.caja.oro strong.bc').first().innerText()).trim().replace(/^tú$/i, 'Rosa');
+    const etiqueta = (await pf.locator('.caja.oro .sobre.oro').first().innerText()).toLowerCase();
+    assert.strictEqual(etiqueta.startsWith('ganadora'), ELLAS.some((n) => n.toLowerCase() === ganaPorra.toLowerCase()), 'ganador/ganadora según quién gana la porra: ' + ganaPorra + ' → ' + etiqueta);
     await foto(pf, '10b-porra-comparada', true);
     const pfc = await pagina(nav, 1280, 860, '#t=' + tok['Lucía']);
     await pfc.waitForSelector('.expediente'); await pfc.waitForTimeout(500);

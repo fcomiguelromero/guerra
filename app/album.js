@@ -1,9 +1,12 @@
 // Álbum de la guerra: el recuerdo final, para todos los combatientes cuando se publica el parte.
 // Se dibuja en el propio dispositivo por bloques (portada, cuadro de honor, parte, condecoraciones...)
 // y sale de dos maneras: una imagen larga para WhatsApp y un PDF de páginas A4 para guardar o imprimir.
-import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=49';
-import { dibujo } from './carteles.js?v=49';
-import { listaCuriosidades, TITULOS, detallePremio } from './combate.js?v=49';
+import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=50';
+import { dibujo } from './carteles.js?v=50';
+import { listaCuriosidades, detallePremio } from './combate.js?v=50';
+import { gen, tituloPremio } from './genero.js?v=50';
+const plurDes = (ids, G) => (ids.length === 1 ? gen(G[ids[0]], 'Desertor', 'Desertora') : ids.every((id) => gen(G[id], false, true)) ? 'Desertoras' : 'Desertores');
+
 
 const { W, M, C, BC, IN, may, imagen, fuentes, caja, texto, lineas, parrafo, cartita, sello } = dibujo;
 const PAGINA = Math.round(W * Math.SQRT2);           // proporción A4
@@ -99,7 +102,7 @@ async function parte(e) {
       x.font = `400 30px ${IN}`;
       const wn = Math.min(x.measureText(nombres).width, ANCHO - 240);
       x.fillStyle = C.t2; x.fillRect(M, y - 10, wn, 2);
-      sello(x, r.desertores.length > 1 ? 'Desertores' : 'Desertor', M + wn + 120, y - 10, 28, C.rosa, -4);
+      sello(x, plurDes(r.desertores.map((d) => d.id), G), M + wn + 120, y - 10, 28, C.rosa, -4);
       y += 20;
     }
     return y + 40;
@@ -153,8 +156,8 @@ async function cierre(e) {
 
 async function bloques(e) {
   const r = e.resultado, G = porId(e.gente), nom = (id) => G[id].nombre;
-  const premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter((k) => r.premios[k]).map((k) => ({ sobre: TITULOS[k], nombre: nom(r.premios[k].id), texto: detallePremio(Object.assign({ cual: k }, r.premios[k])) }));
-  if (r.porra && r.porra.gana && r.porra.gana.length) premios.push({ sobre: r.porra.gana.length > 1 ? 'Ganadores de la porra' : 'Ganador de la porra', nombre: enumerar(r.porra.gana.map(nom)), texto: `A ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.` });
+  const premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter((k) => r.premios[k]).map((k) => ({ sobre: tituloPremio(k, G[r.premios[k].id]), nombre: nom(r.premios[k].id), texto: detallePremio(Object.assign({ cual: k }, r.premios[k])) }));
+  if (r.porra && r.porra.gana && r.porra.gana.length) premios.push({ sobre: r.porra.gana.length > 1 ? (r.porra.gana.every((id) => gen(G[id], false, true)) ? 'Ganadoras de la porra' : 'Ganadores de la porra') : gen(G[r.porra.gana[0]], 'Ganador', 'Ganadora') + ' de la porra', nombre: enumerar(r.porra.gana.map(nom)), texto: `A ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')} del parte final.` });
   const preguntas = (r.preguntas || []).map((q) => ({ sobre: 'Pregunta ' + q.k + ' · ' + plural(q.pts, 'punto', 'puntos'), nombre: nom(q.id), texto: q.texto }));
   const curios = listaCuriosidades(r, G).map((h) => ({ sobre: '', nombre: '', texto: sinEtiquetas(h) }));
   const proclamas = (r.proclamas || []).map((p) => ({ texto: p.texto, pie: `${nom(p.a)} contra ${nom(p.b)} · a ${nom(p.elegido)}` }));

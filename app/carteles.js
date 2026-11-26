@@ -1,7 +1,10 @@
 // Carteles para WhatsApp y diploma de la cruz al mérito: se dibujan en el propio dispositivo (1080×1350)
 // y se comparten como imagen, o se descargan si el navegador no sabe compartir archivos.
-import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion, tituloGuerra } from './base.js?v=49';
-import { soldado } from './monigotes.js?v=49';
+import { S, esc, plural, enumerar, porId, tinte, GRADOS, ico, pintar, aviso, accion, tituloGuerra } from './base.js?v=50';
+import { soldado } from './monigotes.js?v=50';
+import { gen, tituloPremio } from './genero.js?v=50';
+const plurDes = (ids, G) => (ids.length === 1 ? gen(G[ids[0]], 'Desertor', 'Desertora') : ids.every((id) => gen(G[id], false, true)) ? 'Desertoras' : 'Desertores');
+
 
 const W = 1080, H = 1350, M = 72;
 const C = { fondo: '#0d0b1a', sup: '#16132b', borde: '#2a2648', txt: '#f2f0ff', t2: '#b3aecf', t3: '#cdc8e6', teal: '#5ef0d0', violeta: '#8f7bff', rosa: '#ff6ad5', oro: '#ffd36a' };
@@ -235,7 +238,7 @@ async function cartelPodio(e) {
     texto(x, `Porra: ${enumerar(r.porra.gana.map((id) => G[id].nombre))}, a ${plural(r.porra.lista[0].suma, 'puesto', 'puestos')}`, W / 2, y, { font: `400 34px ${IN}`, align: 'center', max: W - 2 * M });
     y += 64;
   }
-  const premios = [['rebelde', 'Más rebelde'], ['borrego', 'Más borrego'], ['tardon', 'Más tardón'], ['adivino', 'El adivino']].filter(([k]) => r.premios[k]).map(([k, t2]) => t2 + ': ' + G[r.premios[k].id].nombre);
+  const premios = ['rebelde', 'borrego', 'tardon', 'adivino'].filter((k) => r.premios[k]).map((k) => { const q = G[r.premios[k].id]; return tituloPremio(k, q).replace(/^(El|La) más /, 'Más ') + ': ' + q.nombre; });
   if (premios.length) { parrafo(x, premios.join(' · '), W / 2, y, { font: `400 26px ${IN}`, align: 'center', color: C.t3, max: W - 2 * M, alto: 36, maxLineas: 2 }); y += 70; }
   if (r.desertores.length) {
     const nombres = enumerar(r.desertores.map((d) => G[d.id].nombre));
@@ -243,7 +246,7 @@ async function cartelPodio(e) {
     const wn = x.measureText(nombres).width, wTot = wn + 24 + 190, x0 = W / 2 - wTot / 2;
     texto(x, nombres, x0, y, { font: `400 30px ${IN}`, color: C.t2 });
     x.fillStyle = C.t2; x.fillRect(x0, y - 10, wn, 2);
-    sello(x, r.desertores.length > 1 ? 'Desertores' : 'Desertor', x0 + wn + 24 + 95, y - 10, 30, C.rosa, -4);
+    sello(x, plurDes(r.desertores.map((d) => d.id), G), x0 + wn + 24 + 95, y - 10, 30, C.rosa, -4);
   }
   return cv;
 }
@@ -332,7 +335,7 @@ function mensaje(tipo) {
   }
   const G = porId(e.gente), c = G[e.resultado.tabla[0].id];
   if (tipo === 'podio') return `¡${c.nombre} gana la ${n}! El parte de guerra completo, en la app: ${location.origin + location.pathname}`;
-  return `Cruz al mérito para ${c.nombre}, campeón de la ${n}.`;
+  return `Cruz al mérito para ${c.nombre}, ${gen(c, 'campeón', 'campeona')} de la ${n}.`;
 }
 
 accion('cartel', async (tipo) => {

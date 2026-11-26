@@ -149,8 +149,10 @@ const texto = (p) => p.locator('#app').innerText();
     // --- al día siguiente: aviso por correo y batallas nuevas
     const antes = (await api('_prueba', {})).correos.length;
     await api('_prueba', { salto: 24 * HORA, reloj: true });
-    const avisos = (await api('_prueba', {})).correos.slice(antes);
-    assert.ok(avisos.length >= 4 && avisos.every((c) => /se abre la ofensiva/.test(c.asunto)), 'aviso diario');
+    let avisos = (await api('_prueba', {})).correos.slice(antes);
+    // De madrugada aún no ha tocado diana: se avanza hasta que se abra la ofensiva del día.
+    for (let k = 0; k < 12 && !avisos.length; k++) { await api('_prueba', { salto: HORA, reloj: true }); avisos = (await api('_prueba', {})).correos.slice(antes); }
+    assert.ok(avisos.length >= 4 && avisos.every((c) => /se abre la ofensiva/.test(c.asunto)), 'aviso diario: ' + JSON.stringify(avisos.map((c) => c.asunto)));
     fs.writeFileSync(path.join(SALIDA, 'correo-ofensiva.html'), avisos[0].html);
     await ma.goto(BASE + '#/batallas'); await ma.reload(); await ma.waitForLoadState('networkidle');
     // Nueva ofensiva: primero, la bienvenida de un vistazo (una sola vez).

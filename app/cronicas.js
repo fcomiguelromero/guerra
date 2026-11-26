@@ -1,10 +1,10 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
-import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=49';
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=50';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=49';
-import { portada } from './expediente.js?v=49';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=50';
+import { portada } from './expediente.js?v=50';
+import { gen, tituloPremio, medallaPremio } from './genero.js?v=50';
 
-const PREMIOS = { rebelde: 'Medalla al más rebelde', borrego: 'Medalla al más borrego', tardon: 'Medalla al más tardón', adivino: 'Medalla al adivino' };
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
 function detalle(p) {
   if (p.cual === 'rebelde') return `Contra la mayoría en ${p.n} de ${p.de}`;
@@ -40,7 +40,7 @@ function parte(c) {
   const yo = yoEn(c);
   return `<table class="tabla"><thead><tr><th>#</th><th>${c.modo === 'cosas' ? 'Contendiente' : 'Combatiente'}</th><th>Puntos</th><th>Dif.</th></tr></thead><tbody>
     ${vivos.map((g) => `<tr class="${yo && g.id === yo.id ? 'yo' : ''}"><td>${g.pos}</td><td><span class="fila" style="gap:8px">${circulo(g)}${esc(nombre(g))}</span></td><td class="pts">${g.pts}</td><td>${signo(g.dif)}</td></tr>`).join('')}
-    ${des.map((g) => `<tr><td>—</td><td><span class="fila" style="gap:8px">${circulo(g, 'gris')}<span class="t2">${esc(nombre(g))}</span></span></td><td colspan="2" class="rosa" style="font-size:12px">Desertor</td></tr>`).join('')}
+    ${des.map((g) => `<tr><td>—</td><td><span class="fila" style="gap:8px">${circulo(g, 'gris')}<span class="t2">${esc(nombre(g))}</span></span></td><td colspan="2" class="rosa" style="font-size:12px">${gen(g, 'Desertor', 'Desertora')}</td></tr>`).join('')}
   </tbody></table>`;
 }
 function porraTexto(c) {
@@ -52,9 +52,9 @@ function tuGuerra(c) {
   const yo = yoEn(c);
   if (!yo) return '';
   const G = porId(c.gente), filas = [];
-  if (yo.companero) filas.push(`<div class="fila g12">${circulo(G[yo.companero.id], 'grande')}<span class="col g4"><span class="med t2">Compañero de trinchera:</span><strong>${esc(G[yo.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${yo.companero.n} de ${yo.companero.de} batallas</span></span></div>`);
-  if (yo.enemigo) filas.push(`<div class="fila g12">${circulo(G[yo.enemigo.id], 'grande rosa')}<span class="col g4"><span class="med t2">Enemigo íntimo:</span><strong>${esc(G[yo.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${yo.enemigo.n} de ${yo.enemigo.de}</span></span></div>`);
-  (yo.premios || []).forEach((p) => filas.push(`<div class="caja oro" style="gap:2px"><span class="med t2">Tu condecoración:</span><strong class="oro">${PREMIOS[p.cual]}</strong><span class="med t2">${detalle(p)}</span></div>`));
+  if (yo.companero) filas.push(`<div class="fila g12">${circulo(G[yo.companero.id], 'grande')}<span class="col g4"><span class="med t2">${gen(G[yo.companero.id], 'Compañero', 'Compañera')} de trinchera:</span><strong>${esc(G[yo.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${yo.companero.n} de ${yo.companero.de} batallas</span></span></div>`);
+  if (yo.enemigo) filas.push(`<div class="fila g12">${circulo(G[yo.enemigo.id], 'grande rosa')}<span class="col g4"><span class="med t2">${gen(G[yo.enemigo.id], 'Enemigo íntimo', 'Enemiga íntima')}:</span><strong>${esc(G[yo.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${yo.enemigo.n} de ${yo.enemigo.de}</span></span></div>`);
+  (yo.premios || []).forEach((p) => filas.push(`<div class="caja oro" style="gap:2px"><span class="med t2">Tu condecoración:</span><strong class="oro">${medallaPremio(p.cual, yo)}</strong><span class="med t2">${detalle(p)}</span></div>`));
   return filas.length ? `<section class="caja"><h2 class="h2">Tu guerra</h2>${filas.join('')}</section>` : '';
 }
 function campeon(c) {
@@ -74,7 +74,7 @@ function pestanaGuerras() {
     if (c.id !== abierta) {
       return `<li>${hito}<div class="ficha-archivo"><span class="num-ficha">Exp. ${String(lista.length - k).padStart(3, '0')}</span><div class="fila entre"><h2 class="h2">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2></div>
         <p class="med"><span class="oro">1.er puesto:</span> ${g ? esc(nombre(g)) : 'pendiente del duelo final'}</p>
-        <p class="peq t2">${c.porraGana.length ? 'Porra: ' + esc(enumerar(c.porraGana.map((id) => nombre(G[id])))) + ' · ' : ''}${des ? plural(des, 'desertor', 'desertores') : 'Sin desertores'}</p>
+        <p class="peq t2">${c.porraGana.length ? 'Porra: ' + esc(enumerar(c.porraGana.map((id) => nombre(G[id])))) + ' · ' : ''}${des ? (des === 1 ? gen(c.gente.find((x) => x.desertor), '1 desertor', '1 desertora') : plural(des, 'desertor', 'desertores')) : 'Sin desertores'}</p>
         <button class="btn linea chico" style="align-self:flex-start" data-a="abrirCronica" data-v="${c.id}">Ver el parte</button></div></li>`;
     }
     return `<li class="abierta">${hito}<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">Exp. ${String(lista.length - k).padStart(3, '0')}</span></div>
@@ -104,8 +104,8 @@ function pestanaEscalafon() {
       <dt>GJ</dt><dd>Guerras jugadas: las que terminó sin desertar.</dd>
       <dt>Tít.</dt><dd>Títulos: guerras que ha ganado.</dd>
       <dt>Pts</dt><dd>Puntos sumados en todas sus guerras: 3 por batalla ganada y 1 por empatada.</dd>
-      <dt>Dif.</dt><dd>Diferencia de votos acumulada: los votos que ha recibido en todas sus batallas menos los que han recibido sus rivales contra él. Ganar una batalla 5 a 2 suma +3; perderla 1 a 6 resta 5. Desempata a igualdad de puntos.</dd>
-      <dt>Des.</dt><dd>Deserciones: guerras de las que fue expulsado por no votar.</dd>
+      <dt>Dif.</dt><dd>Diferencia de votos acumulada: los votos que ha recibido en todas sus batallas menos los que han recibido sus rivales. Ganar una batalla 5 a 2 suma +3; perderla 1 a 6 resta 5. Desempata a igualdad de puntos.</dd>
+      <dt>Des.</dt><dd>Deserciones: guerras de las que salió con deshonor por no votar.</dd>
     </dl>
     <p class="peq t2">Suma todas las ediciones de esta guerra. Los puntos se cuentan siempre a 3-1-0, aunque alguna edición se jugara por votos. El grado, con galones y estrellas, cuenta todas las guerras que cada uno ha terminado, se llamen como se llamen.</p></section>
     ${bloqueCaraACara(elegida)}`;
@@ -180,11 +180,11 @@ function pestanaMedallero() {
   const condecoraciones = [], piezas = [], companeros = {}, enemigos = {};
   mias.forEach(({ c: x, yo }) => {
     if (yo.desertor) { est.des++; return; }
-    if (x.campeon === yo.id) { est.tit++; piezas.push({ tipo: 'titulo', letra: '1', titulo: 'Campeón', sub: x.nombre }); }
+    if (x.campeon === yo.id) { est.tit++; piezas.push({ tipo: 'titulo', letra: '1', titulo: gen(yo, 'Campeón', 'Campeona'), sub: x.nombre }); }
     if (yo.pos && yo.pos <= 3) est.podios++;
     if (yo.pos && (est.mejor == null || yo.pos < est.mejor)) est.mejor = yo.pos;
     if (x.porraGana.indexOf(yo.id) >= 0) { est.porras++; piezas.push({ tipo: 'porra', letra: 'P', titulo: 'Porra', sub: x.nombre }); }
-    (yo.premios || []).forEach((p) => { est.cond++; condecoraciones.push({ p, c: x }); piezas.push({ tipo: p.cual, letra: ({ rebelde: 'R', borrego: 'B', tardon: 'T', adivino: 'A' })[p.cual] || '★', titulo: CORTO[p.cual] || 'Medalla', sub: x.nombre }); });
+    (yo.premios || []).forEach((p) => { est.cond++; condecoraciones.push({ p, c: x }); piezas.push({ tipo: p.cual, letra: ({ rebelde: 'R', borrego: 'B', tardon: 'T', adivino: 'A' })[p.cual] || '★', titulo: CORTO[p.cual] ? tituloPremio(p.cual, yo) : 'Medalla', sub: x.nombre }); });
     const G = porId(x.gente);
     if (yo.companero) { const q = G[yo.companero.id]; const k = q.persona || q.nombre; companeros[k] = companeros[k] || { g: q, n: 0 }; companeros[k].n++; }
     if (yo.enemigo) { const q = G[yo.enemigo.id]; const k = q.persona || q.nombre; enemigos[k] = enemigos[k] || { g: q, n: 0 }; enemigos[k].n++; }
@@ -216,12 +216,12 @@ function pestanaMedallero() {
       ${dato(est.cond, est.cond === 1 ? 'Condecoración' : 'Condecoraciones')}${dato(est.mejor ? ordinal(est.mejor) : '—', 'Mejor puesto')}${dato(est.des, est.des === 1 ? 'Deserción' : 'Deserciones')}</div>
     <section class="col g8"><h2 class="h2">La vitrina</h2>${vitrina(piezas)}${piezas.length ? '' : '<p class="peq t2 centro">Aún vacía: títulos, porras y condecoraciones se cuelgan aquí.</p>'}</section>
     ${comp || enem ? `<section class="caja"><h2 class="h2">De siempre</h2>
-      ${comp ? `<div class="fila g12">${circulo(comp.g, 'grande')}<span class="col g4"><span class="med t2">Compañero de trinchera:</span><strong>${esc(comp.g.nombre)}</strong><span class="med t2">En ${comp.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}
-      ${enem ? `<div class="fila g12">${circulo(enem.g, 'grande rosa')}<span class="col g4"><span class="med t2">Enemigo íntimo:</span><strong>${esc(enem.g.nombre)}</strong><span class="med t2">En ${enem.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}</section>` : ''}
+      ${comp ? `<div class="fila g12">${circulo(comp.g, 'grande')}<span class="col g4"><span class="med t2">${gen(comp.g, 'Compañero', 'Compañera')} de trinchera:</span><strong>${esc(comp.g.nombre)}</strong><span class="med t2">En ${comp.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}
+      ${enem ? `<div class="fila g12">${circulo(enem.g, 'grande rosa')}<span class="col g4"><span class="med t2">${gen(enem.g, 'Enemigo íntimo', 'Enemiga íntima')}:</span><strong>${esc(enem.g.nombre)}</strong><span class="med t2">En ${enem.n} de tus ${plural(mias.length, 'guerra', 'guerras')}</span></span></div>` : ''}</section>` : ''}
     <section class="caja"><h2 class="h2">Tus guerras</h2>${mias.length ? mias.map(({ c: x, yo }) => {
       const logros = [];
-      if (yo.desertor) logros.push('<span class="rosa">Desertor</span>');
-      else if (x.campeon === yo.id) logros.push('<span class="oro">Campeón</span>');
+      if (yo.desertor) logros.push(`<span class="rosa">${gen(yo, 'Desertor', 'Desertora')}</span>`);
+      else if (x.campeon === yo.id) logros.push(`<span class="oro">${gen(yo, 'Campeón', 'Campeona')}</span>`);
       else if (yo.pos) logros.push(ordinal(yo.pos) + ' puesto');
       if (x.porraGana.indexOf(yo.id) >= 0) logros.push('<span class="teal">Ganaste la porra</span>');
       return `<div class="fila entre" style="padding:6px 0;border-top:1px solid #2a2648"><span class="col g4"><strong>${esc(x.nombre)}</strong><span class="peq t2">${fecha(x.fecha)}</span></span><span class="med" style="text-align:right;max-width:55%">${logros.join(' · ') || 'Votaste'}</span></div>`;
@@ -237,6 +237,7 @@ function numerosDe(persona) {
   lista.forEach((c) => {
     const yo = c.gente.find((g) => g.persona === persona && g.combate);
     if (!yo) return;
+    n.sexo = yo.sexo;
     if (yo.desertor) { n.des++; return; }
     n.guerras++;
     const G = porId(c.gente), qs = c.listaPreguntas && c.listaPreguntas.length ? c.listaPreguntas : [c.pregunta];
@@ -285,7 +286,7 @@ function pestanaNumeros() {
       <p class="med"><strong class="rosa">${plural(n.sequia, 'derrota seguida', 'derrotas seguidas')}</strong> <span class="t2">en ${T.su} peor travesía del desierto.</span></p>
       <p class="med t2">En total, ${plural(n.vf, 'voto', 'votos')} a favor y ${n.vc} en contra.</p></section>
     ${n.mejor ? `<section class="caja oro"><h2 class="h2">${T.mejor}</h2><p class="med"><strong>${esc(n.mejor.c.nombre)}</strong> <span class="t2">· ${fecha(n.mejor.c.fecha)}</span></p>
-      <p class="med">${n.mejor.c.campeon && n.mejor.pos === 1 ? '<span class="oro">Campeón</span>' : ordinal(n.mejor.pos) + ' puesto'} <span class="t2">con ${n.mejor.g}-${n.mejor.e}-${n.mejor.p}.</span></p></section>` : ''}
+      <p class="med">${n.mejor.c.campeon && n.mejor.pos === 1 ? `<span class="oro">${gen({ sexo: n.sexo }, 'Campeón', 'Campeona')}</span>` : ordinal(n.mejor.pos) + ' puesto'} <span class="t2">con ${n.mejor.g}-${n.mejor.e}-${n.mejor.p}.</span></p></section>` : ''}
     ${preguntas.length ? `<section class="caja"><h2 class="h2">Por pregunta</h2>${preguntas.map((q) => { const t = q.g + q.e + q.p, v = pct(q.g, t); return `<div class="col g4"><div class="fila entre"><span class="med">${esc(q.texto)}</span><strong class="${v >= 50 ? 'teal' : 'rosa'}">${v}%</strong></div>
       <div class="medidor"><i style="width:${v}%"></i></div><span class="peq t2">${q.g}-${q.e}-${q.p} en ${plural(t, 'batalla', 'batallas')}</span></div>`; }).join('')}</section>` : ''}
     ${victima || negra ? `<section class="caja"><h2 class="h2">Contra quién</h2>

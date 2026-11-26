@@ -1,6 +1,6 @@
 // Piezas del «expediente»: carpeta de cartón, hojas a máquina, clip, sellos y firma.
 // Se usan en el parte de guerra final, la porra y las crónicas.
-import { esc } from './base.js?v=49';
+import { esc } from './base.js?v=50';
 
 export const fechaParte = (ts) => (ts ? new Date(ts).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase() : '—');
 export const garabato = '<svg class="garabato" viewBox="0 0 160 46" aria-hidden="true"><path d="M6 32 C 18 6, 30 6, 26 30 S 40 40, 48 18 S 60 6, 62 26 S 74 40, 84 22 Q 92 10 98 24 T 118 22 Q 130 16 152 12" fill="none" stroke="#1d2a6b" stroke-width="2.2" stroke-linecap="round"/><path d="M40 40 Q 90 30 146 36" fill="none" stroke="#1d2a6b" stroke-width="1.4" stroke-linecap="round"/></svg>';

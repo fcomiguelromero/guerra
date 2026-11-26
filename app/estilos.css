@@ -730,3 +730,8 @@ ul, ol { padding: 0; list-style: none; }
 .parte-campeon .ficha-vencedor .ficha-parte { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 899px) { .parte-campeon .ficha-vencedor .ficha-parte { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 900px) { .cols-pc.parte-campeon { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); } .parte-campeon .foto-informe { width: min(340px, 92%); } }
+
+/* ================================================================ ficha: cómo se le nombra (él o ella) */
+.campo-sexo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.campo-sexo .opciones button { min-width: 64px; }
+.campo-sexo .nota-sexo { flex-basis: 100%; }

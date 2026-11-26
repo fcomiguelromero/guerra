@@ -30,6 +30,33 @@ function exigir(cond, codigo, mensaje) { if (!cond) throw Fallo(codigo, mensaje)
 function txt(v, max) { return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 200); }
 function parrafo(v, max) { return String(v == null ? '' : v).replace(/\r/g, '').trim().slice(0, max || 2000); }
 function norm(s) { return txt(s, 200).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+// Género gramatical de cada combatiente: «h» (él) o «m» (ella). Copia de app/genero.js: si se cambia allí, hay que cambiarlo aquí.
+function conjunto(t) { var m = {}; t.split(' ').forEach(function (x) { if (x) m[x] = true; }); return m; }
+var NOMBRES_ELLA = conjunto('carmen isabel raquel pilar rocio consuelo mercedes dolores beatriz ines belen ruth nieves sol luz miriam ester esther abigail ' +
+  'montserrat flor amparo encarnacion asuncion concepcion itziar noemi mabel maribel lourdes iris judith elisabet elizabeth salud paz angeles remedios ' +
+  'milagros trinidad soledad piedad caridad leire uxue aitziber maite jone lis cloe chloe zoe cande mari isa lu marisol rosario guadalupe reyes ' +
+  'raquel macarena ingrid carmen yaiza naiara arancha begonya nur noor rut edurne amaia ainhoa miren itsaso iratxe idoia aranzazu arantzazu ' +
+  'covadonga montse gemma yasmin jazmin carol karen helen ellen anabel cristel liz beth ruth estrella');
+var NOMBRES_EL = conjunto('borja luca josema nicola jota garcia sasha misha kostia ilia elias jonas andreas tomas lucas matias nicolas ' +
+  'jose juan luis pablo jorge carlos javier jacobo diego david daniel miguel manuel rafael alvaro sergio adrian ivan ruben oscar raul ' +
+  'victor hector fernando alberto antonio francisco ignacio enrique eduardo ramon roberto gonzalo joaquin jaime marcos mario alfonso ' +
+  'guillermo angel agustin cesar felix samuel ismael gabriel abel isaac aaron noel saul bruno hugo leo marc pau pol oriol jordi xavi ' +
+  'iker unai aitor asier gorka ander mikel jon julen ibai eneko paco pepe pepito curro quique nacho chema manolo lolo santi rodrigo ' +
+  'emilio julio cristian christian kevin jesus martin german esteban sebastian tobias gaspar baltasar melchor benito andres mateo simon');
+var NOMBRES_DUDOSOS = conjunto('fran alex cris dani sam toni juli chus pat eli ariel noa mar trini nico andrea dominique charlie jesse robin');
+function adivinarSexo(nombre) {
+  var n = String(nombre || '').trim().split(/[\s-]+/)[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zñ]/g, '');
+  if (!n) return { s: 'h', dudoso: true };
+  if (NOMBRES_DUDOSOS[n]) return { s: ['noa', 'mar', 'trini', 'eli', 'andrea'].indexOf(n) >= 0 ? 'm' : 'h', dudoso: true };
+  if (NOMBRES_ELLA[n]) return { s: 'm', dudoso: false };
+  if (NOMBRES_EL[n]) return { s: 'h', dudoso: false };
+  if (/a$/.test(n)) return { s: 'm', dudoso: false };
+  if (/(o|os|el|on|an|in|er|or|ez|is|us)$/.test(n)) return { s: 'h', dudoso: false };
+  return { s: 'h', dudoso: true };
+}
+function sexoDe(g) { return g && (g.sexo === 'h' || g.sexo === 'm') ? g.sexo : adivinarSexo(g && g.nombre).s; }
+// «{{ganador|ganadora}}» en un texto: la forma que toca para esa persona.
+function generar(texto, g) { return String(texto).replace(/\{\{([^|{}]*)\|([^{}]*)\}\}/g, function (m, el, ella) { return sexoDe(g) === 'm' ? ella : el; }); }
 function porId(lista) { var m = {}; lista.forEach(function (x) { m[x.id] = x; }); return m; }
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -487,7 +514,7 @@ function aplicarDuelo(doc, res) {
 
 // ------------------------------------------------------------ narrador del desfile
 // Una frase con retranca para cada puesto, según cómo le fue a cada uno. Sin adjetivos con género,
-// para que valgan para cualquiera. La misma frase para todos los que miran el desfile.
+// para que valgan para cualquiera, o con «{{él|ella}}» para las palabras que cambian. La misma frase para todos.
 var FRASES = {
   pleno: ['{n} no ha perdido ni una: {victorias} de {batallas}. Esto ya no es normalidad, es una apisonadora.',
     'Pleno de victorias para {n}. Que alguien revise las urnas, por si acaso.'],
@@ -502,14 +529,14 @@ var FRASES = {
     '{n} gana la guerra. Que vayan preparando el monumento en la plaza del pueblo.'],
   casi: ['{n} se queda a las puertas, a {dpts} de la gloria. Tan cerca y tan lejos.',
     'Plata con sabor amargo para {n}: le faltó un pelo. Bueno, {dpts}.'],
-  segundo: ['Plata para {n}: el primero de los que no han ganado, que no es poco.',
-    '{n}, 2.º puesto. Nadie se acuerda del segundo… salvo en este desfile.'],
+  segundo: ['Plata para {n}: {{el primero|la primera}} de los que no han ganado, que no es poco.',
+    '{n}, 2.º puesto. Nadie se acuerda {{del segundo|de la segunda}}… salvo en este desfile.'],
   tercero: ['Bronce para {n}: podio y ninguna responsabilidad.',
     '{n} sube al podio por la escalera de servicio, pero sube.'],
   blanco: ['{n} cierra la tabla sin una sola victoria. La retaguardia también es un puesto de honor.',
     'Cero victorias para {n}. Hay quien nace para la paz.'],
   ultimo: ['Farolillo rojo para {n}. Alguien tenía que sujetar la tabla por abajo.',
-    '{n} cierra la tabla con la dignidad de quien llega el último a la cena.'],
+    '{n} cierra la tabla con la dignidad de quien llega {{el último|la última}} a la cena.'],
   penultimo: ['{n}, penúltimo puesto: sólo hubo alguien por detrás, y ya sabemos quién.',
     '{pos} para {n}. Por poco no le toca cerrar la tabla.'],
   racha: ['{n} llegó a encadenar {racha} victorias seguidas. Luego se le acabó la gasolina.',
@@ -527,7 +554,7 @@ var FRASES = {
     '{pos} para {n}. Sirvió a la patria sin hacer ruido.',
     '{n} termina {pos}. Ni medalla ni consejo de guerra: la normalidad en persona.',
     '{pos} puesto para {n}, con {puntos}. Correcto, como un informe sin faltas de ortografía.'],
-  comodin: ['{n}, {pos} puesto. La historia lo recordará, probablemente en una nota a pie de página.',
+  comodin: ['{n}, {pos} puesto. La historia {{lo|la}} recordará, probablemente en una nota a pie de página.',
     '{pos} para {n}: ni en la foto del podio ni en el consejo de guerra. Zona templada.',
     '{n} acaba {pos} con {puntos}. Hay guerras que se ganan y guerras que se cuentan en la cena.',
     '{n}, {pos}. Se esperaba más, se esperaba menos; ha salido esto.',
@@ -578,7 +605,7 @@ function narrar(doc, r, propias) {
       batallas: String(f.g + f.e + f.p), racha: String(rc), dif: String(f.dif), contra: String(f.vc),
       dpts: plural(Math.max(0, (uno ? uno.pts : 0) - f.pts), 'punto', 'puntos'), segundo: dos && nombres[dos.id] ? nombres[dos.id].nombre : ''
     };
-    res[f.id] = frase.replace(/\{(\w+)\}/g, function (m, v) { return vars[v] != null ? vars[v] : m; });
+    res[f.id] = generar(frase, nombres[f.id]).replace(/\{(\w+)\}/g, function (m, v) { return vars[v] != null ? vars[v] : m; });
     res[f.id] = res[f.id].charAt(0).toUpperCase() + res[f.id].slice(1);
   });
   return res;
@@ -1069,6 +1096,7 @@ function crearMotor(env) {
       if (!p) p = reg.lista.filter(function (x) { return (!x.correo || !g.correo) && norm(x.nombre) === norm(g.nombre); })[0];
       if (!p) { p = { id: 'p' + reg.sig++ }; reg.lista.push(p); }
       p.nombre = g.nombre; p.correo = g.correo || p.correo || ''; p.foto = g.foto || p.foto || null; p.frase = g.frase || p.frase || '';
+      if (g.sexo) p.sexo = g.sexo;
       g.persona = p.id;
     });
     env.escribir('personas', reg, plural(reg.lista.length, 'persona', 'personas'));
@@ -1080,6 +1108,7 @@ function crearMotor(env) {
         // Las crónicas de antes no guardaban las batallas: se sacan del resultado, que sigue ahí.
         if (c && d.resultado && (!c.batallas || (c.batallas[0] && c.batallas[0].length < 5))) c.batallas = marcadores(d.resultado);
         if (c && !c.listaPreguntas) c.listaPreguntas = preguntas(d);
+        if (c && c.gente) { var vivos = porId(d.gente); c.gente.forEach(function (x) { x.sexo = sexoDe(vivos[x.id] || x); }); }
         return c;
       }).filter(Boolean)
       .sort(function (x, y) { return y.fecha - x.fecha; });
@@ -1106,7 +1135,7 @@ function crearMotor(env) {
       gente: doc.gente.map(function (g) {
         var f = fila[g.id], a = r.afinidad[g.id];
         return {
-          id: g.id, persona: g.persona || null, nombre: g.nombre, foto: g.foto || null, combate: !!g.combate, vota: !!g.vota,
+          id: g.id, persona: g.persona || null, nombre: g.nombre, foto: g.foto || null, combate: !!g.combate, vota: !!g.vota, sexo: sexoDe(g),
           desertor: g.estado === 'expulsado', indultado: g.estado === 'indultado',
           pos: pos[g.id] || null, pts: f ? f.pts : null, liga: f ? f.liga : null, g: f ? f.g : null, e: f ? f.e : null, p: f ? f.p : null, dif: f ? f.dif : null,
           porra: porraPos[g.id] ? { pos: porraPos[g.id].pos, suma: porraPos[g.id].suma } : null,
@@ -1120,7 +1149,7 @@ function crearMotor(env) {
   // -- vistas
   function fichaPublica(doc, g) {
     return { id: g.id, nombre: g.nombre, frase: g.frase || '', foto: g.foto || null, grado: g.grado || 0,
-      combate: !!g.combate, vota: !!g.vota, estado: g.estado, mando: !!g.mando, pareja: g.pareja || null };
+      combate: !!g.combate, vota: !!g.vota, estado: g.estado, mando: !!g.mando, pareja: g.pareja || null, sexo: sexoDe(g) };
   }
   function genteOrdenada(doc) {
     if (!doc.orden) return doc.gente;
@@ -1182,7 +1211,7 @@ function crearMotor(env) {
     if (!otra || !pos[otra] || pos[otra] <= pos[id]) return '';
     var nom = porId(doc.gente)[otra].nombre, d = pos[otra] - pos[id], h = (pos[id] * 7 + d) % 3;
     if (d === 1) return ['Y justo detrás, su media naranja, ' + nom + ': en casa se llevan un puesto.', 'Un puesto por delante de ' + nom + '. Esta noche, en casa, alguien presume.', nom + ' le pisa los talones: un puesto les separa. Como en el sofá.'][h];
-    return ['Le saca ' + plural(d, 'puesto', 'puestos') + ' a su pareja, ' + nom + '. La cena de hoy la paga quien quedó detrás.', nom + ', su media naranja, se quedó ' + plural(d, 'puesto', 'puestos') + ' más abajo. Habrá revancha en casa.', 'En casa ya hay ganador: ' + plural(d, 'puesto', 'puestos') + ' por delante de ' + nom + '.'][h];
+    return ['Le saca ' + plural(d, 'puesto', 'puestos') + ' a su pareja, ' + nom + '. La cena de hoy la paga quien quedó detrás.', nom + ', su media naranja, se quedó ' + plural(d, 'puesto', 'puestos') + ' más abajo. Habrá revancha en casa.', 'En casa ya hay ' + (sexoDe(porId(doc.gente)[id]) === 'm' ? 'ganadora' : 'ganador') + ': ' + plural(d, 'puesto', 'puestos') + ' por delante de ' + nom + '.'][h];
   }
   function vistaDesfile(doc, yo) {
     var df = doc.desfile, r = doc.resultado, fila = {}, narrador = narrar(doc, r, repertorio().frases);
@@ -1338,7 +1367,7 @@ function crearMotor(env) {
       c.gente.forEach(function (g) { if (!g.persona) return; veces[g.persona] = (veces[g.persona] || 0) + 1; ultima[g.persona] = Math.max(ultima[g.persona] || 0, c.fecha || 0); });
     });
     return { lista: personas().lista.filter(function (p) { return p.nombre; }).map(function (p) {
-      return { id: p.id, nombre: p.nombre, correo: p.correo || '', foto: p.foto || null, frase: p.frase || '', guerras: veces[p.id] || 0, ultima: ultima[p.id] || 0 };
+      return { id: p.id, nombre: p.nombre, correo: p.correo || '', foto: p.foto || null, frase: p.frase || '', sexo: p.sexo || null, guerras: veces[p.id] || 0, ultima: ultima[p.id] || 0 };
     }).sort(function (x, y) { return (y.ultima - x.ultima) || x.nombre.localeCompare(y.nombre, 'es'); }) };
   });
 
@@ -1366,7 +1395,7 @@ function crearMotor(env) {
         gente: doc.gente.map(function (g) {
           return { id: g.id, nombre: g.nombre, correo: g.correo || '', frase: g.frase || '', foto: g.foto || null,
             combate: !!g.combate, vota: !!g.vota, mando: !!g.mando, alistado: g.alistado, estado: g.estado,
-            llamada: g.llamada || null, llamadaError: g.llamadaError || null, pareja: g.pareja || null };
+            llamada: g.llamada || null, llamadaError: g.llamadaError || null, pareja: g.pareja || null, sexo: g.sexo || null };
         })
       },
       mando: vistaMando(doc, ctx.ahora)
@@ -1635,6 +1664,7 @@ function crearMotor(env) {
         item.correo = txt(g.correo, 120).toLowerCase();
         item.frase = txt(g.frase, 100);
         item.foto = g.foto ? txt(g.foto, 40) : null;
+        if (g.sexo === 'h' || g.sexo === 'm') item.sexo = g.sexo;
         if (previa) {
           item.combate = doc.modo === 'cosas' ? !!g.combate : true;
           item.vota = doc.modo === 'cosas' ? !g.combate : true;
@@ -2411,7 +2441,7 @@ function gas(cfg) {
 
 return {
   VERSION: VERSION, GRADOS: GRADOS, GRACIA: GRACIA, MARGEN: MARGEN,
-  crear: crearMotor, gas: gas,
+  crear: crearMotor, gas: gas, adivinarSexo: adivinarSexo, generar: generar,
   reglas: { calendario: calendario, recuento: recuento, clasificar: clasificar, calcular: calcular, pasosDesfile: pasosDesfile, ordenanzasAuto: ordenanzasAuto, progreso: progreso }
 };
 })()
