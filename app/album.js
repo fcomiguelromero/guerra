@@ -1,10 +1,10 @@
 // Álbum de la guerra: el recuerdo final, para todos los combatientes cuando se publica el parte.
 // Se dibuja en el propio dispositivo por bloques (portada, cuadro de honor, parte, condecoraciones...)
 // y sale de dos maneras: una imagen larga para WhatsApp y un PDF de páginas A4 para guardar o imprimir.
-import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=52';
-import { dibujo } from './carteles.js?v=52';
-import { listaCuriosidades, detallePremio } from './combate.js?v=52';
-import { gen, tituloPremio } from './genero.js?v=52';
+import { S, esc, plural, enumerar, porId, ordinal, signo, ico, pintar, aviso, accion } from './base.js?v=53';
+import { dibujo } from './carteles.js?v=53';
+import { listaCuriosidades, detallePremio } from './combate.js?v=53';
+import { gen, tituloPremio } from './genero.js?v=53';
 const plurDes = (ids, G) => (ids.length === 1 ? gen(G[ids[0]], 'Desertor', 'Desertora') : ids.every((id) => gen(G[id], false, true)) ? 'Desertoras' : 'Desertores');
 
 

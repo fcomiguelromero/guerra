@@ -46,6 +46,14 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     // Lucía y Pablo; Elena y Javi. Luego Elena cambia a Rosa y Javi queda suelto.
     // Con GN_FOTOS=ruta1,ruta2 se ponen fotos a Lucía y a Pablo (para ver la cara enamorada; no se suben al repositorio).
     const fotos = (process.env.GN_FOTOS || '').split(',').filter(Boolean);
+    if (!fotos.length) {
+      // Sin fotos de verdad: un retrato inventado (círculos de colores) para Lucía y Pablo.
+      for (const [k, color] of [[0, '#e07a5f'], [1, '#3d85c6']]) {
+        const datos = await m.evaluate((c) => { const cv = document.createElement('canvas'); cv.width = cv.height = 600; const x = cv.getContext('2d');
+          x.fillStyle = '#f4e3c3'; x.fillRect(0, 0, 600, 600); x.fillStyle = c; x.beginPath(); x.arc(300, 260, 150, 0, 7); x.fill(); x.fillRect(150, 420, 300, 180); return cv.toDataURL('image/png').split(',')[1]; }, color);
+        const ruta = path.join(SALIDA, 'retrato-' + k + '.png'); fs.writeFileSync(ruta, Buffer.from(datos, 'base64')); fotos.push(ruta);
+      }
+    }
     for (let i = 0; i < fotos.length && i < 2; i++) {
       await m.locator(`[data-a="abrirFicha"][data-v="${i}"]`).click();
       await m.locator(`input[type=file][data-v="${i}"]`).setInputFiles(fotos[i]);
@@ -162,6 +170,13 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     const etiqueta = (await pf.locator('.caja.oro .sobre.oro').first().innerText()).toLowerCase();
     assert.strictEqual(etiqueta.startsWith('ganadora'), ELLAS.some((n) => n.toLowerCase() === ganaPorra.toLowerCase()), 'ganador/ganadora según quién gana la porra: ' + ganaPorra + ' → ' + etiqueta);
     await foto(pf, '10b-porra-comparada', true);
+    // La cara de otro combatiente se ve en grande sin salir de la porra.
+    await pf.locator('.porra-vs .avatar[data-nombre]').first().click();
+    await pf.waitForSelector('#lupa .lupa-foto img'); await pf.waitForTimeout(400);
+    await foto(pf, '10c-foto-en-grande');
+    await pf.keyboard.press('Escape');
+    assert.ok(!(await pf.locator('#lupa').count()), 'Escape cierra la foto');
+    assert.ok(/porra/.test(await pf.evaluate(() => location.hash)), 'sigue en la porra');
     const pfc = await pagina(nav, 1280, 860, '#t=' + tok['Lucía']);
     await pfc.waitForSelector('.expediente'); await pfc.waitForTimeout(500);
     await foto(pfc, '11-parte-final-pc', true);

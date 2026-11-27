@@ -1,9 +1,9 @@
 // Presentación de la guerra: una página sólo para leer, que explica el juego y anima a participar.
 // Se abre con #p=ID.CLAVE. No tiene botones, ni cartas, ni nombres de nadie: quien quiera alistarse avisa al alto mando.
-import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=52';
-import { icono } from './dibujos.js?v=52';
-import { soldado, escena } from './monigotes.js?v=52';
-import { portada, garabato } from './expediente.js?v=52';
+import { S, llamar, esc, tituloGuerra, carta, marco, cargando, pintar, registrar, alEntrar } from './base.js?v=53';
+import { icono } from './dibujos.js?v=53';
+import { soldado, escena } from './monigotes.js?v=53';
+import { portada, garabato } from './expediente.js?v=53';
 
 alEntrar('/presentacion', async () => {
   S.ui.presDatos = null; S.ui.presError = null;

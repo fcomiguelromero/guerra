@@ -1,9 +1,9 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
-import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=52';
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=53';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=52';
-import { portada } from './expediente.js?v=52';
-import { gen, tituloPremio, medallaPremio } from './genero.js?v=52';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=53';
+import { portada } from './expediente.js?v=53';
+import { gen, tituloPremio, medallaPremio } from './genero.js?v=53';
 
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
 function detalle(p) {

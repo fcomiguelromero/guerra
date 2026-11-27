@@ -1,6 +1,6 @@
 // Cimientos de las pantallas: conexión con el motor, memoria local, piezas comunes y pintado.
-import { ICONOS as FAMILIA } from './dibujos.js?v=52';
-import { API } from './config.js?v=52';
+import { ICONOS as FAMILIA } from './dibujos.js?v=53';
+import { API } from './config.js?v=53';
 
 const mem = {
   leer(k, d) { try { const v = localStorage.getItem('gn.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -204,8 +204,27 @@ export function carta(g, o = {}) {
 }
 export function avatar(g, clase = '', tu = false) {
   const foto = g.foto && S.fotos[g.foto];
-  return `<span class="avatar ${clase}" aria-hidden="true">${foto ? `<img src="${foto}" alt="">` : esc(String(tu ? nombreDe(g) : g.nombre).charAt(0).toUpperCase())}</span>`;
+  return `<span class="avatar ${clase}" aria-hidden="true"${foto ? ` data-nombre="${esc(g.nombre)}"` : ''}>${foto ? `<img src="${foto}" alt="">` : esc(String(tu ? nombreDe(g) : g.nombre).charAt(0).toUpperCase())}</span>`;
 }
+
+// Foto en grande: en la porra y en las crónicas, al pulsar la cara de alguien se ve ampliada sin salir de la pantalla.
+const RUTAS_LUPA = /^\/(porra|cronicas)/;
+function cerrarLupa() { const v = document.getElementById('lupa'); if (v) { v.remove(); if (cerrarLupa.antes) cerrarLupa.antes.focus && cerrarLupa.antes.focus(); } }
+document.addEventListener('click', (ev) => {
+  if (ev.target.closest && ev.target.closest('#lupa')) { ev.preventDefault(); cerrarLupa(); return; }
+  const av = ev.target.closest && ev.target.closest('.avatar[data-nombre]');
+  if (!av || !RUTAS_LUPA.test(S.ruta || '')) return;
+  ev.preventDefault(); ev.stopPropagation();
+  cerrarLupa.antes = document.activeElement;
+  const img = av.querySelector('img'), nombre = av.dataset.nombre;
+  const v = document.createElement('div');
+  v.id = 'lupa'; v.className = 'lupa'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', 'Foto de ' + nombre);
+  v.innerHTML = `<figure class="lupa-foto"><img src="${img.src}" alt="Foto de ${esc(nombre)}"><figcaption>${esc(nombre)}</figcaption></figure>
+    <button class="cuadro lupa-cerrar" aria-label="Cerrar la foto">${ico('equis')}</button>`;
+  document.body.appendChild(v);
+  v.querySelector('.lupa-cerrar').focus();
+}, true);
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && document.getElementById('lupa')) cerrarLupa(); });
 
 // ---------------------------------------------------------------- armazón, rutas y pintado
 
