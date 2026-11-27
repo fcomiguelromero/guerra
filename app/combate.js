@@ -1,17 +1,17 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=53';
-import { botonesCalendario } from './calendario.js?v=53';
-import { botonAlbum } from './album.js?v=53';
-import { icono, ILU, piezas } from './dibujos.js?v=53';
-import { escena } from './monigotes.js?v=53';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=53';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=53';
-import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=53';
-import { gen, tituloPremio } from './genero.js?v=53';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=53';
-import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=53';
+import { botonCartel } from './carteles.js?v=54';
+import { botonesCalendario } from './calendario.js?v=54';
+import { botonAlbum } from './album.js?v=54';
+import { icono, ILU, piezas } from './dibujos.js?v=54';
+import { escena } from './monigotes.js?v=54';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=54';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=54';
+import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=54';
+import { gen, tituloPremio } from './genero.js?v=54';
+import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=54';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=54';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=53';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=54';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);

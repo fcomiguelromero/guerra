@@ -177,6 +177,15 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
     await pf.keyboard.press('Escape');
     assert.ok(!(await pf.locator('#lupa').count()), 'Escape cierra la foto');
     assert.ok(/porra/.test(await pf.evaluate(() => location.hash)), 'sigue en la porra');
+    // Y lo mismo en las crónicas.
+    await pf.locator('[data-a="ir"][data-v="/cronicas"]:visible').first().click(); await quieto(pf);
+    await pf.waitForSelector('.cronicas-papel'); await pf.waitForTimeout(800);
+    if (!(await pf.locator('.cronicas-papel .avatar[data-nombre]').count())) { await pf.locator('[data-a="abrirCronica"]').first().click(); await quieto(pf); }
+    await pf.locator('.cronicas-papel .avatar[data-nombre]').first().click();
+    await pf.waitForSelector('#lupa .lupa-foto img'); await pf.waitForTimeout(400);
+    await foto(pf, '10d-foto-en-grande-cronicas');
+    await pf.locator('#lupa').click();
+    assert.ok(!(await pf.locator('#lupa').count()) && /cronicas/.test(await pf.evaluate(() => location.hash)), 'se cierra y sigue en las crónicas');
     const pfc = await pagina(nav, 1280, 860, '#t=' + tok['Lucía']);
     await pfc.waitForSelector('.expediente'); await pfc.waitForTimeout(500);
     await foto(pfc, '11-parte-final-pc', true);

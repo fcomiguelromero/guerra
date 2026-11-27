@@ -1,9 +1,9 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
-import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=53';
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=54';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=53';
-import { portada } from './expediente.js?v=53';
-import { gen, tituloPremio, medallaPremio } from './genero.js?v=53';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=54';
+import { portada } from './expediente.js?v=54';
+import { gen, tituloPremio, medallaPremio } from './genero.js?v=54';
 
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
 function detalle(p) {
@@ -25,7 +25,7 @@ const yoEn = (c) => (S.ui.cronicas.persona ? c.gente.find((g) => g.persona === S
 const nombre = (g) => (g.persona && g.persona === S.ui.cronicas.persona ? 'Tú' : g.nombre);
 function circulo(g, clase = '') {
   const foto = g.foto && S.fotos[g.foto];
-  return `<span class="avatar ${clase}" aria-hidden="true">${foto ? `<img src="${foto}" alt="">` : esc(nombre(g).charAt(0).toUpperCase())}</span>`;
+  return `<span class="avatar ${clase}" aria-hidden="true"${foto ? ` data-nombre="${esc(g.nombre)}"` : ''}>${foto ? `<img src="${foto}" alt="">` : esc(nombre(g).charAt(0).toUpperCase())}</span>`;
 }
 function gradoDe(persona) {
   const n = persona ? S.ui.cronicas.grados[persona] || 0 : 0;

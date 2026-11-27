@@ -1,5 +1,5 @@
 // Recordatorio del desfile (o del parte) en el calendario: Google Calendar o un archivo .ics para cualquier otro.
-import { esc, accion, aviso } from './base.js?v=53';
+import { esc, accion, aviso } from './base.js?v=54';
 
 let guerraActual = null;
 
