@@ -748,3 +748,27 @@ ul, ol { padding: 0; list-style: none; }
 .lupa-cerrar { position: absolute; top: 16px; right: 16px; }
 @keyframes lupaEntra { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .lupa { animation: none; } }
+
+/* ================================================================ carrera de posiciones (desfile) y gráfico de posiciones (parte y crónicas) */
+.carrera { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid #2a2648; border-radius: 16px; background: rgba(22,19,43,.92); text-align: left; }
+.carrera-of { font-weight: 800; font-size: 18px; color: var(--oro); white-space: nowrap; }
+.carrera-pista { position: relative; height: calc(var(--filas) * var(--alto)); }
+.carrera-fila { position: absolute; left: 0; right: 0; top: 0; height: calc(var(--alto) - 4px); display: flex; align-items: center; gap: 8px; transition: transform .9s cubic-bezier(.5,0,.2,1); }
+.carrera-pos { width: 22px; text-align: right; font-weight: 800; color: var(--txt3); }
+.carrera-fila .avatar { width: 26px; height: 26px; font-size: 13px; flex: none; }
+.carrera-nom { width: 92px; flex: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.carrera-barra { flex: 1; height: 14px; border-radius: 7px; background: rgba(255,255,255,.06); overflow: hidden; }
+.carrera-barra i { display: block; height: 100%; border-radius: 7px; transition: width .9s cubic-bezier(.5,0,.2,1); }
+.carrera-pts { width: 30px; text-align: right; font-weight: 800; }
+.carrera-fila.lider .carrera-nom, .carrera-fila.lider .carrera-pos { color: var(--oro); font-weight: 700; }
+.carrera-otra { align-self: flex-end; }
+.carrera.corriendo .carrera-otra { visibility: hidden; }
+@media (min-width: 900px) { .carrera-nom { width: 140px; } }
+@media (prefers-reduced-motion: reduce) { .carrera-fila, .carrera-barra i { transition: none; } }
+.grafico-posiciones { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.grafico-posiciones svg { width: 100%; height: auto; }
+
+/* ================================================================ instalar en el móvil */
+.instalar { gap: 10px; border-color: rgba(94,240,208,.4); }
+.pasos-instalar { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 15px; color: var(--txt3); }
+.pasos-instalar svg { vertical-align: -3px; }

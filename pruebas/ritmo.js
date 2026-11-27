@@ -145,6 +145,10 @@ const texto = (p) => p.locator('#app').innerText();
     await pulsa(ma, 'Ordenanzas');
     assert.ok(/Una ofensiva al día/i.test(await texto(ma)));
     await foto(ma, '03-ordenanzas', true);
+    // El juego se puede poner en la pantalla de inicio: el manifiesto arranca con el enlace personal.
+    assert.ok(await ma.locator('.instalar').count(), 'las ordenanzas explican cómo instalarlo');
+    const man = await ma.evaluate(() => JSON.parse(decodeURIComponent(document.querySelector('link[rel="manifest"]').href.split(',')[1])));
+    assert.ok(/#t=/.test(man.start_url) && man.display === 'standalone', 'la app instalada abre con la carta personal: ' + man.start_url);
 
     // --- al día siguiente: aviso por correo y batallas nuevas
     const antes = (await api('_prueba', {})).correos.length;

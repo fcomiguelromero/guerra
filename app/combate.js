@@ -1,17 +1,18 @@
 // Pantallas del combatiente: batallas, alto el fuego, desfile, parte final, porra, ordenanzas y Radio Macuto.
-import { botonCartel } from './carteles.js?v=54';
-import { botonesCalendario } from './calendario.js?v=54';
-import { botonAlbum } from './album.js?v=54';
-import { icono, ILU, piezas } from './dibujos.js?v=54';
-import { escena } from './monigotes.js?v=54';
-import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=54';
-import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=54';
-import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=54';
-import { gen, tituloPremio } from './genero.js?v=54';
-import { frente, filaRezagados, confeti, mapaCampana } from './graficos.js?v=54';
-import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=54';
+import { botonCartel } from './carteles.js?v=56';
+import { botonesCalendario } from './calendario.js?v=56';
+import { botonAlbum } from './album.js?v=56';
+import { icono, ILU, piezas } from './dibujos.js?v=56';
+import { escena } from './monigotes.js?v=56';
+import { campoBatalla, campoDescanso } from './fondo-batalla.js?v=56';
+import { enfadar, enamorar, corazonesFlotando } from './caras.js?v=56';
+import { fechaParte, garabato, clip, selloRedondo, portada } from './expediente.js?v=56';
+import { gen, tituloPremio } from './genero.js?v=56';
+import { tarjetaInstalar } from './instalar.js?v=56';
+import { frente, filaRezagados, confeti, mapaCampana, carrera, graficoPosiciones } from './graficos.js?v=56';
+import { nombreRonda, preferencia, tinte, silueta } from './base.js?v=56';
 import { S, tras, llamar, encolar, refrescar, ahoraServidor, esc, tituloGuerra, plural, signo, ordinal, enumerar, porId, hace, duracion,
-  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=54';
+  ico, carta, avatar, nombreDe, marco, cargando, pintar, ir, aviso, registrar, accion, alEntrar, recordar } from './base.js?v=56';
 
 const GRACIA = 10000;
 const gente = () => porId(S.est.gente);
@@ -208,7 +209,7 @@ function pantallaAbierta() {
           <p class="bc" style="font-weight:700;font-size:22px;color:#fff">La ofensiva ${ab + 1} de ${e.guerra.ofensivas} se abre ${e.guerra.proxima ? cuando(e.guerra.proxima) : 'mañana'}</p>
           <p class="med t2">Te avisaremos por correo.</p>${resumenTermo()}
           <button class="btn linea medio ancho" data-a="repaso">Repasar mis votos</button>
-        </div>${barraRetirada()}
+        </div>${tarjetaInstalar()}${barraRetirada()}
       </main>${cajaConflicto('solo-movil')}`, { lateral: lateral() });
   }
   if (hechas === m.length && !S.ui.repaso && !recien) {
@@ -535,7 +536,7 @@ function pantallaDesfile(vista, ensayo) {
       ${narrador(a.frase)}
       ${a.segundo ? `<p class="centro"><span class="t2">2.º puesto:</span> <strong>${esc(nombreDe(G[a.segundo.id]))}</strong> <span class="t2">· ${plural(a.segundo.pts, 'punto', 'puntos')}</span></p>${narrador(a.fraseSegundo, true)}` : ''}
       ${e.guerra.premio ? `<div class="caja oro"><span class="sobre oro">Premio</span><strong>${esc(e.guerra.premio)}</strong></div>` : ''}
-      ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(a.porra.suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ', y se lleva' + (gana.length > 1 ? 'n' : '') + ' ' + esc(e.guerra.botin) : ''}.</span></div>` : ''}`;
+      ${gana.length ? `<div class="caja"><span class="sobre">La porra</span><span>${gana.length > 1 ? 'Ganan' : 'Gana'} <strong>${esc(enumerar(gana))}</strong>, a ${plural(a.porra.suma, 'puesto', 'puestos')} del parte final${e.guerra.botin ? ', y se lleva' + (gana.length > 1 ? 'n' : '') + ' ' + esc(e.guerra.botin) : ''}.</span></div>` : ''}      ${a.evolucion ? carrera(a.evolucion, G, { clave: (S.guerra || '') + ':desfile' }) : ''}`;
   }
   const control = ensayo ? '' : S.mando ? `<div class="fila solo-pc" style="justify-content:flex-end;gap:16px"><span class="med t4">Barra espaciadora o flecha derecha</span>
     <button class="btn claro" data-a="desfile" data-v="${d.ultimo ? 'terminar' : 'siguiente'}">${etiquetaSiguiente(d.siguiente)}</button></div>` : '';
@@ -620,6 +621,7 @@ function pantallaPublicada() {
         <div class="fila" style="flex-wrap:wrap">${botonCartel('podio', ico('wasap') + 'Cartel de la victoria', 'btn oro medio crece')}${campeon.id === yo().id || S.mando ? botonCartel('diploma', 'Descargar la cruz al mérito', 'btn linea medio crece') : ''}${botonAlbum()}</div></div></div>`}
     <div class="col g12 dossier parte-final">
     <section class="caja" data-sello="OFICIAL"><h2 class="h2">Clasificación</h2>${tablaFinal(r)}${g.cuadro ? '<button class="btn linea medio" data-a="ir" data-v="/cuadro">Ver el cuadro del torneo</button>' : ''}</section>
+    ${r.evolucion ? `<section class="caja" data-sello="GRÁFICO"><h2 class="h2">Cómo fue la guerra</h2>${graficoPosiciones(r.evolucion, G, yo().id)}</section>` : ''}
     ${mia ? `<section class="caja" data-sello="PERSONAL"><h2 class="h2">Tu hoja de servicios</h2>
       <div class="fila g12">${avatar(G[mia.companero.id], 'grande')}<span class="col g4"><strong>${gen(G[mia.companero.id], 'Compañero', 'Compañera')} de trinchera: ${esc(G[mia.companero.id].nombre)}</strong><span class="med t2">Coincidisteis en ${mia.companero.n} de ${mia.companero.de} batallas</span></span></div>
       <div class="fila g12">${avatar(G[mia.enemigo.id], 'grande rosa')}<span class="col g4"><strong>${gen(G[mia.enemigo.id], 'Enemigo íntimo', 'Enemiga íntima')}: ${esc(G[mia.enemigo.id].nombre)}</strong><span class="med t2">Sólo coincidisteis en ${mia.enemigo.n} de ${mia.enemigo.de}</span></span></div></section>` : ''}
@@ -824,6 +826,7 @@ registrar('/ordenanzas', () => {
       <p class="peq t2" style="text-align:right">Desliza para ver lo esencial →</p></section>
     <h2 class="h2">Todas las ordenanzas</h2>
     <ol class="reglas">${lista}</ol>
+    <section class="col g8"><h2 class="h2">En tu móvil</h2>${tarjetaInstalar(true) || '<p class="med t2">Ya tienes la guerra en la pantalla de inicio.</p>'}</section>
     <p class="bc centro" style="font-weight:800;font-size:22px;color:var(--oro)">¡Sólo puede quedar uno!</p>`, { fondo: 'a' });
 });
 

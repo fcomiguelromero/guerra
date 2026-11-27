@@ -735,6 +735,9 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
     'condecoracionrebelde', 'condecoracionborrego', 'condecoraciontardon', 'puesto3', 'finalistas', 'campeon']);
   assert.strictEqual(v.revelados.length, 9);
   assert.strictEqual(v.actual.fila.id, t[0].id);
+  // La carrera de posiciones llega con el campeón y acaba en la tabla final.
+  assert.ok(v.actual.evolucion.length >= 2, 'evolución por ofensivas');
+  assert.deepStrictEqual(v.actual.evolucion[v.actual.evolucion.length - 1].filas.map((f) => f.id), t.map((f) => f.id));
   assert.strictEqual(g.nombre[v.actual.porra.gana[0]], 'María');
   assert.strictEqual(v.porra[0].suma, inf.resultado.porra.lista[0].suma, 'la porra en directo acaba igual que la final');
   w.falla('fin', () => w.mando('desfile', { guerra: id, orden: 'siguiente' }));
@@ -744,6 +747,7 @@ prueba('guerra completa: porra, parte, armisticio con expulsión e indulto, info
   est = w.do('estado', { token: g.tok['Rafa'] });
   assert.strictEqual(est.guerra.fase, 'publicada');
   assert.strictEqual(est.resultado.tabla.length, 9);
+  assert.ok(est.resultado.evolucion && est.resultado.evolucion.length >= 2, 'el parte final lleva la evolución');
   assert.ok(est.mia.afinidad.companero);
   assert.ok(!JSON.stringify(est).includes('"votos":[{'), 'el detalle de votos no llega a los combatientes');
 

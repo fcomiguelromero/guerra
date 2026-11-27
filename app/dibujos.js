@@ -20,6 +20,7 @@ export const ICONOS = {
   parte: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 8h3v9a2 2 0 0 1-2 2"/><path d="M7 9h7M7 12h7M7 15h4"/>',
   corneta: '<path d="M3 12h3l4-2h6l5-4v12l-5-4h-6l-4-2"/><path d="M8 12c0 3 2 5 5 5h3"/><path d="M6 10v4"/>',
   guardar: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><rect x="8" y="13" width="8" height="5" rx="1"/>',
+  compartir: '<path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/>',
   corazon: '<path d="M12 20s-7-4.4-8.6-9A4.6 4.6 0 0 1 12 6.6 4.6 4.6 0 0 1 20.6 11C19 15.6 12 20 12 20z"/>',
   roto: '<path d="M12 20s-7-4.4-8.6-9A4.6 4.6 0 0 1 12 6.6 4.6 4.6 0 0 1 20.6 11C19 15.6 12 20 12 20z"/><path d="M12 6.6l-1.6 4 2.6 1.6-1.8 4"/>',
   anillos: '<circle cx="9" cy="14" r="5"/><circle cx="15" cy="14" r="5"/><path d="M7.5 5.5L9 3h6l1.5 2.5L12 8z"/>',

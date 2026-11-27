@@ -1,9 +1,9 @@
 // Crónicas: guerras jugadas, escalafón acumulado por guerra y medallero personal con el grado.
-import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta } from './graficos.js?v=54';
+import { tiraAfloja, anillo, casillasRacha, vitrina, cuenta, graficoPosiciones } from './graficos.js?v=56';
 import { S, llamar, esc, plural, signo, ordinal, enumerar, porId, fecha, insignia, GRADOS, marco, cargando, pintar,
-  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=54';
-import { portada } from './expediente.js?v=54';
-import { gen, tituloPremio, medallaPremio } from './genero.js?v=54';
+  registrar, accion, alEntrar, pedirFotos, ir, tinte } from './base.js?v=56';
+import { portada } from './expediente.js?v=56';
+import { gen, tituloPremio, medallaPremio } from './genero.js?v=56';
 
 const CORTO = { rebelde: 'El más rebelde', borrego: 'El más borrego', tardon: 'El más tardón', adivino: 'El adivino' };
 function detalle(p) {
@@ -79,7 +79,7 @@ function pestanaGuerras() {
     }
     return `<li class="abierta">${hito}<section class="col g12"><div class="fila entre" style="align-items:baseline"><h2 class="bc" style="font-weight:800;font-size:26px;color:#fff">${esc(c.nombre + (c.campo ? ' · ' + c.campo : ''))}</h2><span class="peq t2">Exp. ${String(lista.length - k).padStart(3, '0')}</span></div>
       <p class="med t2" style="margin-top:-6px">${esc(c.pregunta)}</p>
-      ${campeon(c)}${(c.preguntas || []).length ? `<section class="caja"><h2 class="h2">Campeones por pregunta</h2>${c.preguntas.map((q) => `<p class="med"><span class="t2">${esc(q.texto)}</span><br><strong class="oro">${esc(nombre(G[q.id]))}</strong> · ${plural(q.pts, 'punto', 'puntos')}</p>`).join('')}</section>` : ''}<section class="caja">${parte(c)}${porraTexto(c) ? `<p class="med t2">${porraTexto(c)}</p>` : ''}</section>${tuGuerra(c)}</section></li>`;
+      ${campeon(c)}${c.evolucion ? `<section class="caja" data-sello="GRÁFICO"><h2 class="h2">Cómo fue la guerra</h2>${graficoPosiciones(c.evolucion, G, (yoEn(c) || {}).id)}</section>` : ''}${(c.preguntas || []).length ? `<section class="caja"><h2 class="h2">Campeones por pregunta</h2>${c.preguntas.map((q) => `<p class="med"><span class="t2">${esc(q.texto)}</span><br><strong class="oro">${esc(nombre(G[q.id]))}</strong> · ${plural(q.pts, 'punto', 'puntos')}</p>`).join('')}</section>` : ''}<section class="caja">${parte(c)}${porraTexto(c) ? `<p class="med t2">${porraTexto(c)}</p>` : ''}</section>${tuGuerra(c)}</section></li>`;
   }).join('')}</ol>`;
 }
 

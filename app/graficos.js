@@ -1,7 +1,7 @@
 // Datos convertidos en dibujos: la línea del frente, la fila de rezagados, el tira y afloja,
 // el anillo de victorias, la racha en casillas y la vitrina de medallas.
 // Las cifras siguen estando en el texto, para quien no vea el dibujo.
-import { esc } from './base.js?v=54';
+import { esc, S, accion } from './base.js?v=56';
 
 const TEAL = '#5ef0d0', ROSA = '#ff6ad5', ORO = '#ffd36a', VIOLETA = '#8f7bff';
 
@@ -117,4 +117,80 @@ export function mapaCampana(total, actual, hecha, etiqueta = (k) => 'Ofensiva ' 
     <svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%" height="36" aria-hidden="true">
       <path d="${linea(total)}" fill="none" stroke="#3a3566" stroke-width="2" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>
       <path d="${linea(Math.max(1, actual))}" fill="none" stroke="#5ef0d0" stroke-width="2.4" vector-effect="non-scaling-stroke" opacity=".7"/></svg>${hitos}</div>`;
+}
+
+// ---------------------------------------------------------------- carrera de posiciones
+// Barras que se reordenan ofensiva a ofensiva hasta la tabla final. «evo» viene del motor: [{ of, filas: [{ id, pos, pts }] }].
+// Se anima sola al pintarse (animarCarreras) y se puede repetir.
+const VIVOS = ['#ffd36a', '#5ef0d0', '#ff6ad5', '#8f7bff', '#7ad3ff', '#ff9d7a', '#b5f06a', '#f0a6ff'];
+export function carrera(evo, G, opts = {}) {
+  if (!evo || evo.length < 2) return '';
+  const ids = evo[evo.length - 1].filas.map((f) => f.id), max = Math.max(1, ...evo[evo.length - 1].filas.map((f) => f.pts));
+  const alto = 34, datos = esc(JSON.stringify(evo.map((c) => [c.of, c.filas.map((f) => [f.id, f.pos, f.pts])])));
+  const fin = {}; evo[evo.length - 1].filas.forEach((f) => { fin[f.id] = f; });
+  return `<section class="carrera" data-carrera="${datos}" data-max="${max}" data-clave="${esc(opts.clave || 'carrera')}" style="--filas:${ids.length};--alto:${alto}px">
+    <div class="fila entre" style="align-items:baseline"><h2 class="h2">${esc(opts.titulo || 'Así se ganó la guerra')}</h2>
+      <span class="carrera-of bc" aria-live="off">Ofensiva ${evo[evo.length - 1].of}</span></div>
+    <div class="carrera-pista" role="img" aria-label="Evolución de la clasificación ofensiva a ofensiva">${ids.map((id) => {
+      const g = G[id] || { nombre: '?' }, f = fin[id], color = VIVOS[ids.indexOf(id) % VIVOS.length];
+      return `<div class="carrera-fila" data-id="${esc(id)}" style="transform:translateY(${(f.pos - 1) * alto}px)">
+        <span class="carrera-pos bc">${f.pos}</span>${avatarMini(g)}<span class="carrera-nom">${esc(g.nombre)}</span>
+        <span class="carrera-barra"><i style="width:${Math.max(3, 100 * f.pts / max)}%;background:${color}"></i></span><span class="carrera-pts bc">${f.pts}</span></div>`;
+    }).join('')}</div>
+    <button class="btn linea chico carrera-otra" data-a="repetirCarrera">Ver otra vez</button></section>`;
+}
+const avatarMini = (g) => `<span class="avatar" aria-hidden="true">${g.foto && S.fotos[g.foto] ? `<img src="${S.fotos[g.foto]}" alt="">` : esc(String(g.nombre || '?').charAt(0).toUpperCase())}</span>`;
+// Los repintados rehacen el HTML: la animación busca cada vez la carrera viva por su clave y recuerda las ya vistas.
+const vistas = new Set(), relojes = {};
+function reproducir(clave) {
+  const viva = () => document.querySelector(`.carrera[data-clave="${CSS.escape(clave)}"]`);
+  const sec0 = viva(); if (!sec0) return;
+  const evo = JSON.parse(sec0.dataset.carrera), max = Number(sec0.dataset.max) || 1, alto = 34;
+  const quieto = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  clearTimeout(relojes[clave]);
+  const pinta = (k) => {
+    const sec = viva(); if (!sec) return;
+    const [of, fs] = evo[k];
+    sec.querySelector('.carrera-of').textContent = 'Ofensiva ' + of + (k === evo.length - 1 ? ' · final' : '');
+    fs.forEach(([id, pos, pts]) => {
+      const el = sec.querySelector(`.carrera-fila[data-id="${CSS.escape(id)}"]`); if (!el) return;
+      el.style.transform = `translateY(${(pos - 1) * alto}px)`;
+      el.querySelector('.carrera-pos').textContent = pos;
+      el.querySelector('.carrera-pts').textContent = pts;
+      el.querySelector('.carrera-barra i').style.width = Math.max(3, 100 * pts / max) + '%';
+      el.classList.toggle('lider', pos === 1);
+    });
+    sec.classList.toggle('corriendo', k < evo.length - 1);
+    if (k < evo.length - 1) relojes[clave] = setTimeout(() => pinta(k + 1), k === 0 ? 1100 : 1300);
+  };
+  pinta(quieto ? evo.length - 1 : 0);
+}
+// Arranca, una sola vez, las carreras que aparecen en pantalla. Al repintar, la que ya se vio se queda en la tabla final.
+export function animarCarreras(raiz = document) {
+  raiz.querySelectorAll('.carrera[data-carrera]').forEach((sec) => {
+    const clave = sec.dataset.clave;
+    if (vistas.has(clave)) return;
+    vistas.add(clave);
+    setTimeout(() => reproducir(clave), 500);
+  });
+}
+accion('repetirCarrera', (v, el) => { const sec = el.closest('.carrera'); if (sec) reproducir(sec.dataset.clave); });
+
+// ---------------------------------------------------------------- gráfico de posiciones (estático)
+// Una línea por combatiente: su puesto tras cada ofensiva. Destacan el podio y, si se pasa, quien mira.
+export function graficoPosiciones(evo, G, yoId) {
+  if (!evo || evo.length < 2) return '';
+  const n = evo[evo.length - 1].filas.length, W = 640, H = Math.max(180, 26 * n + 40), x0 = 34, x1 = W - 150, y0 = 20, paso = (H - 40) / Math.max(1, n - 1);
+  const X = (k) => x0 + (x1 - x0) * k / (evo.length - 1), Y = (pos) => y0 + (pos - 1) * paso;
+  const fin = evo[evo.length - 1].filas, color = (f) => (f.id === yoId ? '#0f7a63' : f.pos === 1 ? '#b8860b' : f.pos === 2 ? '#6e6e78' : f.pos === 3 ? '#a0522d' : '#c4b896');   // tinta sobre el papel del expediente
+  const lineas = fin.slice().reverse().map((f) => {
+    const pts = evo.map((c, k) => { const q = c.filas.find((z) => z.id === f.id); return q ? `${X(k).toFixed(1)},${Y(q.pos).toFixed(1)}` : null; }).filter(Boolean).join(' ');
+    const fuerte = f.pos <= 3 || f.id === yoId;
+    return `<polyline points="${pts}" fill="none" stroke="${color(f)}" stroke-width="${fuerte ? 3.2 : 1.6}" stroke-linejoin="round" stroke-linecap="round" opacity="${fuerte ? 1 : .7}"/>
+      <circle cx="${X(evo.length - 1)}" cy="${Y(f.pos)}" r="${fuerte ? 4.5 : 3}" fill="${color(f)}"/>
+      <text x="${x1 + 12}" y="${Y(f.pos) + 4}" font-size="13" fill="${fuerte ? color(f) : '#6b5d43'}" font-family="'Courier New', monospace" font-weight="${fuerte ? 700 : 400}">${f.pos}. ${esc((G[f.id] || {}).nombre || '?')}</text>`;
+  }).join('');
+  const ejes = evo.map((c, k) => `<text x="${X(k)}" y="${H - 4}" font-size="11" fill="#6b5d43" font-family="'Courier New', monospace" text-anchor="middle">${c.of}</text>`).join('');
+  return `<figure class="grafico-posiciones"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Puesto de cada combatiente tras cada ofensiva">${lineas}${ejes}</svg>
+    <figcaption class="peq t2">Puesto tras cada ofensiva (1 arriba). El podio final, en oro, plata y bronce${yoId ? '; en verde, tú' : ''}. Abajo, el número de ofensiva.</figcaption></figure>`;
 }

@@ -316,6 +316,23 @@ function clasificar(doc, rec) {
   return { tabla: tabla, empate: empate };
 }
 
+// Evolución de la clasificación, ofensiva a ofensiva (para la carrera del desfile y el gráfico de posiciones).
+// Sólo en liga. El último fotograma es la tabla final (ya con el duelo, si lo hubo).
+function evolucion(doc, tabla) {
+  if (esTorneo(doc) || !doc.batallas || !doc.batallas.length) return null;
+  var ofs = [];
+  doc.batallas.forEach(function (b) { if (ofs.indexOf(b.of) < 0) ofs.push(b.of); });
+  ofs.sort(function (x, y) { return x - y; });
+  var cuadros = ofs.map(function (k) {
+    var parcial = Object.create(doc);
+    parcial.batallas = doc.batallas.filter(function (b) { return b.of <= k; });
+    var cl = clasificar(parcial, recuento(parcial));
+    return { of: k, filas: cl.tabla.map(function (f) { return { id: f.id, pos: f.pos, pts: f.pts }; }) };
+  });
+  if (tabla && cuadros.length) cuadros[cuadros.length - 1].filas = tabla.map(function (f) { return { id: f.id, pos: f.pos, pts: f.pts }; });
+  return cuadros;
+}
+
 // Parejas: duelo doméstico, sincronía (cuánto votaron igual), lealtad (cuántas veces votó cada uno a su pareja
 // cuando ésta combatía con otro) y porra cruzada (qué puesto le dio cada uno a su pareja). Sólo lo de los extras activos.
 function parejasDe(doc, rec, tabla) {
@@ -493,6 +510,7 @@ function calcular(doc) {
   };
   if (res.apuestas.length && res.apuestas[0].n > 0) res.premios.adivino = { id: res.apuestas[0].id, n: res.apuestas[0].n, de: res.apuestas[0].de };
   if (doc.duelo && doc.duelo.cerrado) aplicarDuelo(doc, res);
+  res.evolucion = evolucion(doc, res.tabla);
   return res;
 }
 
@@ -798,6 +816,12 @@ function expedienteCorreo(doc, cuerpo, pie, o) {
     '<p style="margin:22px 0 0;text-align:center;font-family:\'Barlow Condensed\',\'Arial Narrow\',Arial,sans-serif;font-weight:800;text-transform:uppercase;font-size:18px;letter-spacing:2px;color:#ffffff">¡Sólo puede quedar uno!</p>' +
     '</div>';
 }
+// Una línea para ponerse el juego en la pantalla de inicio del móvil (va en la orden de movilización y en la primera ofensiva).
+function consejoApp() {
+  return '<p style="margin:14px 0 0;padding:10px 12px;border:1px dashed #b9ad8f;font-size:14px;line-height:1.5;color:#3b2f1c">' +
+    '<strong>Truco:</strong> abre el botón desde el móvil y, en el navegador, elige «Añadir a pantalla de inicio». ' +
+    'Tendrás la guerra con su icono, como una app, sin buscar este correo.</p>';
+}
 function marcoCorreo(doc, cuerpo, pie, o) {
   o = o || {};
   if (o.expediente) return expedienteCorreo(doc, cuerpo, pie, o);
@@ -998,7 +1022,7 @@ function crearMotor(env) {
           para: g.correo, nombre: nombreMando(doc), asunto: doc.nombre + ': se abre la ofensiva ' + n + ' de ' + total,
           html: marcoCorreo(doc, '<p style="margin:0 0 14px;font-size:19px;font-weight:bold">' + esc(g.nombre) + ', hay batallas nuevas.</p>' +
             '<p style="margin:0 0 14px;color:#cdc8e6">Se ha abierto la ofensiva ' + n + ' de ' + total + '. Tienes ' + plural(debe, 'batalla', 'batallas') + ' por votar' + (n < total ? '; mañana a las ' + HORA_OFENSIVA + ':00, la siguiente.' : ': es la última ofensiva.') + '</p>' +
-            botonCorreo(enlacePersonal(g), 'A las trincheras') + pieFirma(doc, true),
+            botonCorreo(enlacePersonal(g), 'A las trincheras') + (n === 2 ? consejoApp() : '') + pieFirma(doc, true),
             'Recibirás un aviso cada día mientras se abran ofensivas.', { expediente: true, fecha: ahora(), pestana: 'Parte de ofensiva', negociado: 'NEGOCIADO DE OPERACIONES', sello: n < total ? 'Ofensiva ' + n : 'Última ofensiva', sello2: plural(debe, 'batalla', 'batallas'), titulo: 'Ofensiva ' + n + ' de ' + total }),
           texto: g.nombre + ', se ha abierto la ofensiva ' + n + ' de ' + total + '. A votar: ' + enlacePersonal(g)
         });
@@ -1110,6 +1134,7 @@ function crearMotor(env) {
         if (c && d.resultado && (!c.batallas || (c.batallas[0] && c.batallas[0].length < 5))) c.batallas = marcadores(d.resultado);
         if (c && !c.listaPreguntas) c.listaPreguntas = preguntas(d);
         if (c && c.gente) { var vivos = porId(d.gente); c.gente.forEach(function (x) { x.sexo = sexoDe(vivos[x.id] || x); }); }
+        if (c && d.resultado) c.evolucion = evolucion(d, d.resultado.tabla);
         return c;
       }).filter(Boolean)
       .sort(function (x, y) { return y.fecha - x.fecha; });
@@ -1182,6 +1207,7 @@ function crearMotor(env) {
     return {
       tabla: r.tabla, batallas: r.batallas, desertores: r.desertores, indultados: r.indultados,
       porra: r.porra, premios: r.premios, curiosidades: r.curiosidades, empate: r.empate, duelo: r.duelo || null, apuestas: r.apuestas || [], preguntas: r.preguntas || [], parejas: r.parejas || null,
+      evolucion: evolucion(doc, r.tabla),
       proclamas: (doc.estrellas || []).map(function (ref) { return proclamaDe(doc, ref); }).filter(Boolean)
     };
   }
@@ -1246,7 +1272,8 @@ function crearMotor(env) {
       var ord = doc.orden || [];
       actual.entre = [fila[1].id, fila[2].id].sort(function (x, y) { return ord.indexOf(x) - ord.indexOf(y); });   // orden del sorteo: no delata a nadie
     } else if (paso.t === 'campeon') {
-      Object.assign(actual, { frase: narrador[fila[1].id] || '', fraseSegundo: fila[2] ? narrador[fila[2].id] || '' : '', fila: fila[1], segundo: fila[2] || null, porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null } });
+      Object.assign(actual, { frase: narrador[fila[1].id] || '', fraseSegundo: fila[2] ? narrador[fila[2].id] || '' : '', fila: fila[1], segundo: fila[2] || null, porra: { gana: r.porra.gana, suma: r.porra.lista.length ? r.porra.lista[0].suma : null },
+        evolucion: evolucion(doc, r.tabla) });
     }
     var sig = df.pasos[df.paso + 1] || null;
     return {
@@ -1841,7 +1868,7 @@ function crearMotor(env) {
         ? 'La primera ofensiva ya está abierta; cada mañana a las ' + HORA_OFENSIVA + ':00 se abre otra y te avisamos.'
         : 'Todas abiertas ya: vota a tu ritmo.') + '</p>' +
       (doc.llamamiento && doc.llamamiento.activo ? '' : '<p style="margin:0 0 8px;font-weight:bold;color:#5ef0d0">Así es esta guerra</p>' + listaCorreo(resumenJuego(doc), urlApp())) +
-      botonCorreo(enlace, 'Entrar a la guerra') + parrafos(c.remate) + pieFirma(doc, true);
+      botonCorreo(enlace, 'Entrar a la guerra') + consejoApp() + parrafos(c.remate) + pieFirma(doc, true);
     var extras = ['las ordenanzas'].concat(doc.extras.porra ? ['la porra'] : []).concat(['las crónicas']);
     return {
       para: g.correo, nombre: nombreMando(doc), asunto: c.asunto || '¡Comienza la ' + doc.nombre + '!',

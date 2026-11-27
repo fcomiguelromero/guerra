@@ -151,6 +151,16 @@ const quieto = async (p) => { await p.waitForLoadState('networkidle'); await p.w
       const a = est.desfile.actual;
       if (a.t === 'puesto' && a.guino && !vistoGuino) { vistoGuino = true; await vis.reload(); await quieto(vis); await foto(vis, '08-guino', true); }
       if (a.t === 'parejas') { await vis.reload(); await quieto(vis); await foto(vis, '09-desfile-parejas', true); }
+      if (a.t === 'campeon') {
+        await vis.reload(); await quieto(vis);
+        await vis.waitForSelector('.carrera .carrera-fila');
+        await vis.locator('.carrera').scrollIntoViewIfNeeded();
+        await vis.waitForTimeout(2200); await foto(vis, '09b-carrera-en-marcha');
+        await vis.waitForFunction(() => !document.querySelector('.carrera.corriendo'), null, { timeout: 30000 });
+        await vis.waitForTimeout(1000); await foto(vis, '09c-carrera-final');
+        const orden = await vis.evaluate(() => [...document.querySelectorAll('.carrera-fila')].sort((x, y) => x.getBoundingClientRect().top - y.getBoundingClientRect().top).map((el) => el.dataset.id));
+        assert.deepStrictEqual(orden, a.evolucion[a.evolucion.length - 1].filas.map((f) => f.id), 'la carrera acaba en la clasificación final');
+      }
       if (est.desfile.ultimo) break;
       if (a.t === 'duelo') await api('desfile', { mando: 'mando-local', token: tok['Fran'], orden: 'cerrarDuelo' }).catch(() => {});
       await api('desfile', { mando: 'mando-local', token: tok['Fran'], orden: 'siguiente' });
